@@ -4,11 +4,15 @@ Built 2026-10-04 from the decided 14-point consensus (Claude v2 plan as commerci
 
 Conventions: `{{PLACEHOLDER}}` = fact only Aryan can supply (never fabricated). `[VERIFY LIVE]` = check on the live Upwork account/UI before acting. `[ASSUMPTION]` = planning target, not a forecast. Marketplace counts are attributed as "snapshot of 2026-10-04". Live state, logs and client data live **outside** this repo (`%USERPROFILE%\upwork_engine\`).
 
+## Machine-readable tracker
+`ARYAN_IMPLEMENTATION_PLAN.xml` is the single navigation and tracking document for executing this package: 73 tasks across phases P1–P6 (each with owner, day, tool, reference, acceptance criteria, rollback, `status` attribute), gates G0–G6, the offer ladder, the 7 campaigns, the scoring model, skills/runbooks, a `verify_live_registry` (35 items, `verified="false"` until checked) and a `placeholders_registry` (16 items). Update the `status`/`verified` attributes as work proceeds; validate with `[xml](Get-Content -Raw ARYAN_IMPLEMENTATION_PLAN.xml)` after edits.
+
 ## Read in this order
 
 | File | What it is | Read when |
 |---|---|---|
 | `00_README.md` | This map | first |
+| `ARYAN_IMPLEMENTATION_PLAN.xml` | Machine-readable plan map and living tracker | first; update continuously |
 | `02_MASTER_IMPLEMENTATION_PLAN.md` | Day 1–30 daily, Day 31–90 weekly; owners (Aryan vs agent), tools (UI vs MCP), acceptance criteria, rollback, gates G0–G6 | Day 0, then every Sunday |
 | `03_PROFILE_AND_STOREFRONT.md` | Paste-ready title (+2 alternates), overview, claims-hygiene checklist, skills order, rate, availability/consultation settings, 3 case-study templates, 2-minute video script, 3 Project Catalog listings in full, removal list | Day 2–5 |
 | `04_OFFER_LADDER_AND_PRICING.md` | L1 consultation → L2 Sprint → L3 Audit → L4 Implementation → L5 Care Plan; pricing rules for proposals; fixed-price economics; rate gates | before any quote |

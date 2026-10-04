@@ -1,0 +1,1163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ARYAN_IMPLEMENTATION_PLAN.xml
+  Machine-readable map and living tracker for the package in aryan_implementation/.
+  Update status="todo|in_progress|done|blocked" on tasks and verified="true|false" on registry items as work proceeds.
+  Conventions: {{PLACEHOLDER}} = fact only Aryan can supply; VERIFY LIVE = confirm on the live Upwork account before acting;
+  marketplace counts are a snapshot of 2026-10-04. Live state, logs and client data stay outside the repo.
+-->
+<implementation_plan profile="Aryan" version="1.0" created="2026-10-04" strategy_base="Claude v2 + Upwork MCP + Gemini long-term" status="todo">
+
+  <summary>
+    <positioning>I help businesses turn Claude, AI agents and automation into reliable business workflows.</positioning>
+    <title primary="AI Automation &amp; Claude Implementation | Agents, n8n &amp; Integrations" chars="66" alt_a="Claude AI Implementation | Claude Code, MCP, AI Agents &amp; n8n" alt_b="AI Systems &amp; Automation | Claude, AI Agents, n8n, RAG &amp; MCP"/>
+    <rate_ladder unit="USD/hr">
+      <step order="0" rate="65" gate="G0" note="Day 1 sticker; visibility rate, economics come from fixed-price packages"/>
+      <step order="1" rate="80" gate="G3" note="3 completed contracts at 4.8+ and 2 case studies and JSS 100%"/>
+      <step order="2" rate="95" gate="G4" note="3 more completed, 1 Care Plan active, 3 case studies, demo video live"/>
+      <step order="3" rate="120+" gate="G6" note="Premium ascent criteria (10_PREMIUM_ASCENT.md)"/>
+    </rate_ladder>
+    <offer_ladder_summary>L1 consultation $75/30min; L2 Setup Sprint $299/$599/$1,200; L3 Audit $750/$1,500; L4 Implementation $3,000–$7,500 in 3 milestones; L5 Care Plan $1,000/$1,500/$2,500 per month.</offer_ladder_summary>
+    <baseline snapshot="2026-10-04">Top Rated; JSS 100%; $20K+ earned; 35 jobs; 395 hours; listed $120/hr vs visible $3–30/hr history; $2,172 in last 12 months; 0 proposals in 7 days; 0 profile views in 7 days; availability badge off; 110 Connects; 1 open invitation (2026-08-31); catalog = 2 OpenClaw + AI Launchpad Blueprint.</baseline>
+    <non_negotiables>
+      <rule id="NN1">Human approval before any proposal submission (two explicit confirmations: submit, then confirm after preview).</rule>
+      <rule id="NN2">Never auto-buy Connects; never boost above 10 Connects; never auto-reply to clients; never accept offers automatically.</rule>
+      <rule id="NN3">No fabricated credentials, client names or results; placeholders and VERIFY LIVE tags instead.</rule>
+      <rule id="NN4">Claims hygiene: no "8 years", no GxP/HIPAA/compliance absolutes, no "enterprise-grade", no guarantees.</rule>
+      <rule id="NN5">OpenClaw is never in the storefront; MCP is a keyword, not the headline.</rule>
+      <rule id="NN6">The MCP engine is never mentioned in client-facing text as Upwork automation.</rule>
+      <rule id="NN7">State, logs and client data live outside the repo (%USERPROFILE%\upwork_engine\).</rule>
+      <rule id="NN8">Every MCP call logged with input parameters and execution state; comprehensive try/except with classified incidents.</rule>
+      <rule id="NN9">Deterministic rules live in versioned config (campaigns.json, scoring.json); agents never edit them at run time.</rule>
+      <rule id="NN10">Reassess after 20–30 qualified proposals; one experiment at a time; one scoring block re-weighted per month.</rule>
+    </non_negotiables>
+  </summary>
+
+  <sources>
+    <source path="UPWORK_OVERHAUL_PLAN_v2_by_claude.xml" role="master strategy; profile facts; market snapshot 2026-10-04"/>
+    <source path="UPWORK_OVERHAUL_PLAN_by_claude.xml" role="superseded v1"/>
+    <source path="upwork_strategy_overhaul_by_Gemini.xml" role="Enterprise AI Architect destination; milestone safeguards"/>
+    <source path="UPWORK_MCP_DOCUMENTATION.md" role="MCP tool catalog (claims 51 tools)"/>
+    <source path="UPWORK_MCP_DOCUMENTATION.xml" role="MCP tool schemas (lists 48 tools)"/>
+    <source path="Upwork_plan_comparitive_analysis_chat_gpt_think.xml" role="reviewer: 3 excellent/day, consultation $75–100"/>
+    <source path="Upwork_plan_comparitive_analysis_claude_opus_5_5_medium.xml" role="reviewer: title length, idle contracts, rate 65–75, MCP doc inaccuracies"/>
+    <source path="Upwork_plan_comparitive_analysis_gemini_flash.xml" role="reviewer"/>
+    <source path="Upwork_plan_comparitive_analysis_gpt_5_6_sol_medium.xml" role="reviewer: weighted scoring, smart_search param mismatch, title"/>
+    <source path="Upwork_plan_comparitive_analysis_grok4_7_high.xml" role="reviewer"/>
+    <source path="Upwork_plan_comparitive_analysis_Muse_spark_1_3_high.xml" role="reviewer"/>
+    <source path="UPWORK_STRATEGY_ANALYSIS_AND_MASTER_ACTION_PLAN.md" role="synthesis"/>
+    <source path="upwork_plan_consensus.html" role="six-reviewer consensus (14 points)"/>
+    <source path="Upwork Analysis Agent Data/" role="reference autopilot export (Patrick H.): README, ARCHITECTURE, NOTION_SCHEMA, agent_instructions, skills_and_knowledge, databases, applied letters"/>
+    <source path="project_development_logs.md" role="decision history"/>
+  </sources>
+
+  <package_map root="aryan_implementation/">
+    <file path="00_README.md" purpose="Map, reading order, ten-line plan, skill install, non-negotiables" phases="P1 P2 P3 P4 P5 P6"/>
+    <file path="ARYAN_IMPLEMENTATION_PLAN.xml" purpose="This machine-readable plan map and living tracker" phases="P1 P2 P3 P4 P5 P6"/>
+    <file path="01_REFERENCE_IMPLEMENTATION_ANALYSIS.md" purpose="Analysis of the reference autopilot: architecture, data model, state machine, empirical results, ADOPT/ADAPT/REJECT" phases="P4 P5"/>
+    <file path="02_MASTER_IMPLEMENTATION_PLAN.md" purpose="Day 1–30 daily, Day 31–90 weekly, owners, tools, acceptance, rollback, gates" phases="P1 P2 P3 P4 P5 P6"/>
+    <file path="03_PROFILE_AND_STOREFRONT.md" purpose="Title, overview, claims hygiene, skills, rate, badge/consultation, case-study templates, video script, catalog listings, removals" phases="P1 P2"/>
+    <file path="04_OFFER_LADDER_AND_PRICING.md" purpose="L1–L5 offers, proposal pricing rules, fixed-price economics, rate gates" phases="P1 P4 P6"/>
+    <file path="05_PAST_CLIENT_REACTIVATION.md" purpose="Segments, sequence, message templates, offers, tracker, success criteria" phases="P3"/>
+    <file path="06_LEAD_SCORING_RUBRIC.md" purpose="Hard disqualifiers, weighted score, thresholds, Connects rules, worked examples, calibration" phases="P4 P5"/>
+    <file path="07_PROPOSAL_SYSTEM.md" purpose="Master prompt, structure, proof matching, rules, review checklist, 5 example proposals" phases="P4"/>
+    <file path="08_MCP_ACQUISITION_ENGINE.md" purpose="Pipeline, MCP tool per step, state schema, campaigns, cadence, dedup, logging wrapper, rebake" phases="P4 P5"/>
+    <file path="09_FUNNEL_METRICS_AND_EXPERIMENTS.md" purpose="Funnel, KPIs, reassessment gate, experiments, reviews" phases="P5"/>
+    <file path="10_PREMIUM_ASCENT.md" purpose="Entry criteria, premium storefront, Revedor handoff" phases="P6"/>
+    <file path="skills/upwork-hunt/SKILL.md" purpose="Discovery via find_jobs" phases="P4"/>
+    <file path="skills/upwork-vet/SKILL.md" purpose="Weighted scoring, conflicts, caps" phases="P4 P5"/>
+    <file path="skills/upwork-proposal-draft/SKILL.md" purpose="Draft letters with self-check" phases="P4"/>
+    <file path="skills/upwork-human-review-submit/SKILL.md" purpose="Review queue and two-step submit" phases="P4"/>
+    <file path="skills/upwork-rebake-analytics/SKILL.md" purpose="Nightly outcomes, ledger, metrics, digest" phases="P4 P5"/>
+    <file path="skills/upwork-campaign-editor/SKILL.md" purpose="Versioned edits to campaigns/scoring" phases="P4 P5"/>
+    <file path="skills/upwork-state-and-debugging/SKILL.md" purpose="State repair, incidents, kill switch, connector check" phases="P4"/>
+    <file path="skills/aryan-profile-facts/SKILL.md" purpose="Single source of truth for claims, proof inventory, never-claim list" phases="P1 P2 P4"/>
+    <file path="skills/past-client-reactivation/SKILL.md" purpose="Prepare and track reactivation" phases="P3"/>
+    <file path="agent_instructions/combined_pass.md" purpose="Hunt→Vet→Draft→Review queue runbook" phases="P4"/>
+    <file path="agent_instructions/evening_rebake.md" purpose="22:30 IST rebake runbook" phases="P4 P5"/>
+    <file path="agent_instructions/human_in_the_loop.md" purpose="Who may do what" phases="P4"/>
+    <file path="templates/jobs.schema.json" purpose="Job record schema" phases="P4"/>
+    <file path="templates/jobs.csv" purpose="Flat job header" phases="P4"/>
+    <file path="templates/state.schema.json" purpose="Singleton state schema" phases="P4"/>
+    <file path="templates/campaigns.schema.json" purpose="Campaign config schema" phases="P4"/>
+    <file path="templates/campaigns.example.json" purpose="Seed campaigns v1.0.0" phases="P4"/>
+    <file path="templates/scoring.example.json" purpose="Seed scoring v1.0" phases="P4"/>
+    <file path="templates/lead_score_worksheet.csv" purpose="Calibration worksheet" phases="P4 P5"/>
+    <file path="templates/proposal_review_checklist.md" purpose="Per-draft review checklist" phases="P4"/>
+    <file path="templates/reactivation_tracker.csv" purpose="Reactivation tracker seed" phases="P3"/>
+    <file path="templates/weekly_funnel_review.md" purpose="Sunday review template" phases="P5"/>
+  </package_map>
+
+  <phases>
+
+    <!-- ===================== P1 STOREFRONT REBUILD ===================== -->
+    <phase id="P1" name="Storefront rebuild" goal="Reposition the profile, rate, catalog and settings so search traffic lands on a coherent buyer-centric storefront" window="Day 0–24 (plus specialized profile B at Day 50–56)" status="todo">
+      <tasks>
+        <task id="P1-T01" status="todo" day="0" owner="aryan" priority="critical">
+          <title>Confirm decisions in writing</title>
+          <description>Aryan confirms the title, $65 rate, ladder prices and the never-auto-submit rule; decision recorded in project_development_logs.md.</description>
+          <prerequisites/>
+          <tool>project_development_logs.md</tool>
+          <reference doc="02_MASTER_IMPLEMENTATION_PLAN.md" section="0.5"/>
+          <acceptance_criteria>Decision entry exists in the log.</acceptance_criteria>
+          <verify_live required="false"/>
+          <rollback>None.</rollback>
+          <estimated_hours>0.5</estimated_hours>
+        </task>
+        <task id="P1-T02" status="todo" day="0" owner="aryan" priority="high">
+          <title>Decide Freelancer Plus renewal</title>
+          <description>Decide whether to renew Freelancer Plus (100 Connects/month plus visibility).</description>
+          <prerequisites/>
+          <tool>Upwork UI: Membership</tool>
+          <reference doc="02_MASTER_IMPLEMENTATION_PLAN.md" section="0.6"/>
+          <acceptance_criteria>Decision logged.</acceptance_criteria>
+          <verify_live required="true" registry_ref="VL-05">Current Freelancer Plus price and Connects allowance.</verify_live>
+          <rollback>Cancel membership.</rollback>
+          <estimated_hours>0.25</estimated_hours>
+        </task>
+        <task id="P1-T03" status="todo" day="1" owner="both" priority="critical">
+          <title>Live audit of exact profile numbers</title>
+          <description>Capture JSS, earnings, jobs, hours, Connects, badge, catalog, portfolio, invitation status and open contracts into skills/aryan-profile-facts.</description>
+          <prerequisites>P4-T01</prerequisites>
+          <tool>Upwork UI: Profile page; MCP get_profile(get), get_profile(connects_balance), get_freelancer_dashboard(check), list_contracts, list_freelancer_proposals(invitations)</tool>
+          <reference doc="skills/aryan-profile-facts/SKILL.md" section="1"/>
+          <acceptance_criteria>Facts file updated with date stamp; all VERIFY LIVE items in 03 resolved or listed.</acceptance_criteria>
+          <verify_live required="true" registry_ref="VL-20 VL-21 VL-22">Exact live numbers, displayed name, employment start.</verify_live>
+          <rollback>None.</rollback>
+          <estimated_hours>1.5</estimated_hours>
+        </task>
+        <task id="P1-T04" status="todo" day="2" owner="aryan" priority="critical">
+          <title>Profile rewrite: title, overview, skills, rate</title>
+          <description>Set primary title, paste the overview after passing the claims-hygiene checklist, reorder 15 skills tags (drop Systems Engineering and Gemini), set rate to $65.</description>
+          <prerequisites>P1-T03 P1-T01</prerequisites>
+          <tool>Upwork UI: Profile edit</tool>
+          <reference doc="03_PROFILE_AND_STOREFRONT.md" section="1, 2, 3, 3.1, 4"/>
+          <acceptance_criteria>Saved; screenshot stored outside repo; checklist all ticked.</acceptance_criteria>
+          <verify_live required="true" registry_ref="VL-01 VL-02 VL-03">Title char limit (~70), overview limit (5,000), skills slots (15) and taxonomy labels.</verify_live>
+          <rollback>Previous overview saved to %USERPROFILE%\upwork_engine\backup\profile_2026-10-04.md before edit; revert by paste; rate back to previous.</rollback>
+          <estimated_hours>2</estimated_hours>
+        </task>
+        <task id="P1-T05" status="todo" day="2" owner="aryan" priority="high">
+          <title>Availability badge ON; consultation $75/30 min</title>
+          <description>Turn on the availability badge as a 4-week experiment (E1) and set the paid consultation to $75 for 30 minutes with the Architecture Review description.</description>
+          <prerequisites>P1-T04</prerequisites>
+          <tool>Upwork UI: Profile settings; Consultations</tool>
+          <reference doc="03_PROFILE_AND_STOREFRONT.md" section="5"/>
+          <acceptance_criteria>Badge visible; consultation listing shows $75.</acceptance_criteria>
+          <verify_live required="true" registry_ref="VL-04 VL-06">Badge weekly Connects cost; consultation allowed durations/prices/fee.</verify_live>
+          <rollback>Toggle badge off; revert consultation price.</rollback>
+          <estimated_hours>0.5</estimated_hours>
+        </task>
+        <task id="P1-T06" status="todo" day="3" owner="aryan" priority="high">
+          <title>Unpublish OpenClaw catalog projects; decide AI Launchpad Blueprint</title>
+          <description>Unpublish OpenClaw Security Audit and OpenClaw Private Agent Deployment; rewrite AI Launchpad Blueprint as a customized-service listing or unpublish it.</description>
+          <prerequisites/>
+          <tool>Upwork UI: Project Catalog</tool>
+          <reference doc="03_PROFILE_AND_STOREFRONT.md" section="9"/>
+          <acceptance_criteria>0 OpenClaw listings live.</acceptance_criteria>
+          <verify_live required="true" registry_ref="VL-09">No open orders on the OpenClaw projects.</verify_live>
+          <rollback>Re-publish from drafts.</rollback>
+          <estimated_hours>0.5</estimated_hours>
+        </task>
+        <task id="P1-T07" status="todo" day="4" owner="aryan" priority="high">
+          <title>Catalog Listing 1: Claude / AI Workflow Setup Sprint</title>
+          <description>Create the three-tier Setup Sprint listing ($299/$599/$1,200) with description, tiers, requirements and FAQ; submit for review.</description>
+          <prerequisites>P1-T06</prerequisites>
+          <tool>Upwork UI: Project Catalog</tool>
+          <reference doc="03_PROFILE_AND_STOREFRONT.md" section="6.1"/>
+          <acceptance_criteria>Status "under review".</acceptance_criteria>
+          <verify_live required="true" registry_ref="VL-07 VL-08">Catalog title limit, category path, max price, review time.</verify_live>
+          <rollback>Unpublish.</rollback>
+          <estimated_hours>1.5</estimated_hours>
+        </task>
+        <task id="P1-T08" status="todo" day="5" owner="aryan" priority="high">
+          <title>Catalog Listing 2: AI Operations &amp; Automation Audit</title>
+          <description>Create the two-tier Audit listing ($750/$1,500) with description, tiers, requirements and FAQ; submit for review.</description>
+          <prerequisites>P1-T06</prerequisites>
+          <tool>Upwork UI: Project Catalog</tool>
+          <reference doc="03_PROFILE_AND_STOREFRONT.md" section="6.2"/>
+          <acceptance_criteria>Under review.</acceptance_criteria>
+          <verify_live required="true" registry_ref="VL-07 VL-08">Catalog limits.</verify_live>
+          <rollback>Unpublish.</rollback>
+          <estimated_hours>1</estimated_hours>
+        </task>
+        <task id="P1-T09" status="todo" day="10" owner="aryan" priority="medium">
+          <title>Catalog listings approved; fix review notes</title>
+          <description>Check review status of Listings 1 and 2; address any reviewer notes.</description>
+          <prerequisites>P1-T07 P1-T08</prerequisites>
+          <tool>Upwork UI: Project Catalog</tool>
+          <reference doc="02_MASTER_IMPLEMENTATION_PLAN.md" section="1 (Day 10)"/>
+          <acceptance_criteria>Both listings live.</acceptance_criteria>
+          <verify_live required="false"/>
+          <rollback>None.</rollback>
+          <estimated_hours>0.5</estimated_hours>
+        </task>
+        <task id="P1-T10" status="todo" day="13" owner="both" priority="low">
+          <title>Write Listing 3 text (Done-For-You Implementation, next-step offer)</title>
+          <description>Draft the custom-quote implementation listing text; publish only if catalog price caps allow, otherwise keep as proposal/message offer.</description>
+          <prerequisites>P1-T09</prerequisites>
+          <tool>Upwork UI: Project Catalog</tool>
+          <reference doc="03_PROFILE_AND_STOREFRONT.md" section="6.3"/>
+          <acceptance_criteria>Draft complete.</acceptance_criteria>
+          <verify_live required="true" registry_ref="VL-08">Max catalog price.</verify_live>
+          <rollback>Do not publish.</rollback>
+          <estimated_hours>0.75</estimated_hours>
+        </task>
+        <task id="P1-T11" status="todo" day="19" owner="both" priority="medium">
+          <title>Draft Specialized profile A: AI Agent &amp; Automation Development</title>
+          <description>Build-heavy specialized profile (agents, RAG, n8n, API, scraping).</description>
+          <prerequisites>P1-T04</prerequisites>
+          <tool>Upwork UI: Specialized profiles</tool>
+          <reference doc="03_PROFILE_AND_STOREFRONT.md" section="5"/>
+          <acceptance_criteria>Draft saved.</acceptance_criteria>
+          <verify_live required="true" registry_ref="VL-10">Specialized-profile limits.</verify_live>
+          <rollback>Delete draft.</rollback>
+          <estimated_hours>1</estimated_hours>
+        </task>
+        <task id="P1-T12" status="todo" day="24" owner="aryan" priority="medium">
+          <title>Publish Specialized profile A</title>
+          <description>Publish the specialized profile drafted on Day 19.</description>
+          <prerequisites>P1-T11</prerequisites>
+          <tool>Upwork UI: Specialized profiles</tool>
+          <reference doc="02_MASTER_IMPLEMENTATION_PLAN.md" section="1 (Day 24)"/>
+          <acceptance_criteria>Live.</acceptance_criteria>
+          <verify_live required="false"/>
+          <rollback>Unpublish.</rollback>
+          <estimated_hours>0.25</estimated_hours>
+        </task>
+        <task id="P1-T13" status="todo" day="50-56" owner="both" priority="low">
+          <title>Specialized profile B: AI Training &amp; Coaching (conditional)</title>
+          <description>Publish only if training-cluster posts show at least 10% reply rate by Week 8.</description>
+          <prerequisites>P5-T05</prerequisites>
+          <tool>Upwork UI: Specialized profiles</tool>
+          <reference doc="02_MASTER_IMPLEMENTATION_PLAN.md" section="2 (Week 8)"/>
+          <acceptance_criteria>Live or explicitly dropped.</acceptance_criteria>
+          <verify_live required="true" registry_ref="VL-10">Specialized-profile limits.</verify_live>
+          <rollback>Unpublish.</rollback>
+          <estimated_hours>1</estimated_hours>
+        </task>
+      </tasks>
+    </phase>
+
+    <!-- ===================== P2 PROOF MACHINE ===================== -->
+    <phase id="P2" name="Proof machine" goal="Three case studies, a 2-minute demo video and delivery discipline that turns every contract into proof" window="Day 0–70" status="todo">
+      <tasks>
+        <task id="P2-T01" status="todo" day="0" owner="aryan" priority="critical">
+          <title>Fill aryan-profile-facts (proof inventory, permissions, numbers)</title>
+          <description>Replace every {{}} in sections 1–4 of the facts skill; set permission level per past contract and proof item; copy up to three verbatim client quotes.</description>
+          <prerequisites/>
+          <tool>skills/aryan-profile-facts/SKILL.md</tool>
+          <reference doc="skills/aryan-profile-facts/SKILL.md" section="1–4"/>
+          <acceptance_criteria>No {{}} left in sections 1–4; drafting skills no longer refuse.</acceptance_criteria>
+          <verify_live required="true" registry_ref="VL-20 VL-21 VL-22 VL-23">Numbers, names, contract count, permission to describe the enterprise client.</verify_live>
+          <rollback>None.</rollback>
+          <estimated_hours>2</estimated_hours>
+        </task>
+        <task id="P2-T02" status="todo" day="6" owner="aryan" priority="high">
+          <title>Record the 2-minute demo video</title>
+          <description>Screen-record the internal agent/MCP workflow following the storyboard; redact data; captions; under 2:10; no URLs on screen.</description>
+          <prerequisites>P2-T01</prerequisites>
+          <tool>Screen recorder</tool>
+          <reference doc="03_PROFILE_AND_STOREFRONT.md" section="8"/>
+          <acceptance_criteria>File under 2:10, redacted, captioned.</acceptance_criteria>
+          <verify_live required="false"/>
+          <rollback>None.</rollback>
+          <estimated_hours>3</estimated_hours>
+        </task>
+        <task id="P2-T03" status="todo" day="6" owner="both" priority="high">
+          <title>Write case study 2 (internal agent/MCP system, honestly labelled)</title>
+          <description>Use the case-study template; label as a technical sample built for Aryan's own company; architecture diagram; no invented client result.</description>
+          <prerequisites>P2-T01</prerequisites>
+          <tool>Upwork UI: Portfolio (draft offline first)</tool>
+          <reference doc="03_PROFILE_AND_STOREFRONT.md" section="7"/>
+          <acceptance_criteria>Draft text complete; diagram made.</acceptance_criteria>
+          <verify_live required="false"/>
+          <rollback>None.</rollback>
+          <estimated_hours>2</estimated_hours>
+        </task>
+        <task id="P2-T04" status="todo" day="7" owner="both" priority="high">
+          <title>Draft case studies 1 and 3 from real contracts</title>
+          <description>Case 1 = a shipped client workflow; Case 3 = the enterprise build or scraping/warehousing project; permission check for any client mention.</description>
+          <prerequisites>P2-T01</prerequisites>
+          <tool>Portfolio draft</tool>
+          <reference doc="03_PROFILE_AND_STOREFRONT.md" section="7"/>
+          <acceptance_criteria>Two drafts; assets listed.</acceptance_criteria>
+          <verify_live required="true" registry_ref="VL-23">Client permission / what is public in the contract title.</verify_live>
+          <rollback>None.</rollback>
+          <estimated_hours>3</estimated_hours>
+        </task>
+        <task id="P2-T05" status="todo" day="8" owner="aryan" priority="high">
+          <title>Publish case study 2 and video; attach video to Listing 1 gallery</title>
+          <description>Publish to portfolio; add the video to the Setup Sprint catalog gallery.</description>
+          <prerequisites>P2-T02 P2-T03 P1-T07</prerequisites>
+          <tool>Upwork UI: Portfolio; Project Catalog</tool>
+          <reference doc="02_MASTER_IMPLEMENTATION_PLAN.md" section="1 (Day 8)"/>
+          <acceptance_criteria>Live.</acceptance_criteria>
+          <verify_live required="false"/>
+          <rollback>Unpublish.</rollback>
+          <estimated_hours>0.75</estimated_hours>
+        </task>
+        <task id="P2-T06" status="todo" day="10" owner="aryan" priority="medium">
+          <title>Publish case studies 1 and 3</title>
+          <description>Publish if assets are ready; otherwise record a dated TODO.</description>
+          <prerequisites>P2-T04</prerequisites>
+          <tool>Upwork UI: Portfolio</tool>
+          <reference doc="02_MASTER_IMPLEMENTATION_PLAN.md" section="1 (Day 10)"/>
+          <acceptance_criteria>Live or dated TODO.</acceptance_criteria>
+          <verify_live required="false"/>
+          <rollback>Unpublish.</rollback>
+          <estimated_hours>1</estimated_hours>
+        </task>
+        <task id="P2-T07" status="todo" day="16" owner="aryan" priority="high">
+          <title>First consultation or Sprint sale: follow the delivery checklist</title>
+          <description>Milestone funded before work; kickoff recorded; Skills tested on buyer data; permissions documented; training recorded; handover PDF; review requested on completion day.</description>
+          <prerequisites>P1-T09</prerequisites>
+          <tool>Upwork UI: Contracts</tool>
+          <reference doc="04_OFFER_LADDER_AND_PRICING.md" section="2 (L2 delivery checklist)"/>
+          <acceptance_criteria>Milestone funded before any work starts.</acceptance_criteria>
+          <verify_live required="false"/>
+          <rollback>None.</rollback>
+          <estimated_hours>6</estimated_hours>
+        </task>
+        <task id="P2-T08" status="todo" day="20" owner="aryan" priority="medium">
+          <title>Deliver sold work or record a second short demo (RAG or n8n)</title>
+          <description>If nothing sold yet, build proof: a second short demo on a RAG or n8n workflow.</description>
+          <prerequisites>P2-T05</prerequisites>
+          <tool>Screen recorder</tool>
+          <reference doc="02_MASTER_IMPLEMENTATION_PLAN.md" section="1 (Day 20)"/>
+          <acceptance_criteria>Asset exists.</acceptance_criteria>
+          <verify_live required="false"/>
+          <rollback>None.</rollback>
+          <estimated_hours>3</estimated_hours>
+        </task>
+        <task id="P2-T09" status="todo" day="27" owner="both" priority="medium">
+          <title>Case-study refresh with newly completed work</title>
+          <description>Update portfolio items with any completed contract (with permission).</description>
+          <prerequisites>P2-T06</prerequisites>
+          <tool>Upwork UI: Portfolio</tool>
+          <reference doc="02_MASTER_IMPLEMENTATION_PLAN.md" section="1 (Day 27)"/>
+          <acceptance_criteria>Updated.</acceptance_criteria>
+          <verify_live required="false"/>
+          <rollback>None.</rollback>
+          <estimated_hours>1.5</estimated_hours>
+        </task>
+        <task id="P2-T10" status="todo" day="31-42" owner="aryan" priority="high">
+          <title>Deliver Sprints/Audits; convert at least one Audit to an L4 quote within 48 h of readout</title>
+          <description>The Audit roadmap table is the L4 proposal; send as fixed 3-milestone contract within 48 hours.</description>
+          <prerequisites>P2-T07</prerequisites>
+          <tool>Upwork UI: Contracts</tool>
+          <reference doc="04_OFFER_LADDER_AND_PRICING.md" section="5"/>
+          <acceptance_criteria>Quote sent as fixed 3-milestone contract.</acceptance_criteria>
+          <verify_live required="false"/>
+          <rollback>None.</rollback>
+          <estimated_hours>12</estimated_hours>
+        </task>
+        <task id="P2-T11" status="todo" day="36-42" owner="both" priority="high">
+          <title>Case study from first delivered Sprint/Audit; second video if needed</title>
+          <description>Portfolio reaches at least 3 real items.</description>
+          <prerequisites>P2-T07</prerequisites>
+          <tool>Upwork UI: Portfolio</tool>
+          <reference doc="02_MASTER_IMPLEMENTATION_PLAN.md" section="2 (Week 6)"/>
+          <acceptance_criteria>Portfolio has 3 or more real items.</acceptance_criteria>
+          <verify_live required="false"/>
+          <rollback>None.</rollback>
+          <estimated_hours>3</estimated_hours>
+        </task>
+        <task id="P2-T12" status="todo" day="61-70" owner="aryan" priority="high">
+          <title>L4 Implementation in delivery with milestone discipline</title>
+          <description>At least one Implementation underway; architecture milestone funded first; twice-weekly written updates.</description>
+          <prerequisites>P2-T10</prerequisites>
+          <tool>Upwork UI: Contracts; MCP list_milestones, submit_milestones</tool>
+          <reference doc="04_OFFER_LADDER_AND_PRICING.md" section="2 (L4)"/>
+          <acceptance_criteria>Milestone 1 accepted in writing.</acceptance_criteria>
+          <verify_live required="false"/>
+          <rollback>None.</rollback>
+          <estimated_hours>40</estimated_hours>
+        </task>
+      </tasks>
+    </phase>
+
+    <!-- ===================== P3 NETWORK REACTIVATION ===================== -->
+    <phase id="P3" name="Network reactivation" goal="Zero-Connects pipeline from warm past clients; first JSS-weighted job and review" window="Day 1–14 (retainer offers Week 7, Week 11)" status="todo">
+      <tasks>
+        <task id="P3-T01" status="todo" day="1" owner="aryan" priority="critical">
+          <title>Reply to the 2026-08-31 invitation (S5)</title>
+          <description>Accept to interview if hourly 65+ or fixed workshop 750+; otherwise decline politely with the template.</description>
+          <prerequisites/>
+          <tool>Upwork UI: Messages/Invitations; MCP list_freelancer_proposals(invitations)</tool>
+          <reference doc="05_PAST_CLIENT_REACTIVATION.md" section="1 (S5), 3 (S5)"/>
+          <acceptance_criteria>Invitation no longer pending.</acceptance_criteria>
+          <verify_live required="true" registry_ref="VL-24">Invitation still open?</verify_live>
+          <rollback>None.</rollback>
+          <estimated_hours>0.25</estimated_hours>
+        </task>
+        <task id="P3-T02" status="todo" day="1" owner="both" priority="critical">
+          <title>Build the reactivation tracker from the contracts list</title>
+          <description>Agent fills what list_contracts returns; Aryan completes names, rooms and ratings; segment S1–S4.</description>
+          <prerequisites>P4-T01</prerequisites>
+          <tool>MCP list_contracts; templates/reactivation_tracker.csv; skill past-client-reactivation</tool>
+          <reference doc="05_PAST_CLIENT_REACTIVATION.md" section="1, 5"/>
+          <acceptance_criteria>16 clients segmented S1–S4.</acceptance_criteria>
+          <verify_live required="true" registry_ref="VL-25 VL-26">list_contracts fields; client counts per segment.</verify_live>
+          <rollback>None.</rollback>
+          <estimated_hours>1</estimated_hours>
+        </task>
+        <task id="P3-T03" status="todo" day="2" owner="aryan" priority="critical">
+          <title>Send S1 message to the repeat enterprise client</title>
+          <description>Personal note; offer health check / Audit / Care Plan; propose a 20-minute catch-up.</description>
+          <prerequisites>P3-T02</prerequisites>
+          <tool>Upwork UI: Messages</tool>
+          <reference doc="05_PAST_CLIENT_REACTIVATION.md" section="3 (S1)"/>
+          <acceptance_criteria>Sent; logged in tracker.</acceptance_criteria>
+          <verify_live required="false"/>
+          <rollback>None.</rollback>
+          <estimated_hours>0.5</estimated_hours>
+        </task>
+        <task id="P3-T04" status="todo" day="3" owner="aryan" priority="high">
+          <title>Send S2 messages in the 5 idle open contracts</title>
+          <description>One per contract room, personalised with the system name; offer a small paid milestone; do not close contracts.</description>
+          <prerequisites>P3-T02</prerequisites>
+          <tool>Upwork UI: Contract rooms</tool>
+          <reference doc="05_PAST_CLIENT_REACTIVATION.md" section="3 (S2)"/>
+          <acceptance_criteria>5 sent, logged.</acceptance_criteria>
+          <verify_live required="false"/>
+          <rollback>None.</rollback>
+          <estimated_hours>1</estimated_hours>
+        </task>
+        <task id="P3-T05" status="todo" day="4" owner="aryan" priority="high">
+          <title>S3 messages, batch 1 (max 4)</title>
+          <description>Completed 5.0 clients from the last 24 months; one specific idea each.</description>
+          <prerequisites>P3-T02</prerequisites>
+          <tool>Upwork UI: Messages</tool>
+          <reference doc="05_PAST_CLIENT_REACTIVATION.md" section="3 (S3)"/>
+          <acceptance_criteria>Sent, logged.</acceptance_criteria>
+          <verify_live required="false"/>
+          <rollback>None.</rollback>
+          <estimated_hours>1</estimated_hours>
+        </task>
+        <task id="P3-T06" status="todo" day="5" owner="aryan" priority="high">
+          <title>S3 messages, batch 2</title>
+          <description>Remaining S3 clients.</description>
+          <prerequisites>P3-T05</prerequisites>
+          <tool>Upwork UI: Messages</tool>
+          <reference doc="05_PAST_CLIENT_REACTIVATION.md" section="2"/>
+          <acceptance_criteria>All S1–S3 messaged.</acceptance_criteria>
+          <verify_live required="false"/>
+          <rollback>None.</rollback>
+          <estimated_hours>1</estimated_hours>
+        </task>
+        <task id="P3-T07" status="todo" day="9" owner="aryan" priority="medium">
+          <title>One follow-up to non-responders</title>
+          <description>Different value (a Loom or a one-line idea); no third touch.</description>
+          <prerequisites>P3-T06</prerequisites>
+          <tool>Upwork UI: Messages</tool>
+          <reference doc="05_PAST_CLIENT_REACTIVATION.md" section="3 (Follow-up)"/>
+          <acceptance_criteria>Sent and logged.</acceptance_criteria>
+          <verify_live required="false"/>
+          <rollback>None.</rollback>
+          <estimated_hours>1</estimated_hours>
+        </task>
+        <task id="P3-T08" status="todo" day="14" owner="both" priority="high">
+          <title>Reactivation outcomes report (feeds G1)</title>
+          <description>Messaged / replied / calls / milestones / value; stop at Day 14.</description>
+          <prerequisites>P3-T07</prerequisites>
+          <tool>skill past-client-reactivation; templates/reactivation_tracker.csv</tool>
+          <reference doc="05_PAST_CLIENT_REACTIVATION.md" section="6"/>
+          <acceptance_criteria>At least 3 replies and 1 call booked targeted; results logged either way.</acceptance_criteria>
+          <verify_live required="true" registry_ref="VL-27">JSS treatment of milestones on existing contracts vs new contracts.</verify_live>
+          <rollback>None.</rollback>
+          <estimated_hours>0.5</estimated_hours>
+        </task>
+        <task id="P3-T09" status="todo" day="43-49" owner="aryan" priority="medium">
+          <title>Offer Care Plan Keep-alive to every completed client</title>
+          <description>Retainer seed: propose the $1,000/month tier at completion of each contract.</description>
+          <prerequisites>P2-T07</prerequisites>
+          <tool>Upwork UI: Messages / Contracts</tool>
+          <reference doc="04_OFFER_LADDER_AND_PRICING.md" section="2 (L5), 5"/>
+          <acceptance_criteria>At least 1 Care Plan proposal sent.</acceptance_criteria>
+          <verify_live required="true" registry_ref="VL-13">Recurring-payment options for monthly fixed milestones.</verify_live>
+          <rollback>None.</rollback>
+          <estimated_hours>1</estimated_hours>
+        </task>
+        <task id="P3-T10" status="todo" day="71-77" owner="aryan" priority="medium">
+          <title>First Care Plan live; monthly health report delivered</title>
+          <description>Retention rung active with the health-report template.</description>
+          <prerequisites>P3-T09</prerequisites>
+          <tool>Upwork UI: Contracts</tool>
+          <reference doc="02_MASTER_IMPLEMENTATION_PLAN.md" section="3 (Week 11)"/>
+          <acceptance_criteria>Contract active.</acceptance_criteria>
+          <verify_live required="false"/>
+          <rollback>None.</rollback>
+          <estimated_hours>4</estimated_hours>
+        </task>
+      </tasks>
+    </phase>
+
+    <!-- ===================== P4 MCP ACQUISITION ENGINE ===================== -->
+    <phase id="P4" name="MCP acquisition engine" goal="Human-gated Discover→Score→Draft→Review→Submit pipeline producing 3–5 excellent proposals per day with full audit logging" window="Day 0–70" status="todo">
+      <tasks>
+        <task id="P4-T01" status="todo" day="0" owner="both" priority="critical">
+          <title>Reconnect the Upwork MCP connector as Aryan</title>
+          <description>claude mcp add --transport http upwork https://mcp.upwork.com/mcp; re-authorise as Aryan; list_accounts must return Aryan's account (previous session was authorised as "Patrick H.").</description>
+          <prerequisites/>
+          <tool>MCP list_accounts</tool>
+          <reference doc="08_MCP_ACQUISITION_ENGINE.md" section="Non-negotiables 4"/>
+          <acceptance_criteria>Log line with Aryan's account name; no other account present.</acceptance_criteria>
+          <verify_live required="true" registry_ref="VL-28">Connector identity.</verify_live>
+          <rollback>Remove connector.</rollback>
+          <estimated_hours>0.5</estimated_hours>
+        </task>
+        <task id="P4-T02" status="todo" day="0" owner="agent" priority="high">
+          <title>Capture tools/list and tool count</title>
+          <description>Call tools/list and get_tool_help for find_jobs, manage_proposals, confirm_preview; record count (doc says 51, XML lists 48).</description>
+          <prerequisites>P4-T01</prerequisites>
+          <tool>MCP tools/list; get_tool_help</tool>
+          <reference doc="skills/upwork-state-and-debugging/SKILL.md" section="B"/>
+          <acceptance_criteria>state.mcp_tool_count_observed set.</acceptance_criteria>
+          <verify_live required="true" registry_ref="VL-29">Tool count and names.</verify_live>
+          <rollback>None.</rollback>
+          <estimated_hours>0.25</estimated_hours>
+        </task>
+        <task id="P4-T03" status="todo" day="0" owner="agent" priority="high">
+          <title>Create the private state directory from templates</title>
+          <description>%USERPROFILE%\upwork_engine\state\ with jobs.json, state.json, campaigns.json (from campaigns.example.json), scoring.json (from scoring.example.json); validate against schemas.</description>
+          <prerequisites/>
+          <tool>templates/*.json</tool>
+          <reference doc="08_MCP_ACQUISITION_ENGINE.md" section="2"/>
+          <acceptance_criteria>Files exist; campaigns.json validates.</acceptance_criteria>
+          <verify_live required="false"/>
+          <rollback>Delete directory (contains no client data yet).</rollback>
+          <estimated_hours>0.5</estimated_hours>
+        </task>
+        <task id="P4-T04" status="todo" day="3" owner="agent" priority="critical">
+          <title>Implement logging wrapper and read-only smoke tests</title>
+          <description>call_mcp wrapper with classified errors and runs.jsonl audit lines; smoke-test find_jobs search/smart_search/get, get_profile, list_freelancer_proposals list.</description>
+          <prerequisites>P4-T01 P4-T03</prerequisites>
+          <tool>MCP find_jobs, get_profile, list_freelancer_proposals</tool>
+          <reference doc="08_MCP_ACQUISITION_ENGINE.md" section="6"/>
+          <acceptance_criteria>runs.jsonl has 10+ successful read calls; filters_ignored/mismatch incidents logged.</acceptance_criteria>
+          <verify_live required="true" registry_ref="VL-30 VL-31 VL-32">verified_payment_only on smart_search; preferred_locations field names; stable client id.</verify_live>
+          <rollback>None.</rollback>
+          <estimated_hours>4</estimated_hours>
+        </task>
+        <task id="P4-T05" status="todo" day="4" owner="agent" priority="high">
+          <title>Engine dry-run day 1 (discover + score, no drafts)</title>
+          <description>Run all 7 campaigns; output SKIP/REVIEW/APPLY lists; Aryan eyeballs 20 in the worksheet.</description>
+          <prerequisites>P4-T04</prerequisites>
+          <tool>skills upwork-hunt, upwork-vet; templates/lead_score_worksheet.csv</tool>
+          <reference doc="06_LEAD_SCORING_RUBRIC.md" section="1–3"/>
+          <acceptance_criteria>50+ jobs scored; 20 marked agree/disagree.</acceptance_criteria>
+          <verify_live required="false"/>
+          <rollback>None.</rollback>
+          <estimated_hours>2</estimated_hours>
+        </task>
+        <task id="P4-T06" status="todo" day="5" owner="agent" priority="high">
+          <title>Engine dry-run day 2; rubric adjustments to scoring_version 1.1</title>
+          <description>Adjust from Aryan's disagreements via upwork-campaign-editor.</description>
+          <prerequisites>P4-T05</prerequisites>
+          <tool>skill upwork-campaign-editor</tool>
+          <reference doc="06_LEAD_SCORING_RUBRIC.md" section="6"/>
+          <acceptance_criteria>Agreement 80%+ on APPLY/SKIP.</acceptance_criteria>
+          <verify_live required="false"/>
+          <rollback>Revert to scoring 1.0.</rollback>
+          <estimated_hours>2</estimated_hours>
+        </task>
+        <task id="P4-T07" status="todo" day="8" owner="agent" priority="critical">
+          <title>Engine drafting ON (max 3 drafts/day in week 2); first review queue 19:00 IST</title>
+          <description>Combined pass with drafting; Aryan approves/edits/rejects with reasons.</description>
+          <prerequisites>P4-T06 P2-T01</prerequisites>
+          <tool>agent_instructions/combined_pass.md; skill upwork-proposal-draft</tool>
+          <reference doc="07_PROPOSAL_SYSTEM.md" section="1, 8"/>
+          <acceptance_criteria>3 drafts with self-check; decisions logged with reasons.</acceptance_criteria>
+          <verify_live required="false"/>
+          <rollback>Set kill_switch=true.</rollback>
+          <estimated_hours>1</estimated_hours>
+        </task>
+        <task id="P4-T08" status="todo" day="8" owner="aryan" priority="critical">
+          <title>First 1–3 proposals submitted by Aryan</title>
+          <description>Two-step confirm: manage_proposals create → preview → confirm_preview; or manual UI submit marked submitted_manually.</description>
+          <prerequisites>P4-T07</prerequisites>
+          <tool>MCP manage_proposals(create), confirm_preview; skill upwork-human-review-submit</tool>
+          <reference doc="08_MCP_ACQUISITION_ENGINE.md" section="7"/>
+          <acceptance_criteria>proposal_id logged; Connects reconciled.</acceptance_criteria>
+          <verify_live required="true" registry_ref="VL-12 VL-33">Connects refund on withdrawal; acknowledge_policy requirement.</verify_live>
+          <rollback>Withdraw within 24 h if a mistake.</rollback>
+          <estimated_hours>1</estimated_hours>
+        </task>
+        <task id="P4-T09" status="todo" day="9" owner="both" priority="high">
+          <title>3 proposals; evening rebake live for the first time</title>
+          <description>Run evening_rebake.md; outcomes fields populated.</description>
+          <prerequisites>P4-T08</prerequisites>
+          <tool>agent_instructions/evening_rebake.md; skill upwork-rebake-analytics</tool>
+          <reference doc="08_MCP_ACQUISITION_ENGINE.md" section="8"/>
+          <acceptance_criteria>Rebake digest produced.</acceptance_criteria>
+          <verify_live required="true" registry_ref="VL-34">Exact proposal status strings returned by the MCP.</verify_live>
+          <rollback>None.</rollback>
+          <estimated_hours>1</estimated_hours>
+        </task>
+        <task id="P4-T10" status="todo" day="10" owner="aryan" priority="high">
+          <title>3 proposals (Day 10)</title>
+          <description>Daily review-and-submit routine.</description>
+          <prerequisites>P4-T09</prerequisites>
+          <tool>skill upwork-human-review-submit</tool>
+          <reference doc="02_MASTER_IMPLEMENTATION_PLAN.md" section="1 (Day 10)"/>
+          <acceptance_criteria>3 submitted and logged.</acceptance_criteria>
+          <verify_live required="false"/>
+          <rollback>None.</rollback>
+          <estimated_hours>0.75</estimated_hours>
+        </task>
+        <task id="P4-T11" status="todo" day="11" owner="both" priority="high">
+          <title>3–4 proposals; check dashboard for first views/invites</title>
+          <description>get_freelancer_dashboard check; telemetry trend row added.</description>
+          <prerequisites>P4-T10</prerequisites>
+          <tool>MCP get_freelancer_dashboard(check)</tool>
+          <reference doc="09_FUNNEL_METRICS_AND_EXPERIMENTS.md" section="1"/>
+          <acceptance_criteria>Telemetry row added.</acceptance_criteria>
+          <verify_live required="false"/>
+          <rollback>None.</rollback>
+          <estimated_hours>0.75</estimated_hours>
+        </task>
+        <task id="P4-T12" status="todo" day="12" owner="aryan" priority="high">
+          <title>3–4 proposals; respond to client replies within 12 h</title>
+          <description>Agent drafts replies in the rebake digest; Aryan sends.</description>
+          <prerequisites>P4-T11</prerequisites>
+          <tool>Upwork UI: Messages; MCP get_messages (read)</tool>
+          <reference doc="07_PROPOSAL_SYSTEM.md" section="11"/>
+          <acceptance_criteria>Response time under 24 h.</acceptance_criteria>
+          <verify_live required="false"/>
+          <rollback>None.</rollback>
+          <estimated_hours>1</estimated_hours>
+        </task>
+        <task id="P4-T13" status="todo" day="13" owner="both" priority="low">
+          <title>Optional 2 weekend proposals</title>
+          <description>Weekend posts face fewer competitors.</description>
+          <prerequisites>P4-T12</prerequisites>
+          <tool>skill upwork-human-review-submit</tool>
+          <reference doc="02_MASTER_IMPLEMENTATION_PLAN.md" section="1 (Day 13)"/>
+          <acceptance_criteria>Up to 2 submitted.</acceptance_criteria>
+          <verify_live required="false"/>
+          <rollback>None.</rollback>
+          <estimated_hours>0.5</estimated_hours>
+        </task>
+        <task id="P4-T14" status="todo" day="15" owner="agent" priority="high">
+          <title>Raise to 3–5 drafts/day; enable best_match daily per campaign</title>
+          <description>Update campaigns.json via the editor; cap 5 in state.</description>
+          <prerequisites>P5-T02</prerequisites>
+          <tool>skill upwork-campaign-editor</tool>
+          <reference doc="08_MCP_ACQUISITION_ENGINE.md" section="3, 4"/>
+          <acceptance_criteria>Cap 5 in state; best_match scheduled.</acceptance_criteria>
+          <verify_live required="false"/>
+          <rollback>Lower cap.</rollback>
+          <estimated_hours>0.5</estimated_hours>
+        </task>
+        <task id="P4-T15" status="todo" day="15" owner="agent" priority="medium">
+          <title>Call-prep notes for any booked call</title>
+          <description>1-page notes delivered 2 hours before each call.</description>
+          <prerequisites>P4-T12</prerequisites>
+          <tool>agent</tool>
+          <reference doc="02_MASTER_IMPLEMENTATION_PLAN.md" section="1 (Day 15)"/>
+          <acceptance_criteria>Notes delivered.</acceptance_criteria>
+          <verify_live required="false"/>
+          <rollback>None.</rollback>
+          <estimated_hours>0.5</estimated_hours>
+        </task>
+        <task id="P4-T16" status="todo" day="17" owner="agent" priority="medium">
+          <title>Weekly campaign editor pass</title>
+          <description>Query hygiene; flag 0-yield campaigns; changes versioned.</description>
+          <prerequisites>P4-T14</prerequisites>
+          <tool>skill upwork-campaign-editor</tool>
+          <reference doc="skills/upwork-campaign-editor/SKILL.md" section="Procedure"/>
+          <acceptance_criteria>Changes versioned with changelog.</acceptance_criteria>
+          <verify_live required="false"/>
+          <rollback>Revert to previous version file.</rollback>
+          <estimated_hours>0.5</estimated_hours>
+        </task>
+        <task id="P4-T17" status="todo" day="18" owner="aryan" priority="high">
+          <title>Connects ledger check; buy Connects only by Aryan if under 40</title>
+          <description>Agent reports balance vs ledger; Aryan buys if needed.</description>
+          <prerequisites>P4-T09</prerequisites>
+          <tool>Upwork UI: Connects; MCP get_profile(connects_balance)</tool>
+          <reference doc="06_LEAD_SCORING_RUBRIC.md" section="4"/>
+          <acceptance_criteria>Balance covers 2 days of need.</acceptance_criteria>
+          <verify_live required="true" registry_ref="VL-11">Connects bundle price and Freelancer Plus allowance.</verify_live>
+          <rollback>None.</rollback>
+          <estimated_hours>0.25</estimated_hours>
+        </task>
+        <task id="P4-T18" status="todo" day="22-26" owner="both" priority="high">
+          <title>Daily 3–5 proposals; deliver; same-day review requests; 72 h follow-ups</title>
+          <description>15–25 proposals this week; agent drafts follow-ups for viewed-no-reply at 72 h; any delivered contract gets a recorded walkthrough.</description>
+          <prerequisites>P4-T14</prerequisites>
+          <tool>MCP manage_proposals, confirm_preview, list_freelancer_proposals(get); Upwork UI: Messages</tool>
+          <reference doc="07_PROPOSAL_SYSTEM.md" section="11"/>
+          <acceptance_criteria>15–25 submitted; replies logged.</acceptance_criteria>
+          <verify_live required="false"/>
+          <rollback>None.</rollback>
+          <estimated_hours>5</estimated_hours>
+        </task>
+        <task id="P4-T19" status="todo" day="36-42" owner="agent" priority="medium">
+          <title>Rebake calibration automation</title>
+          <description>Band × outcome table auto-generated nightly; incidents trend.</description>
+          <prerequisites>P4-T09</prerequisites>
+          <tool>skill upwork-rebake-analytics</tool>
+          <reference doc="08_MCP_ACQUISITION_ENGINE.md" section="8"/>
+          <acceptance_criteria>Table in digest nightly.</acceptance_criteria>
+          <verify_live required="false"/>
+          <rollback>None.</rollback>
+          <estimated_hours>3</estimated_hours>
+        </task>
+        <task id="P4-T20" status="todo" day="43-49" owner="both" priority="high">
+          <title>Steady volume and quality</title>
+          <description>3–5 per day; follow-up discipline; decline low-fit invitations politely; run E6 consultation price test if 2+ bookings.</description>
+          <prerequisites>P5-T04</prerequisites>
+          <tool>skills upwork-human-review-submit, upwork-rebake-analytics</tool>
+          <reference doc="09_FUNNEL_METRICS_AND_EXPERIMENTS.md" section="4 (E6)"/>
+          <acceptance_criteria>60+ cumulative proposals; reply rate 15%+ or corrective action taken.</acceptance_criteria>
+          <verify_live required="false"/>
+          <rollback>None.</rollback>
+          <estimated_hours>6</estimated_hours>
+        </task>
+        <task id="P4-T21" status="todo" day="61-70" owner="agent" priority="medium">
+          <title>SQLite migration if jobs.json exceeds 2,000 rows; monthly re-weight (one block)</title>
+          <description>Create tables from jobs.schema.json, import, verify 20 records; optional Notion mirror; scoring_version 2.x.</description>
+          <prerequisites>P5-T04</prerequisites>
+          <tool>skill upwork-state-and-debugging (F); skill upwork-campaign-editor</tool>
+          <reference doc="08_MCP_ACQUISITION_ENGINE.md" section="2"/>
+          <acceptance_criteria>Migration log; scoring version bumped.</acceptance_criteria>
+          <verify_live required="false"/>
+          <rollback>JSON archive kept read-only for 30 days.</rollback>
+          <estimated_hours>4</estimated_hours>
+        </task>
+      </tasks>
+    </phase>
+
+    <!-- ===================== P5 FUNNEL MEASUREMENT ===================== -->
+    <phase id="P5" name="Funnel measurement" goal="Outcome tracking, weekly/monthly reviews, decision gates and experiments; reassess after 20–30 qualified proposals" window="Day 7–90" status="todo">
+      <tasks>
+        <task id="P5-T01" status="todo" day="7" owner="both" priority="medium">
+          <title>Weekly review #1; decide Freelancer Plus if not yet</title>
+          <description>Fill the weekly template.</description>
+          <prerequisites>P1-T04</prerequisites>
+          <tool>templates/weekly_funnel_review.md</tool>
+          <reference doc="09_FUNNEL_METRICS_AND_EXPERIMENTS.md" section="5"/>
+          <acceptance_criteria>Filled.</acceptance_criteria>
+          <verify_live required="false"/>
+          <rollback>None.</rollback>
+          <estimated_hours>0.5</estimated_hours>
+        </task>
+        <task id="P5-T02" status="todo" day="14" owner="both" priority="critical">
+          <title>Gate G1; weekly review #2; calibration v1.2</title>
+          <description>Reactivation results, 15+ proposals, first replies; calibration version 1.2.</description>
+          <prerequisites>P3-T08 P4-T13</prerequisites>
+          <tool>templates/weekly_funnel_review.md; skill upwork-campaign-editor</tool>
+          <reference doc="02_MASTER_IMPLEMENTATION_PLAN.md" section="4 (G1)"/>
+          <acceptance_criteria>Gate decision logged.</acceptance_criteria>
+          <verify_live required="false"/>
+          <rollback>None.</rollback>
+          <estimated_hours>1</estimated_hours>
+        </task>
+        <task id="P5-T03" status="todo" day="21" owner="both" priority="high">
+          <title>Weekly review #3; Gate G1b</title>
+          <description>At least 1 paid milestone or new contract of $251+?</description>
+          <prerequisites>P5-T02</prerequisites>
+          <tool>templates/weekly_funnel_review.md</tool>
+          <reference doc="02_MASTER_IMPLEMENTATION_PLAN.md" section="4 (G1b)"/>
+          <acceptance_criteria>Logged.</acceptance_criteria>
+          <verify_live required="false"/>
+          <rollback>None.</rollback>
+          <estimated_hours>0.5</estimated_hours>
+        </task>
+        <task id="P5-T04" status="todo" day="28" owner="both" priority="high">
+          <title>Weekly review #4; E1 badge interim read; start E3 or E4</title>
+          <description>Experiment status logged.</description>
+          <prerequisites>P5-T03</prerequisites>
+          <tool>templates/weekly_funnel_review.md</tool>
+          <reference doc="09_FUNNEL_METRICS_AND_EXPERIMENTS.md" section="4"/>
+          <acceptance_criteria>Experiment logged.</acceptance_criteria>
+          <verify_live required="false"/>
+          <rollback>None.</rollback>
+          <estimated_hours>0.5</estimated_hours>
+        </task>
+        <task id="P5-T05" status="todo" day="29-30" owner="agent" priority="high">
+          <title>Gate G2 prep: funnel export by score band / campaign / rung</title>
+          <description>Requires 20–30 qualified proposals submitted.</description>
+          <prerequisites>P5-T04</prerequisites>
+          <tool>skill upwork-rebake-analytics</tool>
+          <reference doc="09_FUNNEL_METRICS_AND_EXPERIMENTS.md" section="3"/>
+          <acceptance_criteria>Report produced.</acceptance_criteria>
+          <verify_live required="false"/>
+          <rollback>None.</rollback>
+          <estimated_hours>1</estimated_hours>
+        </task>
+        <task id="P5-T06" status="todo" day="31-35" owner="both" priority="critical">
+          <title>Gate G2 reassessment</title>
+          <description>Reply/hire rate by band, campaign, rung; threshold ±5; Connects reallocation; opener decision; keep/cut ai-training-coaching.</description>
+          <prerequisites>P5-T05</prerequisites>
+          <tool>skill upwork-campaign-editor</tool>
+          <reference doc="09_FUNNEL_METRICS_AND_EXPERIMENTS.md" section="3"/>
+          <acceptance_criteria>Written decision; scoring_version 2.0; campaigns v2.</acceptance_criteria>
+          <verify_live required="false"/>
+          <rollback>Revert versions.</rollback>
+          <estimated_hours>2</estimated_hours>
+        </task>
+        <task id="P5-T07" status="todo" day="50-56" owner="aryan" priority="high">
+          <title>Gate G3: rate $65 → $80</title>
+          <description>If 3 completed contracts at 4.8+ and 2 case studies and JSS 100%: rate $80, consultation $100, ladder doc updated.</description>
+          <prerequisites>P5-T06</prerequisites>
+          <tool>Upwork UI: Profile; Consultations</tool>
+          <reference doc="04_OFFER_LADDER_AND_PRICING.md" section="7"/>
+          <acceptance_criteria>Rate changed or hold logged.</acceptance_criteria>
+          <verify_live required="true" registry_ref="VL-20">JSS still 100%.</verify_live>
+          <rollback>Rate back to $65 (new proposals only).</rollback>
+          <estimated_hours>0.5</estimated_hours>
+        </task>
+        <task id="P5-T08" status="todo" day="57-60" owner="both" priority="high">
+          <title>Monthly review (Day 60)</title>
+          <description>Revenue, effective hourly, Connects cost per hire, E1–E4 results, Revedor candidates list, next-month campaign plan.</description>
+          <prerequisites>P5-T07</prerequisites>
+          <tool>templates/weekly_funnel_review.md; skill upwork-rebake-analytics</tool>
+          <reference doc="09_FUNNEL_METRICS_AND_EXPERIMENTS.md" section="6"/>
+          <acceptance_criteria>Monthly report produced.</acceptance_criteria>
+          <verify_live required="false"/>
+          <rollback>None.</rollback>
+          <estimated_hours>1.5</estimated_hours>
+        </task>
+        <task id="P5-T09" status="todo" day="71-77" owner="agent" priority="medium">
+          <title>Marketplace re-scan and diff against the 2026-10-04 snapshot</title>
+          <description>Re-run Claude/AI agent/n8n/MCP counts, proposal distributions, competitor rates; append a dated snapshot table to 01/09.</description>
+          <prerequisites>P5-T08</prerequisites>
+          <tool>MCP find_jobs(search)</tool>
+          <reference doc="01_REFERENCE_IMPLEMENTATION_ANALYSIS.md" section="5"/>
+          <acceptance_criteria>New snapshot table appended.</acceptance_criteria>
+          <verify_live required="false"/>
+          <rollback>None.</rollback>
+          <estimated_hours>2</estimated_hours>
+        </task>
+        <task id="P5-T10" status="todo" day="78-84" owner="aryan" priority="high">
+          <title>Gate G4: rate $80 → $95</title>
+          <description>If 3 more completed, 1 Care Plan active, 3 case studies, demo video live.</description>
+          <prerequisites>P5-T07 P3-T10</prerequisites>
+          <tool>Upwork UI: Profile</tool>
+          <reference doc="04_OFFER_LADDER_AND_PRICING.md" section="7"/>
+          <acceptance_criteria>Decision logged.</acceptance_criteria>
+          <verify_live required="false"/>
+          <rollback>Hold at $80.</rollback>
+          <estimated_hours>0.5</estimated_hours>
+        </task>
+        <task id="P5-T11" status="todo" day="78-84" owner="both" priority="medium">
+          <title>Experiments E2 (title) and E5 (boost on 85+ band)</title>
+          <description>E2 only if views plateau; E5 alternate within the 85+ band.</description>
+          <prerequisites>P5-T08</prerequisites>
+          <tool>Upwork UI: Profile; MCP manage_proposals(boost_connects)</tool>
+          <reference doc="09_FUNNEL_METRICS_AND_EXPERIMENTS.md" section="4"/>
+          <acceptance_criteria>Results in weekly review.</acceptance_criteria>
+          <verify_live required="false"/>
+          <rollback>Revert title.</rollback>
+          <estimated_hours>1</estimated_hours>
+        </task>
+        <task id="P5-T12" status="todo" day="85-90" owner="both" priority="critical">
+          <title>Gate G5: Day-90 review</title>
+          <description>Funnel totals; 12-month earnings trajectory; decide P5 cadence (hold / grow Connects to 400 / trim campaigns); start the P6 checklist.</description>
+          <prerequisites>P5-T10</prerequisites>
+          <tool>templates/weekly_funnel_review.md</tool>
+          <reference doc="02_MASTER_IMPLEMENTATION_PLAN.md" section="4 (G5)"/>
+          <acceptance_criteria>90-day report; P6 checklist started.</acceptance_criteria>
+          <verify_live required="false"/>
+          <rollback>None.</rollback>
+          <estimated_hours>2</estimated_hours>
+        </task>
+      </tasks>
+    </phase>
+
+    <!-- ===================== P6 PREMIUM ASCENT ===================== -->
+    <phase id="P6" name="Premium ascent" goal="$120+/hr and $8K–$25K engagements once eight evidence criteria are met; Upwork feeds Revedor" window="Day 120+ (gated)" status="todo">
+      <tasks>
+        <task id="P6-T01" status="todo" day="90+" owner="agent" priority="medium">
+          <title>Tag Revedor candidates weekly</title>
+          <description>Set revedor_candidate=true on jobs/clients with multi-team scope; monthly review of themes.</description>
+          <prerequisites>P5-T12</prerequisites>
+          <tool>jobs.json; skill upwork-rebake-analytics</tool>
+          <reference doc="10_PREMIUM_ASCENT.md" section="4"/>
+          <acceptance_criteria>Monthly candidate list produced.</acceptance_criteria>
+          <verify_live required="true" registry_ref="VL-14">Non-circumvention terms and conversion fee option.</verify_live>
+          <rollback>None.</rollback>
+          <estimated_hours>0.5</estimated_hours>
+        </task>
+        <task id="P6-T02" status="todo" day="120-150" owner="both" priority="critical">
+          <title>Gate G6 check against the eight entry criteria</title>
+          <description>8 completed contracts at 4.8+; 2 L4s; 1 Care Plan 3+ months; 3 case studies and video; $15K 12-month earnings; reply 15%+ and hire 4%+ over last 30; 2 invites/month for 2 months; 3 jobs declined as too small.</description>
+          <prerequisites>P5-T12</prerequisites>
+          <tool>skill upwork-rebake-analytics; Upwork UI: Work history</tool>
+          <reference doc="10_PREMIUM_ASCENT.md" section="1"/>
+          <acceptance_criteria>Checklist with evidence per criterion.</acceptance_criteria>
+          <verify_live required="false"/>
+          <rollback>None.</rollback>
+          <estimated_hours>1</estimated_hours>
+        </task>
+        <task id="P6-T03" status="todo" day="120-150" owner="aryan" priority="high">
+          <title>Premium storefront switch (if G6 passed)</title>
+          <description>Title to systems/enterprise architect variant; rate $120 → $150; consultations $150/45 min; Architecture Review $2,500 replaces Audit; retire Sprint Starter; AI Operating System build $8K–$25K in 4 milestones; Fractional AI Lead retainer.</description>
+          <prerequisites>P6-T02</prerequisites>
+          <tool>Upwork UI: Profile; Project Catalog; Consultations</tool>
+          <reference doc="10_PREMIUM_ASCENT.md" section="2"/>
+          <acceptance_criteria>New title/rate/catalog live over one weekend.</acceptance_criteria>
+          <verify_live required="true" registry_ref="VL-01 VL-15">Title length; any certification claimed exists.</verify_live>
+          <rollback>Restore $95 and Alt B title.</rollback>
+          <estimated_hours>4</estimated_hours>
+        </task>
+        <task id="P6-T04" status="todo" day="120-150" owner="aryan" priority="medium">
+          <title>Announce to Care Plan clients (no change to their terms)</title>
+          <description>Courtesy note on repositioning; existing terms unchanged.</description>
+          <prerequisites>P6-T03</prerequisites>
+          <tool>Upwork UI: Messages</tool>
+          <reference doc="10_PREMIUM_ASCENT.md" section="6"/>
+          <acceptance_criteria>Notes sent.</acceptance_criteria>
+          <verify_live required="false"/>
+          <rollback>None.</rollback>
+          <estimated_hours>0.5</estimated_hours>
+        </task>
+        <task id="P6-T05" status="todo" day="180" owner="aryan" priority="high">
+          <title>First $8K+ engagement; revisit Revedor positioning</title>
+          <description>Planning target, not a forecast; capture Upwork learnings for Revedor.</description>
+          <prerequisites>P6-T03</prerequisites>
+          <tool>Upwork UI: Contracts</tool>
+          <reference doc="10_PREMIUM_ASCENT.md" section="6"/>
+          <acceptance_criteria>Engagement signed or gap analysis written.</acceptance_criteria>
+          <verify_live required="false"/>
+          <rollback>None.</rollback>
+          <estimated_hours>2</estimated_hours>
+        </task>
+      </tasks>
+    </phase>
+  </phases>
+
+  <decision_gates>
+    <gate id="G0" when="Pre-day 1" status="todo" related_tasks="P4-T01 P2-T01 P1-T01">
+      <question>Connector authorised as Aryan? Facts filled? Rules agreed?</question>
+      <metrics>list_accounts name; {{}} count in facts sections 1–4; log entry present.</metrics>
+      <if_passed>Start Day 1.</if_passed>
+      <if_failed>Do not start the engine.</if_failed>
+    </gate>
+    <gate id="G1" when="Day 14" status="todo" related_tasks="P5-T02 P3-T08 P1-T09">
+      <question>Profile and catalog live, 15+ proposals, all reactivation messages sent, at least one reply anywhere?</question>
+      <metrics>submitted count; replies; listings live.</metrics>
+      <if_passed>Enter P2 volume (3–5 drafts/day).</if_passed>
+      <if_failed>Extend P1 one week; audit letters against the 12-point checklist.</if_failed>
+    </gate>
+    <gate id="G1b" when="Day 21" status="todo" related_tasks="P5-T03">
+      <question>At least one paid milestone or new contract of $251+?</question>
+      <metrics>contracts/milestones funded.</metrics>
+      <if_passed>Continue.</if_passed>
+      <if_failed>Lower Sprint default to $299 in proposals for 2 weeks; add up to 3 deliberate re-entry jobs ($100+, $65/hr equivalent).</if_failed>
+    </gate>
+    <gate id="G2" when="After 20–30 qualified proposals (about Day 30–35)" status="todo" related_tasks="P5-T05 P5-T06">
+      <question>Reply rate 15%+ and hire rate 4%+?</question>
+      <metrics>reply rate by score band/campaign/rung; cost per reply.</metrics>
+      <if_passed>P3 caps; scoring v2.</if_passed>
+      <if_failed>48-hour pause; rewrite openers; reduce to 2 campaigns; reassess after 15 more.</if_failed>
+    </gate>
+    <gate id="G3" when="About Day 50" status="todo" related_tasks="P5-T07">
+      <question>3 completed contracts at $65+ with 4.8+ feedback, 2 case studies published, JSS 100%?</question>
+      <metrics>work history; portfolio count; JSS.</metrics>
+      <if_passed>Rate $80; consultation $100.</if_passed>
+      <if_failed>Hold $65; recheck fortnightly.</if_failed>
+    </gate>
+    <gate id="G4" when="About Day 80" status="todo" related_tasks="P5-T10">
+      <question>3 more completed, 1 Care Plan active, 3 case studies, demo video live?</question>
+      <metrics>work history; active retainers; portfolio.</metrics>
+      <if_passed>Rate $95; consultation $125.</if_passed>
+      <if_failed>Hold.</if_failed>
+    </gate>
+    <gate id="G5" when="Day 90" status="todo" related_tasks="P5-T12">
+      <question>On trajectory to $15K+ in 12 months? Progress on P6 criteria?</question>
+      <metrics>12-month earnings run-rate; funnel totals; effective hourly.</metrics>
+      <if_passed>P5 plan (hold / grow Connects to 400 / trim campaigns).</if_passed>
+      <if_failed>Restructure campaigns and offers; consider pausing the engine to focus on delivery.</if_failed>
+    </gate>
+    <gate id="G6" when="Day 120 or later" status="todo" related_tasks="P6-T02 P6-T03">
+      <question>All eight premium-ascent criteria met?</question>
+      <metrics>See 10_PREMIUM_ASCENT.md section 1.</metrics>
+      <if_passed>Premium storefront; $120–150/hr.</if_passed>
+      <if_failed>$95 and Alt B title; wait.</if_failed>
+    </gate>
+  </decision_gates>
+
+  <offer_ladder>
+    <rung id="L1" name="Paid consultation" price="$75 / 30 min (→ $100 → $125 → $150 with rate ladder)" duration="30 min" scope="Live call plus 1-page written note within 24 h: understanding, approach, cost range, first milestone." upsell="Fee credited against Sprint/Audit booked within 14 days."/>
+    <rung id="L2" name="Claude / AI Workflow Setup Sprint" price="$299 Starter / $599 Standard / $1,200 Team" duration="2–5 days" scope="Claude connected to tools, 1–5 Skills, permissions guide, recorded training, written handover, 7–14 days support." upsell="Handover doc ends with 'What I'd do next' (2–3 items) → Audit or Implementation."/>
+    <rung id="L3" name="AI Operations &amp; Automation Audit" price="$750 Focused / $1,500 Full" duration="3–5 days" scope="Written report: findings, scored issues, quick wins, roadmap with cost/time; readout call." upsell="100% credited against L4 signed within 30 days; roadmap table is the L4 quote."/>
+    <rung id="L4" name="Done-For-You Implementation" price="$3,000–$4,000 Core / $4,500–$6,000 Standard / $6,500–$7,500+ Extended" duration="2–4 weeks" scope="3 milestones: 30% architecture and acceptance criteria / 50% build and test / 20% rollout, training, docs; hypercare as 4th in Extended." upsell="Care Plan offered in the Milestone 3 rollout meeting."/>
+    <rung id="L5" name="AI Operations Care Plan" price="$1,000 Keep-alive / $1,500 Improve / $2,500 Partner per month" duration="monthly, 3-month minimum" scope="Monitoring and fixes, health report, 2–10 h of changes, roadmap calls, new workflow per quarter at Partner tier." upsell="Referral ask at review time; Revedor case-study candidate."/>
+    <hourly sticker="$65" steps="$80 (G3), $95 (G4), $120+ (G6)" rule="Hourly only for hourly-only posts, retainers and advisory; always offer a fixed alternative on posts up to 10 h/week."/>
+  </offer_ladder>
+
+  <campaigns config="templates/campaigns.example.json" version="1.0.0" global_max_submits_per_day="5" target_submits_per_day="3" connects_budget_month="250" searches_per_pass="20" detail_fetches_per_pass="25">
+    <campaign id="claude-implementation" active="true" priority="1" fixed_floor="250" hourly_floor="30" max_drafts_per_day="3" connects_cap_per_day="40" score_threshold="70" rung_default="sprint">
+      <queries>Claude; Claude Code; Anthropic Claude setup; Claude for business team; Claude Cowork; Claude Skills</queries>
+      <title_filters>Claude</title_filters>
+      <subcategories>AI Apps &amp; Integration</subcategories>
+    </campaign>
+    <campaign id="mcp-integrations" active="true" priority="2" fixed_floor="500" hourly_floor="40" max_drafts_per_day="1" connects_cap_per_day="15" score_threshold="70" rung_default="implementation">
+      <queries>MCP server; Model Context Protocol; Claude connector; custom MCP tool</queries>
+      <title_filters>MCP</title_filters>
+      <subcategories>AI Apps &amp; Integration</subcategories>
+    </campaign>
+    <campaign id="rag-knowledge" active="true" priority="3" fixed_floor="750" hourly_floor="40" max_drafts_per_day="1" connects_cap_per_day="20" score_threshold="72" rung_default="audit">
+      <queries>RAG; knowledge base assistant documents; internal AI assistant SharePoint Notion; document Q&amp;A LLM</queries>
+      <title_filters>RAG</title_filters>
+      <subcategories>AI Apps &amp; Integration</subcategories>
+    </campaign>
+    <campaign id="ai-agents" active="true" priority="4" fixed_floor="500" hourly_floor="35" max_drafts_per_day="2" connects_cap_per_day="30" score_threshold="72" rung_default="implementation">
+      <queries>AI agent build; autonomous agent workflow; LLM agent business process; agentic workflow approval</queries>
+      <title_filters>AI agent</title_filters>
+      <subcategories>AI Apps &amp; Integration</subcategories>
+    </campaign>
+    <campaign id="n8n-automation" active="true" priority="5" fixed_floor="300" hourly_floor="30" max_drafts_per_day="2" connects_cap_per_day="25" score_threshold="70" rung_default="sprint">
+      <queries>n8n; n8n AI workflow; Make.com AI automation; Zapier to n8n migration</queries>
+      <title_filters>n8n</title_filters>
+      <subcategories>Scripting &amp; Automation; AI Apps &amp; Integration</subcategories>
+    </campaign>
+    <campaign id="integrations-repair" active="true" priority="6" fixed_floor="250" hourly_floor="35" max_drafts_per_day="1" connects_cap_per_day="15" score_threshold="70" rung_default="audit">
+      <queries>fix automation; Zapier Make broken; OpenAI integration failing; API integration automation</queries>
+      <title_filters/>
+      <subcategories>Scripting &amp; Automation</subcategories>
+    </campaign>
+    <campaign id="ai-training-coaching" active="true" priority="7" fixed_floor="300" hourly_floor="40" max_drafts_per_day="1" connects_cap_per_day="10" score_threshold="70" rung_default="sprint">
+      <queries>Claude training team; AI workshop small business; ChatGPT Claude coaching</queries>
+      <title_filters/>
+      <subcategories/>
+      <note>Secondary; cut at G2 if 0 qualified in 5 days.</note>
+    </campaign>
+    <exclude_terms>cold email; deliverability; gohighlevel; clay; apollo; smartlead; instantly; linkedin outreach; ios; android; unity; solidity; video editing; data entry; voice over</exclude_terms>
+  </campaigns>
+
+  <scoring_model doc="06_LEAD_SCORING_RUBRIC.md" config="templates/scoring.example.json" version="1.0" max_score="100">
+    <hard_disqualifiers>
+      <d id="D1">Already applied / invitation exists / cannot apply (applied, can_apply, VJ-JA-10)</d>
+      <d id="D2">Location required and India not eligible</d>
+      <d id="D3">Capability gate (native mobile, Unity, Apex, blockchain, video, pure design/copy, data entry)</d>
+      <d id="D4">Off-platform or policy violations</d>
+      <d id="D5">Staffing/agency pool or commission/equity-only</d>
+      <d id="D6">Payment unverified AND $0 spend AND 0 hires</d>
+      <d id="D7">Fixed under $100 or hourly ceiling under $25</d>
+      <d id="D8">Older than 72 h AND 50+ proposals AND 0 interviewing</d>
+      <d id="D9">Free test task over 1 hour</d>
+      <d id="D10">Conflict: open proposal/contract with same client</d>
+    </hard_disqualifiers>
+    <categories>
+      <category id="A" name="Fit to positioning" weight="35">A1 title match 15; A2 workflow clarity 8; A3 rung match 7; A4 proof match 5</category>
+      <category id="B" name="Client quality" weight="25">B1 total spent 8 (unknown = 0.4, not zero); B2 hire rate 5; B3 rating 4; B4 avg hourly paid 5; B5 payment verified 3</category>
+      <category id="C" name="Money" weight="15">C1 fixed budget or hourly ceiling 10; C2 duration 5</category>
+      <category id="D" name="Competition and timing" weight="15">D1 proposals 7; D2 freshness 4; D3 client engagement 4</category>
+      <category id="E" name="Risk and friction" weight="10">E1 screening questions 3; E2 red-flag language 3; E3 scope clarity 2; E4 Connects cost 2</category>
+    </categories>
+    <modifiers>+5 open related jobs/active contracts; +5 Claude/Anthropic named; +3 IST-friendly time zone; −10 pile-on and bidding above avg paid; −5 preferred-location soft mismatch</modifiers>
+    <thresholds apply="70" review="55" skip="below 55"/>
+    <caps max_drafts_per_day="5" target="3" connects_gate="balance must exceed 2 × (connects_cost + boost)" boost_max="10" boost_min_score="80"/>
+    <calibration>Log score and outcome per proposal; after 20–30 qualified proposals compute reply rate by band; move threshold ±5; re-weight one block per month; record scoring_version.</calibration>
+  </scoring_model>
+
+  <skills>
+    <skill dir="skills/upwork-hunt" trigger="Start of every combined pass; 'hunt', 'find jobs', 'refresh the queue'" inputs="campaigns.json, state.json (last_run_at, kill_switch), MCP find_jobs" outputs="New/refreshed job records (status discovered), counts, mismatches" writes="jobs.json, runs.jsonl"/>
+    <skill dir="skills/upwork-vet" trigger="After hunt; 'vet', 'score', 'qualify'" inputs="Job detail payloads, scoring.json, open proposals/contracts cache" outputs="score, breakdown, decision, reasons, rung, pricing hint" writes="jobs.json (status scored)"/>
+    <skill dir="skills/upwork-proposal-draft" trigger="APPLY jobs (or REVIEW with free slot)" inputs="Job record, aryan-profile-facts, pricing rules" outputs="cover_letter, answers, terms, proof_used, risk_stated, self_check" writes="jobs.json (status drafted)"/>
+    <skill dir="skills/upwork-human-review-submit" trigger="Drafts waiting; Aryan says submit/skip/hold/confirm" inputs="Drafted jobs, checklist" outputs="Review decisions; proposal_id after two confirmations" writes="jobs.json, state.applies_today; MCP manage_proposals, confirm_preview (only skill allowed)"/>
+    <skill dir="skills/upwork-rebake-analytics" trigger="22:30 IST daily; 'rebake', 'funnel report', 'reconcile'" inputs="list_freelancer_proposals, get_room/get_messages, dashboard, connects_balance, contracts" outputs="Outcome updates, ledger check, funnel metrics, suggestions, digest, Sunday weekly review" writes="jobs.json outcome fields, state.telemetry, incidents, kill_switch"/>
+    <skill dir="skills/upwork-campaign-editor" trigger="Add/pause campaign, change queries/caps/thresholds/weights" inputs="campaigns.json, scoring.json, schemas, last 7 days of jobs" outputs="Validated diff, dry-run effect, versioned save with changelog" writes="campaigns.json, scoring.json, backups"/>
+    <skill dir="skills/upwork-state-and-debugging" trigger="Run failure, wrong numbers, ledger drift, reconnect/migration" inputs="runs.jsonl, state.json, jobs.json, MCP list_accounts/tools" outputs="Diagnosis, minimal repairs with backup, kill switch toggles" writes="state files after backup"/>
+    <skill dir="skills/aryan-profile-facts" trigger="Loaded first by every drafting skill" inputs="Aryan-maintained facts" outputs="Allowed claims, proof inventory with permissions, tools allowlist, prices, voice, never-claim list" writes="none"/>
+    <skill dir="skills/past-client-reactivation" trigger="Week 1–2; reactivation prep and tracking" inputs="list_contracts, templates, 05 playbook" outputs="Segmented list, personalised messages for Aryan, tracker updates, offer recommendations" writes="reactivation tracker (outside repo)"/>
+  </skills>
+
+  <runbooks>
+    <runbook path="agent_instructions/combined_pass.md" schedule="08:30, 12:30, 18:30 (optional 21:30) IST working days" steps="Preflight (identity, kill switch, Connects) → Hunt → Vet → Draft → Review queue → Close" never="Submits"/>
+    <runbook path="agent_instructions/evening_rebake.md" schedule="22:30 IST daily; Sunday adds weekly review" steps="Preflight → Outcomes → Messages (drafts only) → Invitations → Telemetry → Ledger → Contracts → Funnel → Calibration suggestions → Incidents/kill switch → Housekeeping → Digest" never="Sends messages, submits, buys"/>
+    <runbook path="agent_instructions/human_in_the_loop.md" schedule="always" steps="Permission matrix: agent alone / agent after Aryan says so / Aryan only; trigger words" never="Ambiguity treated as no"/>
+  </runbooks>
+
+  <verify_live_registry>
+    <item id="VL-01" status="unverified" verified="false" used_in="03 §1; P1-T04; P6-T03">Title character limit (believed ~70) in the profile edit box.</item>
+    <item id="VL-02" status="unverified" verified="false" used_in="03 §3; P1-T04">Overview character limit (believed 5,000).</item>
+    <item id="VL-03" status="unverified" verified="false" used_in="03 §4; P1-T04">Skills slot count (15) and exact taxonomy labels for Claude / MCP.</item>
+    <item id="VL-04" status="unverified" verified="false" used_in="03 §5; 09 E1; P1-T05">Availability badge weekly Connects cost.</item>
+    <item id="VL-05" status="unverified" verified="false" used_in="02 §0.6; P1-T02">Freelancer Plus price and Connects allowance.</item>
+    <item id="VL-06" status="unverified" verified="false" used_in="03 §5; 04 L1; P1-T05">Consultation allowed durations, prices and fee.</item>
+    <item id="VL-07" status="unverified" verified="false" used_in="03 §6; P1-T07 P1-T08">Project Catalog title limit, category path, review time.</item>
+    <item id="VL-08" status="unverified" verified="false" used_in="03 §6.3; P1-T10">Maximum catalog listing price.</item>
+    <item id="VL-09" status="unverified" verified="false" used_in="03 §9; P1-T06">Open orders on OpenClaw catalog projects before unpublishing.</item>
+    <item id="VL-10" status="unverified" verified="false" used_in="03 §5; P1-T11 P1-T13">Specialized-profile limits.</item>
+    <item id="VL-11" status="unverified" verified="false" used_in="06 §4; P4-T17">Connects bundle price (observed 100 for $15 + $0.90) and monthly allowance.</item>
+    <item id="VL-12" status="unverified" verified="false" used_in="07 §11; 02 §5; P4-T08">Connects refund policy on proposal withdrawal.</item>
+    <item id="VL-13" status="unverified" verified="false" used_in="04 L5; P3-T09">Recurring-payment options for monthly fixed milestones.</item>
+    <item id="VL-14" status="unverified" verified="false" used_in="10 §4; P6-T01">Non-circumvention terms and conversion-fee option for off-platform work.</item>
+    <item id="VL-15" status="unverified" verified="false" used_in="10 §2; P6-T03">Any certification claimed in the premium overview exists.</item>
+    <item id="VL-16" status="unverified" verified="false" used_in="04 §4">Upwork service fee (believed 10% flat).</item>
+    <item id="VL-17" status="unverified" verified="false" used_in="03 §5">Top Rated feedback-removal perk eligibility (save it, do not spend).</item>
+    <item id="VL-18" status="unverified" verified="false" used_in="03 §3.1">Employment entry supports "since 2020".</item>
+    <item id="VL-19" status="unverified" verified="false" used_in="07 §3; facts §3">portfolio_project_id values for proof items.</item>
+    <item id="VL-20" status="unverified" verified="false" used_in="facts §1; P1-T03; P5-T07">Exact live numbers: JSS, earnings, 35 jobs, 395 hours, Connects.</item>
+    <item id="VL-21" status="unverified" verified="false" used_in="facts §1">Displayed name on profile.</item>
+    <item id="VL-22" status="unverified" verified="false" used_in="facts §1">Education and employment entries.</item>
+    <item id="VL-23" status="unverified" verified="false" used_in="03 §7; facts §2; P2-T04">Repeat enterprise client contract count and permission to describe it.</item>
+    <item id="VL-24" status="unverified" verified="false" used_in="05 S5; P3-T01">2026-08-31 invitation still open.</item>
+    <item id="VL-25" status="unverified" verified="false" used_in="05 §1; P3-T02">Fields returned by list_contracts.</item>
+    <item id="VL-26" status="unverified" verified="false" used_in="05 §1">Client counts per reactivation segment (16 clients in 24 months).</item>
+    <item id="VL-27" status="unverified" verified="false" used_in="05 §4; P3-T08">JSS treatment of milestones on existing contracts vs new contracts.</item>
+    <item id="VL-28" status="unverified" verified="false" used_in="08 NN4; P4-T01">MCP connector identity is Aryan (was "Patrick H.").</item>
+    <item id="VL-29" status="unverified" verified="false" used_in="08 §1 step 0; P4-T02">MCP tool count and names (48 vs 51).</item>
+    <item id="VL-30" status="unverified" verified="false" used_in="08 §1 step 1a; hunt skill">verified_payment_only accepted on smart_search or only on search.</item>
+    <item id="VL-31" status="unverified" verified="false" used_in="06 D2; jobs schema">preferred_locations field names.</item>
+    <item id="VL-32" status="unverified" verified="false" used_in="08 §5; vet skill">Stable client id in payload for conflict checks.</item>
+    <item id="VL-33" status="unverified" verified="false" used_in="08 §1 step 9; submit skill">acknowledge_policy requirement before create on some jobs.</item>
+    <item id="VL-34" status="unverified" verified="false" used_in="09 §1; rebake skill; P4-T09">Exact proposal status strings exposed by list_freelancer_proposals (viewed may not exist).</item>
+    <item id="VL-35" status="unverified" verified="false" used_in="05 §0">get_messages exposes existing contract rooms for reactivation.</item>
+  </verify_live_registry>
+
+  <placeholders_registry>
+    <placeholder id="PH-01" file="skills/aryan-profile-facts/SKILL.md" section="1" name="{{FIRST_NAME LAST_NAME}}" status="todo">Displayed profile name.</placeholder>
+    <placeholder id="PH-02" file="skills/aryan-profile-facts/SKILL.md" section="1" name="{{YYYY-MM-DD}}" status="todo">Last verified date.</placeholder>
+    <placeholder id="PH-03" file="skills/aryan-profile-facts/SKILL.md" section="1" name="{{Degree, institution}} / {{role, company}} / {{Languages}} / {{Certifications}}" status="todo">Education, employment, languages, certifications.</placeholder>
+    <placeholder id="PH-04" file="skills/aryan-profile-facts/SKILL.md" section="2" name="C1–C10 {{title}} {{rating}} {{permission}} {{description}}" status="todo">Past contracts usable as proof with permission levels.</placeholder>
+    <placeholder id="PH-05" file="skills/aryan-profile-facts/SKILL.md" section="3" name="P1–P9 {{one_line}} {{permission}} {{asset}} {{portfolio_project_id}}" status="todo">Proof inventory.</placeholder>
+    <placeholder id="PH-06" file="skills/aryan-profile-facts/SKILL.md" section="3" name="{{client quotes}}" status="todo">Up to three verbatim review quotes.</placeholder>
+    <placeholder id="PH-07" file="skills/aryan-profile-facts/SKILL.md" section="4" name="{{confirm}} tool entries" status="todo">Tools allowlist confirmations (n8n, Make, Zapier, LangChain, vector store, HubSpot, Airtable, Playwright/Scrapy, Docker, cloud).</placeholder>
+    <placeholder id="PH-08" file="skills/aryan-profile-facts/SKILL.md" section="8" name="{{working hours}}" status="todo">Call availability window.</placeholder>
+    <placeholder id="PH-09" file="03_PROFILE_AND_STOREFRONT.md" section="3" name="{{PROOF_1}} {{PROOF_2}} {{PROOF_3}} {{CLIENT_QUOTE}} {{CLIENT_FIRST_NAME_OR_ROLE}}" status="todo">Overview proof bullets and quote.</placeholder>
+    <placeholder id="PH-10" file="03_PROFILE_AND_STOREFRONT.md" section="7" name="{{CASE_1}} {{CASE_3}} and template fields" status="todo">Case studies 1 and 3 content.</placeholder>
+    <placeholder id="PH-11" file="03_PROFILE_AND_STOREFRONT.md" section="8" name="{{WORKFLOW_NAME}} {{my own company / a client}} {{the trigger}} {{tool}} {{output}} {{destination}}" status="todo">Demo video script fields.</placeholder>
+    <placeholder id="PH-12" file="07_PROPOSAL_SYSTEM.md" section="9.1–9.5" name="{{PROOF_CLAUDE_OR_CHATBOT}} {{PROOF_N8N_OR_INTEGRATION}} {{PROOF_AGENT_OR_SCRAPING}} {{PROOF_RAG_OR_CHATBOT}} {{PROOF_REPAIR_OR_INTEGRATION}}" status="todo">Proof bullets in the five example letters (resolved from the inventory at draft time).</placeholder>
+    <placeholder id="PH-13" file="05_PAST_CLIENT_REACTIVATION.md" section="3" name="{{FIRST_NAME}} {{SYSTEM_BUILT}} {{CONTRACT_TITLE}} {{MONTH YEAR}} {{COMPANY_OR_CONTEXT}} {{ONE_SPECIFIC_IDEA}} {{ONE_NEW_VALUE}} {{RATE}}" status="todo">Per-message fields filled at send time.</placeholder>
+    <placeholder id="PH-14" file="templates/reactivation_tracker.csv" section="rows" name="{{FIRST_NAME}} ratings and room links" status="todo">Tracker seed rows.</placeholder>
+    <placeholder id="PH-15" file="templates/proposal_review_checklist.md" section="header" name="{{title}} {{url}} … {{answers}}" status="n/a">Runtime fields filled by the agent per draft.</placeholder>
+    <placeholder id="PH-16" file="templates/weekly_funnel_review.md" section="all" name="{{YYYY-WW}} and metric cells" status="n/a">Runtime fields filled weekly.</placeholder>
+  </placeholders_registry>
+
+  <metrics doc="09_FUNNEL_METRICS_AND_EXPERIMENTS.md">
+    <kpi id="qualified_rate" formula="qualified / discovered" target="5–10%" alarm="under 2% or over 20%"/>
+    <kpi id="draft_approval_rate" formula="approved / drafted" target="70%+" alarm="under 50%"/>
+    <kpi id="proposals_per_day" formula="submitted / working day" target="3 (max 5)" alarm="under 2 for 3 days"/>
+    <kpi id="view_rate" formula="viewed / submitted" target="50%+" alarm="under 30%"/>
+    <kpi id="reply_rate" formula="replied / submitted" target="15%+" alarm="under 8% after 20 proposals"/>
+    <kpi id="interview_rate" formula="interview / submitted" target="8%+" alarm=""/>
+    <kpi id="hire_rate" formula="hired / submitted" target="4%+ (about 1 in 25)" alarm="under 2% after 50"/>
+    <kpi id="cost_per_reply" formula="Connects × $0.15 / replies" target="$25 or less" alarm=""/>
+    <kpi id="cost_per_hire" formula="Connects × $0.15 / hires" target="$150 or less" alarm=""/>
+    <kpi id="avg_contract_value" formula="sum / hires" target="$600 P2; $2,000 P3" alarm=""/>
+    <kpi id="effective_hourly" formula="earned / hours incl. proposal time" target="$50 P2; $80 P3" alarm=""/>
+    <kpi id="profile_views_week" formula="dashboard" target="3× baseline within 30 days" alarm=""/>
+    <kpi id="invites_week" formula="dashboard" target="1+ by Day 30" alarm=""/>
+    <kpi id="jss" formula="insights page" target="100%" alarm="any drop"/>
+    <kpi id="response_time" formula="Upwork metric" target="under 24 h" alarm=""/>
+    <reassessment after_qualified_proposals="20–30" day="about 25–35" actions="Keep two best campaigns; halve Connects of 0-reply campaigns with 8+ proposals; threshold ±5; fixed vs hourly default; 48 h pause if reply under 8%"/>
+    <experiments>
+      <experiment id="E1" name="Availability badge on vs prior 4 weeks" metric="profile views, invites"/>
+      <experiment id="E2" name="Title primary vs Alt A" metric="views, invites"/>
+      <experiment id="E3" name="Opener mirror vs explicit-ask" metric="view→reply"/>
+      <experiment id="E4" name="Fixed Sprint vs hourly bid on hourly posts up to 10 h/week" metric="reply, hire"/>
+      <experiment id="E5" name="Boost up to 10 on 85+ band vs none" metric="view rate, cost per reply"/>
+      <experiment id="E6" name="Consultation $75 vs $100" metric="bookings/month"/>
+      <experiment id="E7" name="Letter length 120–160 vs 180–220 words" metric="reply rate"/>
+      <experiment id="E8" name="Specialized profile AI Training live vs not" metric="invites from training posts"/>
+    </experiments>
+  </metrics>
+
+</implementation_plan>
