@@ -1,0 +1,270 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<upwork_strategy_overhaul>
+  <metadata>
+    <candidate_name>Aryan Pegwar</candidate_name>
+    <target_role>Enterprise AI Architect</target_role>
+    <current_jss>100%</current_jss>
+    <current_badge>Top Rated</current_badge>
+    <published_hourly_rate currency="USD">120.00</published_hourly_rate>
+    <target_contract_floor currency="USD">3000.00</target_contract_floor>
+    <generated_date>2026-10-04</generated_date>
+  </metadata>
+
+  <profile_audit>
+    <current_metrics>
+      <total_earnings currency="USD">20000+</total_earnings>
+      <total_jobs>35</total_jobs>
+      <total_hours>395</total_hours>
+      <consultations_status>Off</consultations_status>
+      <availability_badge_status>Off</availability_badge_status>
+      <boost_profile_status>Off</boost_profile_status>
+      <connects_balance>110</connects_balance>
+    </current_metrics>
+
+    <structural_vulnerabilities>
+      <vulnerability id="1">
+        <name>Historical Rate Anchoring</name>
+        <description>Older public contracts reflect billable rates between $25.00/hr and $30.00/hr. Enterprise buyers viewing this history perceive a gap between past delivery and the current $120.00/hr headline rate.</description>
+        <remedy>Anchor value on fixed-price strategic architecture milestones ($3,500+) rather than generic execution hours.</remedy>
+      </vulnerability>
+      <vulnerability id="2">
+        <name>Inactive High-Intent Funnels</name>
+        <description>Consultations are disabled. Enterprise clients seeking immediate feasibility architecture reviews use Upwork Consultations as their primary vetting mechanism.</description>
+        <remedy>Activate 45-minute consultations at $150.00 to capture paid discovery calls.</remedy>
+      </vulnerability>
+      <vulnerability id="3">
+        <name>Narrow Catalog Exposure</name>
+        <description>Existing Project Catalog listings concentrate strictly on OpenClaw ($119 to $950), which captures less organic buyer search volume than standardized Model Context Protocol (MCP) and multi-agent systems.</description>
+        <remedy>Re-index catalog offerings toward Enterprise MCP Server Development, LangGraph Multi-Agent Workflows, and Production Tooling Kits.</remedy>
+      </vulnerability>
+    </structural_vulnerabilities>
+  </profile_audit>
+
+  <mcp_ecosystem_capabilities>
+    <official_upwork_mcp_integration>
+      <server_url>https://mcp.upwork.com/mcp</server_url>
+      <authentication_protocol>OAuth 2.1 with dynamic client registration</authentication_protocol>
+      <supported_client_tools>Claude Desktop, Claude Code, ChatGPT, Cursor, Codex</supported_client_tools>
+      <freelancer_capabilities>
+        <feature>Account overview and notification aggregation</feature>
+        <feature>Contextual job matching and profile-grounded proposal drafting</feature>
+        <feature>Invitation and direct offer management</feature>
+        <feature>Milestone submission and work diary synchronization</feature>
+        <feature>Availability badge and boost toggles via agent command</feature>
+      </freelancer_capabilities>
+      <client_capabilities>
+        <feature>Talent discovery and ranked candidate comparisons inside LLM contexts</feature>
+        <feature>Automated job post authoring and marketplace publication</feature>
+        <feature>Contract generation and milestone administration</feature>
+      </client_capabilities>
+    </official_upwork_mcp_integration>
+
+    <market_monetization_vector>
+      <trend>Enterprise engineering leaders require private, authenticated MCP servers to connect internal APIs, ERPs, and databases into Cursor, Claude Code, and autonomous agent swarms.</trend>
+      <high_ticket_demand>Custom MCP server engineering over SSE/STDIO with role-based access control (RBAC) and OAuth 2.1 security layers.</high_ticket_demand>
+    </market_monetization_vector>
+  </mcp_ecosystem_capabilities>
+
+  <dual_funnel_architecture>
+    <tier_1_turnkey_diy>
+      <target_audience>Individual developers, solopreneurs, and technical operators</target_audience>
+      <price_band currency="USD">149.00 - 499.00</price_band>
+      <delivery_model>Self-serve repository, standardized skills.md definitions, setup guide</delivery_model>
+      <operational_overhead>Zero maintenance; delivered as an off-the-shelf digital asset</operational_overhead>
+      <cash_conversion_speed>24 to 48 hours via Project Catalog</cash_conversion_speed>
+    </tier_1_turnkey_diy>
+
+    <tier_2_high_ticket_dfy>
+      <target_audience>Funded startups, agency owners, enterprise IT departments</target_audience>
+      <price_band currency="USD">3000.00 - 12000.00+</price_band>
+      <hourly_rate currency="USD">120.00 - 150.00</hourly_rate>
+      <delivery_model>End-to-end custom systems engineering, VPC deployment, multi-agent orchestration, documentation</delivery_model>
+      <operational_overhead>High-touch architecture blueprints, formal scope sign-off</operational_overhead>
+      <cash_conversion_speed>5 to 7 days from consultation to milestone funding</cash_conversion_speed>
+    </tier_2_high_ticket_dfy>
+  </dual_funnel_architecture>
+
+  <profile_overhaul_specifications>
+    <headline>Enterprise AI Architect | Custom MCP Servers, LangGraph &amp; Autonomous Multi-Agent Systems</headline>
+    
+    <overview_copy>
+<![CDATA[
+Most businesses waste thousands trying to stitch together disconnected AI APIs and brittle chatbot wrappers. 
+
+I build resilient, enterprise-grade agentic infrastructure. As an AI Systems Architect, I design custom Model Context Protocol (MCP) servers, autonomous multi-agent pipelines, and secure local LLM environments that seamlessly integrate your internal tools with leading foundation models.
+
+Core Architecture Capabilities:
+
+* Custom MCP Server Engineering: Connecting enterprise databases, private APIs, and custom CRM systems directly to Claude Code, Cursor, and enterprise agents via official Model Context Protocol standards (OAuth 2.1, SSE, STDIO).
+* Multi-Agent Autonomous Orchestration: Architecting resilient multi-agent teams using LangGraph, CrewAI, and custom execution loops with human-in-the-loop oversight and state persistence.
+* Zero-Leakage Local LLM & RAG Systems: On-premise and VPC-isolated model deployments (Llama 3, Mistral, vLLM, Qdrant) designed for strict healthcare, legal, and enterprise compliance.
+* Enterprise Tooling & Agent Plugins: Turnkey workflows that automate complex workflows, data extraction, and operational pipelines without human hand-holding.
+
+Engagement Models:
+
+1. Done-For-You Architecture & Implementation: End-to-end production development, infrastructure deployment, testing, and team handoff.
+2. Technical Feasibility & Architecture Consultations: 60-minute roadmap sessions to audit your stack, identify failure points, and draft execution blueprints before writing code.
+3. Turnkey Templates & Starter Kits: Pre-built, production-tested MCP server starter boilerplates and agent skills collections available in my Project Catalog.
+
+If you require production-grade AI systems built with architectural rigor, book a consultation or send a message with your project brief.
+]]>
+    </overview_copy>
+
+    <skills_taxonomy>
+      <skill>Model Context Protocol (MCP)</skill>
+      <skill>Multi-Agent Systems</skill>
+      <skill>LangGraph</skill>
+      <skill>CrewAI</skill>
+      <skill>Software Architecture &amp; Design</skill>
+      <skill>API Integration</skill>
+      <skill>Python</skill>
+      <skill>Claude Code</skill>
+      <skill>Retrieval-Augmented Generation (RAG)</skill>
+      <skill>Enterprise Automation</skill>
+    </skills_taxonomy>
+  </profile_overhaul_specifications>
+
+  <project_catalog_configuration>
+    <project id="CAT-01">
+      <title>Enterprise MCP Server Production Boilerplate and Documentation</title>
+      <category>AI Development / Frameworks</category>
+      <delivery_days>1</delivery_days>
+      <pricing>
+        <starter currency="USD">199.00</starter>
+        <standard currency="USD">299.00</standard>
+        <advanced currency="USD">499.00</advanced>
+      </pricing>
+      <deliverables>
+        <item>Production-grade Python/FastAPI MCP server source code</item>
+        <item>Docker container orchestration files</item>
+        <item>OAuth 2.1 and STDIO/SSE transport configurations</item>
+        <item>Pre-configured skill manifests (skills.md)</item>
+        <item>Architecture and security audit checklist</item>
+      </deliverables>
+      <scope_boundary>Codebase and technical documentation only. Custom third-party API wiring not included.</scope_boundary>
+    </project>
+
+    <project id="CAT-02">
+      <title>Custom MCP Server Architecture and End-to-End Implementation</title>
+      <category>AI Application Development</category>
+      <delivery_days>4</delivery_days>
+      <pricing>
+        <starter currency="USD">1500.00</starter>
+        <standard currency="USD">2500.00</standard>
+        <advanced currency="USD">4000.00</advanced>
+      </pricing>
+      <deliverables>
+        <item>Bespoke MCP server implementation connecting up to 3 enterprise endpoints</item>
+        <item>Dynamic authentication and environment secret management</item>
+        <item>Testing across Claude Code, Cursor, and ChatGPT Developer Mode</item>
+        <item>Live handoff session and architectural review</item>
+      </deliverables>
+      <scope_boundary>Includes deployment and verification. Unlimited revisions excluded.</scope_boundary>
+    </project>
+
+    <project id="CAT-03">
+      <title>Agentic Workflow Feasibility Audit and Technical Blueprint</title>
+      <category>IT Consulting / Solution Architecture</category>
+      <delivery_days>2</delivery_days>
+      <pricing>
+        <flat_rate currency="USD">299.00</flat_rate>
+      </pricing>
+      <deliverables>
+        <item>Current infrastructure stack evaluation</item>
+        <item>Formal MCP and agent interaction system diagram</item>
+        <item>Step-by-step technical implementation roadmap</item>
+        <item>Security, token rate limit, and latency threat model</item>
+      </deliverables>
+      <scope_boundary>Written blueprint deliverable. Custom code implementation quoted separately.</scope_boundary>
+    </project>
+  </project_catalog_configuration>
+
+  <jss_protection_protocol>
+    <client_selection_filters>
+      <filter>
+        <metric>Client Star Rating</metric>
+        <threshold>&gt;= 4.8</threshold>
+        <action>Reject or ignore invitations from clients below 4.8 stars.</action>
+      </filter>
+      <filter>
+        <metric>Historical Spend</metric>
+        <threshold>&gt;= $1,000</threshold>
+        <action>Prioritize clients with verified platform spend and payment records.</action>
+      </filter>
+      <filter>
+        <metric>Brief Clarity</metric>
+        <threshold>Structured Scope</threshold>
+        <action>Decline open-ended briefs under $200 where deliverables are not explicitly bounded.</action>
+      </filter>
+    </client_selection_filters>
+
+    <catalog_protection_rules>
+      <rule id="1">State explicitly in all DIY listings that the asset is self-hosted and does not include unbilled custom consulting calls.</rule>
+      <rule id="2">Limit revisions to exactly 1 revision restricted to documentation clarity.</rule>
+      <rule id="3">Deliver immediate video walkthroughs alongside code assets to preclude claims of missing instructions.</rule>
+    </catalog_protection_rules>
+
+    <contract_execution_safeguards>
+      <safeguard id="1">Obtain explicit message confirmation on the milestone technical architecture document before deploying infrastructure.</safeguard>
+      <safeguard id="2">Execute contracts under strictly separated milestones ($1,500 architecture, $2,000 implementation, $1,500 integration).</safeguard>
+      <safeguard id="3">Require client confirmation via Upwork chat that delivered tools meet acceptance tests prior to submitting final milestone approval requests.</safeguard>
+    </contract_execution_safeguards>
+  </jss_protection_protocol>
+
+  <seven_day_execution_roadmap>
+    <day number="1">
+      <title>Profile Repositioning and Consultation Setup</title>
+      <tasks>
+        <task>Update profile title and overview copy using the Enterprise AI Architect text.</task>
+        <task>Enable Upwork Consultations at $150.00 per 45 minutes.</task>
+        <task>Update primary skills tags to feature Model Context Protocol, LangGraph, and Multi-Agent Systems.</task>
+      </tasks>
+    </day>
+    <day number="2">
+      <title>Digital Asset Assembly</title>
+      <tasks>
+        <task>Package the production MCP server Python boilerplate repository.</task>
+        <task>Write the standardized skills.md agent tool definition file.</task>
+        <task>Generate a comprehensive README and deployment guide covering Docker, Claude Code, and Cursor.</task>
+      </tasks>
+    </day>
+    <day number="3">
+      <title>Catalog Publication and Visibility Activation</title>
+      <tasks>
+        <task>Submit the 3 project catalog offerings for Upwork review.</task>
+        <task>Turn on the Availability Badge (set budget at 10 Connects/week).</task>
+        <task>Connect the official Upwork MCP server to Claude Code using `claude mcp add --transport http upwork https://mcp.upwork.com/mcp`.</task>
+      </tasks>
+    </day>
+    <day number="4">
+      <title>Outreach and Proposal Deployment</title>
+      <tasks>
+        <task>Search Upwork for keywords: "MCP", "LangGraph", "Claude integration", "AI Agent".</task>
+        <task>Draft proposals focusing directly on architectural patterns (OAuth 2.1, SSE transport, tool schemas).</task>
+        <task>Submit 5 proposals to verified clients matching qualification criteria.</task>
+      </tasks>
+    </day>
+    <day number="5">
+      <title>First Turnkey Deliveries and Consultations</title>
+      <tasks>
+        <task>Fulfill initial catalog orders with instant digital repository access.</task>
+        <task>Conduct initial booked 45-minute technical feasibility consultations.</task>
+        <task>Provide written architecture summaries within 2 hours of each call.</task>
+      </tasks>
+    </day>
+    <day number="6">
+      <title>High-Ticket Upsell Conversion</title>
+      <tasks>
+        <task>Present fixed-scope DFY proposals ($3,500 to $6,000) to consultation attendees.</task>
+        <task>Establish formal milestone breakdowns and deliver acceptance criteria for contract creation.</task>
+      </tasks>
+    </day>
+    <day number="7">
+      <title>Milestone Activation and Review Collection</title>
+      <tasks>
+        <task>Ensure funded escrow status before initiating DFY production builds.</task>
+        <task>Request formal five-star feedback on completed catalog and consultation items to lock in 100% JSS preservation.</task>
+      </tasks>
+    </day>
+  </seven_day_execution_roadmap>
+</upwork_strategy_overhaul>

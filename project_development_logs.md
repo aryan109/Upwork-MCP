@@ -19,3 +19,19 @@
 - **Action**: Created remote repository `Upwork-MCP` on GitHub under `aryan109` via authenticated API.
 - **Action**: Staged all documentation and ignore files, verified `.env` exclusion, committed changes, and pushed branch `main` to `https://github.com/aryan109/Upwork-MCP`.
 - **Action**: Sanitized remote configuration to preserve security without token retention in git remotes.
+
+## [2026-10-04] Profile Audit, Market Research & Overhaul Plan
+- **Action**: Read the Aryan P. Upwork profile, My Stats and Proposals pages through the logged-in Chrome session (profile link is the source of truth for this project).
+- **Action**: Collected live job-market data from Upwork job search and Project Catalog search (Claude, Claude Code, AI agent, MCP server, OpenClaw, Upwork-services queries), plus external evidence on demand, pricing, digital-product sales, Job Success Score rules and Terms of Service.
+- **Action**: Authored `UPWORK_OVERHAUL_PLAN.xml` covering profile audit, market evidence, positioning, done-for-you and do-it-yourself offer ladder, 7-day launch, Job Success protection, MCP daily routine, limits and sources.
+- **Action**: Second research round and plan rewrite (`UPWORK_OVERHAUL_PLAN.xml` v2.0): full work history and in-progress contracts, Job Success insights weighting rules, exact marketplace counts from the job-search filter sidebar, competitor talent search and one comparable profile, two full job posts with client history, Gumroad "claude skills" listings, the official Upwork MCP page, certification and payment-timing checks. Corrected two v1 errors (proposal-window statistic; a bundle's skill count misread as its price).
+- **Note**: The Upwork MCP connector in the Claude session is authorized to a different Upwork account, not the Aryan P. profile. It must be reconnected under the Aryan P. login before any MCP proposal workflow is run. No Upwork account was modified.
+
+## [2026-10-04] Comparative Analysis & Master Strategy Synthesis
+- **Action**: Conducted an exhaustive cross-document analysis of `UPWORK_MCP_DOCUMENTATION.xml`, `upwork_strategy_overhaul_by_Gemini.xml`, `UPWORK_OVERHAUL_PLAN_by_claude.xml` (v1.0), and `UPWORK_OVERHAUL_PLAN_v2_by_claude.xml` (v2.0).
+- **Analysis & Evaluation**:
+  - Validated `UPWORK_OVERHAUL_PLAN_v2_by_claude.xml` as the empirically sound strategy, grounded in exact live market numbers (313 Claude jobs, 404 AI agent jobs), competitor benchmarking (Andrew W. $95/hr model), and internal Upwork JSS formula weighting ($251+ = 1.25x, $1001+ = 1.5x, 90-day repeat client automatic success rule).
+  - Contrasted against Gemini's high-ticket plan, rejecting unviable elements ($120/hr sticker rate filtering out 97% of the market, pure "MCP server" headline focus with only 8 jobs, raw code boilerplate selling on Project Catalog, and unrealistic 7-day cash flows ignoring Upwork's 5-11 day payment holds).
+  - Evaluated the 51-tool Upwork MCP architecture (`UPWORK_MCP_DOCUMENTATION.xml`) for automated, draft-and-confirm proposal discovery and vetting during the peak 18:30–23:30 IST window.
+- **Action**: Authored `UPWORK_STRATEGY_ANALYSIS_AND_MASTER_ACTION_PLAN.md` synthesizing findings, agreement/disagreement criteria, and a concrete phased execution blueprint (plumbing, profile/catalog overhaul, past client reactivation, daily MCP routine, and JSS defense).
+

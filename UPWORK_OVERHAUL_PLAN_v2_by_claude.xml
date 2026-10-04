@@ -1,0 +1,456 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<upwork_overhaul_plan version="2.0" generated_at="2026-10-04">
+  <metadata>
+    <title>Upwork Overhaul Plan: Aryan P. (Top Rated, 100% JSS)</title>
+    <profile_url>https://www.upwork.com/freelancers/~01c405f48e970fd854</profile_url>
+    <mcp_reference>UPWORK_MCP_DOCUMENTATION.xml (this directory) and https://www.upwork.com/ai/mcp</mcp_reference>
+    <how_the_data_was_collected>
+      <item>Your profile (all 3 pages of work history, in-progress contracts), My Stats, Job Success insights and Proposals pages, read on 2026-10-04 in the logged-in Chrome session.</item>
+      <item>Exact marketplace counts from the filter sidebar of Upwork job search on 2026-10-04 (payment-verified clients).</item>
+      <item>Upwork talent search and one competitor profile; two full job posts including client history; Project Catalog search; Gumroad search; the official Upwork MCP page.</item>
+      <item>Upwork help and research pages, plus third-party pricing and sales data. All sources are listed at the end.</item>
+    </how_the_data_was_collected>
+    <reading_guide>
+      "observed" means read directly from a live page on 2026-10-04. "cited" means taken from a named external source.
+      "assumption" means a planning estimate of mine that you must test; it is not proof.
+    </reading_guide>
+    <changes_from_version_1>
+      <change>The proposals statistic is corrected: My Stats shows 0 proposals in the last 7 days, with the last proposal activity about 3 months ago.</change>
+      <change>Rough job counts are replaced with exact counts. They show that posted budgets are lower than version 1 implied.</change>
+      <change>The Job Success section now uses the exact weighting rules from your own insights page.</change>
+      <change>Recommended profile rate lowered from 85 to 65 USD per hour, with the reasoning shown.</change>
+      <change>Added: competitor analysis, a real freelancer whose history matches the proposed ladder, stale-contract reactivation, the average-hourly-paid client check, Gumroad data, certification option.</change>
+      <change>Corrected a source error: the "167" in the marketing skills bundle is the number of skills, not its price.</change>
+    </changes_from_version_1>
+  </metadata>
+
+  <executive_summary>
+    <finding id="1">
+      Your reputation is strong but the funnel is off: 0 proposals in the last 7 days (last activity about 3 months ago), 0 profile views in 7 days,
+      availability badge off, 12-month earnings of 2,172 USD.
+    </finding>
+    <finding id="2">
+      Demand is real: 313 open jobs have "Claude" in the title and 404 have "AI agent". OpenClaw, which two of your three catalog projects target, shows 24 jobs in about two quarters.
+    </finding>
+    <finding id="3">
+      Posted budgets are low. Of 215 hourly Claude-title jobs, only 46 allow 50 USD per hour or more, and only 9 allow 100 USD or more.
+      Of 98 fixed-price ones, only 14 are 1,000 USD or more. Your 120 USD per hour listing sits above almost every posted ceiling.
+    </finding>
+    <finding id="4">
+      High earnings on Upwork in this niche come from package pricing, expansion inside a client, and retainers, not from a high hourly sticker.
+      A comparable freelancer (Top Rated Plus, 95 USD per hour, 105 jobs in 597 hours) shows exactly this pattern in public history:
+      fixed jobs of 220 to 1,700 USD, then a 10,400 USD hourly engagement with one agency.
+    </finding>
+    <finding id="5">
+      Your Job Success Score is easier to protect than version 1 suggested. Upwork caps the weight of a large job at 1.5 jobs,
+      a job of 251 USD or more counts as 1.25 jobs, and a client who pays you again more than 90 days after their first payment makes
+      all jobs with that client count as successful. You have 5 open contracts from 2023 and 2024 that qualify for that rule if they pay again.
+    </finding>
+    <finding id="6">
+      The do-it-yourself pack will not earn much by itself. Gumroad lists 815 products for "claude skills"; the best sellers show 0 to 6 ratings and many are free.
+      Build it as your delivery toolkit and a free-sample lead magnet.
+    </finding>
+    <honest_expectation>
+      A signed and funded contract inside 7 days is realistic, most likely from a past client. Cash in the bank inside 7 days is not, because of Upwork's
+      payment holds. I found no evidence supporting "huge money" in week one. Targets are in the targets section and are assumptions.
+    </honest_expectation>
+  </executive_summary>
+
+  <profile_audit kind="observed">
+    <facts>
+      <fact name="badges">Top Rated, 100% Job Success (as of 2026-10-04), identity verified</fact>
+      <fact name="totals">20K+ USD total earnings, 35 total jobs, 395 hours</fact>
+      <fact name="listed_rate">120 USD per hour</fact>
+      <fact name="visible_hourly_history">3, 5, 12, 20, 25 and 30 USD per hour. No visible contract above 30.</fact>
+      <fact name="twelve_month_earnings">2,172 USD</fact>
+      <fact name="proposals">0 sent in the last 7 days; last activity about 3 months ago; 0 submitted proposals outstanding</fact>
+      <fact name="profile_views_last_7_days">0</fact>
+      <fact name="availability_badge">Off</fact>
+      <fact name="connects">110. Freelancer Plus lapsed. Live job posts cost 15 to 20 Connects each.</fact>
+      <fact name="open_invite">1 unanswered invitation from 2026-08-31: "Data Science &amp; GenAI Instructors for Live Online Training"</fact>
+      <fact name="jss_base">8 eligible jobs and 16 clients inside the 24-month window</fact>
+      <fact name="largest_job">7,000 USD fixed price for an Upwork enterprise client (2023). The same enterprise client appears on at least 6 contracts through 2025, including 1,950 USD and 300 USD.</fact>
+      <fact name="in_progress_contracts">
+        5 open contracts with no recent activity: Finetune GPT-3 model (since Jan 2023, 590 USD), Scraping and warehousing of Data (Apr 2023, 1,175 USD),
+        AI chat-bot development (Jul 2023, 900 USD), AI Solutions Designer and Prompt Engineer (Aug 2023, 175 USD), Phase 1 of Web App Scraper (Dec 2024, 120 USD).
+      </fact>
+      <fact name="ratings_below_five">3.8 on the 4,408 USD WordPress plugin (ended Apr 2024), 3.8 on a 125 USD AutoGPT plugin, 3.8 on a trading bot, 4.2 and 4.3 on two short hourly jobs. All are older than 24 months, so none affects the current score, but all are visible.</fact>
+      <fact name="feedback_pattern">One 3.8 review says the client would have rated higher had the risks been made clearer in the proposal. Treat this as the lesson for every new proposal: state limits and risks up front.</fact>
+      <fact name="catalog">OpenClaw Security Audit (from 250 USD), OpenClaw Private Agent Deployment (from 950 USD), AI Launchpad Blueprint (from 119 USD, sold once at 159 USD)</fact>
+      <fact name="portfolio">Marlow chatbot, BandBuddy.AI dashboard and landing page</fact>
+      <fact name="consultations">Enabled. One 30-minute consultation sold at 30 USD in 2025 (no feedback, so it is excluded from Job Success).</fact>
+    </facts>
+    <problems>
+      <problem id="P1" severity="critical">
+        <what>The funnel is off.</what>
+        <fix>Availability badge on, answer the open invite, reactivate past clients, start the daily proposal routine.</fix>
+      </problem>
+      <problem id="P2" severity="critical">
+        <what>The 120 USD rate is four times your highest visible rate and above the ceiling of all but 9 Claude-title jobs on the marketplace.</what>
+        <fix>See rate_strategy. Keep your effective rate high through fixed-price packages; lower the sticker.</fix>
+      </problem>
+      <problem id="P3" severity="high">
+        <what>Title and catalog do not contain what buyers search for. Competitors who rank for this work put "Claude Code", "n8n", "AI Agents", "MCP" and "Automation" in the title.</what>
+        <fix>Use the title and catalog in positioning and offer_ladder.</fix>
+      </problem>
+      <problem id="P4" severity="high">
+        <what>Claims a client can check and may doubt: "over 8 years of deep technical experience" beside a 2017 to 2021 degree and employment from 2020; "100% GxP/HIPAA compliance".</what>
+        <fix>State only what the profile supports. Replace guarantees with named projects and results.</fix>
+      </problem>
+      <problem id="P5" severity="medium">
+        <what>Portfolio shows 2023 chatbot work. Nothing shows Claude, skills, MCP or agents.</what>
+        <fix>Three new case studies in week one.</fix>
+      </problem>
+      <problem id="P6" severity="medium">
+        <what>Five idle open contracts and five visible sub-5 ratings.</what>
+        <fix>Reactivate the open contracts (see job_success_protection). Use the Top Rated feedback-removal perk on the 3.8-rated 4,408 USD job if you are eligible; it is your largest visible rated contract.</fix>
+      </problem>
+      <problem id="P7" severity="low">
+        <what>Skills tags miss Claude Code, AI Agent Development, n8n, Automation, AI Implementation, AI Consulting, Business Process Automation.</what>
+        <fix>Add those the Upwork skill list accepts. Drop Systems Engineering and Gemini to make room.</fix>
+      </problem>
+    </problems>
+  </profile_audit>
+
+  <market_evidence>
+    <exact_marketplace_counts kind="observed" date="2026-10-04" filter="payment-verified clients, open jobs">
+      <query term="title contains: claude" total="313">
+        <job_type hourly="215" fixed="98"/>
+        <hourly_ceiling at_least_50_usd="46" at_least_100_usd="9"/>
+        <fixed_budget under_100="40" from_100_to_500="34" from_500_to_1k="10" from_1k_to_5k="9" over_5k="5"/>
+        <proposals fewer_than_5="9" from_5_to_10="26" from_10_to_15="33" from_15_to_20="34" from_20_to_50="102" over_50="109"/>
+        <client_history no_hires="49" one_to_nine_hires="76" ten_plus_hires="188"/>
+        <experience entry="12" intermediate="153" expert="148"/>
+        <pace>The 50 newest were all posted within 5 days: about 10 new jobs per day.</pace>
+        <reading>
+          60% of posters are experienced clients (10+ hires), but budgets are low and 67% of jobs already have 20 or more proposals.
+          Among the 46 jobs allowing 50 USD per hour or more, at least 28 had 50+ proposals and only 5 had fewer than 20.
+        </reading>
+      </query>
+      <query term="title contains: &quot;AI agent&quot;" total="404">
+        <job_type hourly="278" fixed="126"/>
+        <fixed_budget under_100="48" from_100_to_500="37" from_500_to_1k="17" from_1k_to_5k="18" over_5k="6"/>
+        <proposals fewer_than_5="7" from_5_to_10="14" from_10_to_15="27" from_15_to_20="32" from_20_to_50="119" over_50="205"/>
+        <client_history no_hires="97" one_to_nine_hires="116" ten_plus_hires="191"/>
+      </query>
+      <query term="title contains: n8n" total="204">
+        <job_type hourly="97" fixed="107"/>
+        <fixed_budget under_100="54" from_100_to_500="30" from_500_to_1k="7" from_1k_to_5k="14" over_5k="2"/>
+        <client_history no_hires="54" one_to_nine_hires="45" ten_plus_hires="105"/>
+      </query>
+      <query term="openclaw (anywhere in post)" total="24">
+        <reading>24 jobs across about two quarters, typical budget 50 to 1,000 USD.</reading>
+      </query>
+      <query term="&quot;MCP server&quot; with hourly ceiling 50+ or fixed 1,000+" total="8">
+        <reading>8 jobs in 2 months. MCP is a feature inside Claude and agent jobs, not a headline.</reading>
+      </query>
+      <query term="title contains: upwork, plus bidder / proposals / profile optimization" total="50 to 100">
+        <reading>About 20 new per week, many with fewer than 5 proposals, but most posters show 0 to 1K USD spend. A kit audience, not a high-ticket audience.</reading>
+      </query>
+    </exact_marketplace_counts>
+
+    <what_buyers_ask_for kind="observed" note="from two full job posts">
+      <job title="Claude AI Implementation Expert: Team Setup, Security, AI Agents and Business Workflows" posted="4 days before" proposals="50+" interviewing="1" connects="15">
+        <scope>Plan and workspace setup with role permissions; security and data rules; a maintained business knowledge base; agents and workflows with human approval; operations and marketing insight workflows; team training and documentation.</scope>
+        <asks_in_proposal>Similar implementations with results; approach to security and permissions; the first three workflows you would automate; timeline, pricing and ongoing support.</asks_in_proposal>
+        <client>430K USD spent, 164 hires, 64% hire rate, rating 4.75 from 96 reviews, but average hourly rate paid 5.04 USD across 78,857 hours. Prefers Europe or Brazil.</client>
+        <lesson>Total spend is misleading. This client buys cheap labor. Average hourly rate paid is the number to check.</lesson>
+      </job>
+      <job title="AI Operations Auditor: Assess Our Claude-Based Business OS" posted="2 days before" proposals="50+" interviewing="0" connects="20">
+        <scope>One written report: how the system compares, what is broken or missing, and a prioritized roadmap. Hourly at 30 to 40 USD, capped at 5 to 10 hours, possible follow-on work.</scope>
+        <asks_in_proposal>No generic letter. Open with one specific agent-based system you built and what happened, success or failure.</asks_in_proposal>
+        <client>245K USD spent, 24 hires, 60% hire rate, rating 4.99, average hourly rate paid 41.87 USD, mid-sized manufacturer.</client>
+        <lesson>A good client offering a small first engagement. This is the shape of work that turns into larger contracts.</lesson>
+      </job>
+    </what_buyers_ask_for>
+
+    <competitors kind="observed" source="Upwork talent search, 'claude code implementation', Top Rated Plus, first page of 136">
+      <freelancer location="India" rate_usd="35" earned="300K+" title_style="AI Automation Engineer | Claude Code, MCP, n8n, AI Agents, RAG, Python"/>
+      <freelancer location="Pakistan" rate_usd="15" earned="300K+" title_style="AI Engineer | AI Agents, Automation, OpenAI, Claude and SaaS"/>
+      <freelancer location="India" rate_usd="22" earned="200K+" title_style="AI Agents and Automation | Claude Code | Lovable | Base44"/>
+      <freelancer location="India" rate_usd="10" earned="300K+" title_style="AI First Full-Stack Expert | n8n, Claude code"/>
+      <freelancer location="Pakistan" rate_usd="25" earned="not shown" title_style="Full-Stack AI Developer | Claude Code, MCP, n8n, AI Agents, RAG"/>
+      <freelancer location="Italy" rate_usd="100" earned="100K+" title_style="Outcome statement: builds AI-powered business tools that replace manual work"/>
+      <freelancer location="Ireland" rate_usd="95" earned="70K+" title_style="Anthropic Certified AI Automation Engineer | Claude Code, n8n and Agents"/>
+      <freelancer location="Poland" rate_usd="89.65" earned="100K+" title_style="AI and Business Automation | Claude, n8n, API, MCP | B2B Portals, CRMs"/>
+      <reading>
+        The highest earners from South Asia list 10 to 35 USD per hour. The three at 90 to 100 USD per hour lead with a business outcome or a certification
+        rather than a technology list. You cannot out-earn the first group on volume at 120 USD; you can copy what the second group does.
+      </reading>
+    </competitors>
+
+    <proof_case kind="observed" subject="Andrew W., Ireland, Top Rated Plus, public Upwork profile">
+      <numbers>95 USD per hour, 70K+ USD earned, 105 jobs, 597 hours, 15 contracts in progress.</numbers>
+      <recent_contracts>Claude Code tutoring 220 USD fixed; automation build 500 USD fixed; Claude Code workflow audit 1,000 USD fixed; data assistant 1,200 USD fixed; sales app 1,700 USD fixed; agent system 1,522 USD at 55 USD per hour; marketing-agency automation 10,400 USD at 75 USD per hour over 139 hours.</recent_contracts>
+      <what_he_does>
+        <tactic>Leads with a certification and a client quote in the first two lines.</tactic>
+        <tactic>Offers a personalized recorded walkthrough of how he would automate one process the client names.</tactic>
+        <tactic>Sells small fixed jobs, audits and tutoring, then expands with the same client at an hourly rate.</tactic>
+        <tactic>Sells retainers for maintenance and a "rescue" service for broken automations.</tactic>
+        <tactic>States the buyer types he fits best, including data-residency cases.</tactic>
+      </what_he_does>
+      <why_it_matters>
+        His scale is close to yours (you: 35 jobs, 395 hours, 20K+). His history shows the small-job, audit, expansion, retainer path working on Upwork in 2026.
+        It does not prove you will get the same result: he is Top Rated Plus, Europe-based and certified.
+      </why_it_matters>
+    </proof_case>
+
+    <project_catalog_data kind="observed">
+      <stat term="claude">9,110 catalog projects</stat>
+      <stat term="ai agent">13,277 catalog projects</stat>
+      <pattern>Leading listings start at 99 to 150 USD with 1 to 3 day delivery, from sellers showing 100 to 1,200+ reviews, with generic titles.</pattern>
+      <implication>Do not compete on price. List a specific outcome for a specific buyer at 299 USD and up.</implication>
+    </project_catalog_data>
+
+    <diy_market_data>
+      <gumroad kind="observed" query="claude skills, sorted by best selling">
+        <stat>815 products.</stat>
+        <stat>Among the top 36, most show no ratings; the highest count seen was 6. About a third are free.</stat>
+        <stat>Paid packs are listed at roughly 1,800 to 4,700 INR (very roughly 20 to 55 USD). One seller runs a monthly club at about 6,600 INR per month and a custom prompt-pack service at about 28,900 INR.</stat>
+        <reading>Sellers with traction give skills away as lead magnets and earn from a membership, a book or custom work. A paid pack alone has little visible traction.</reading>
+      </gumroad>
+      <cited source="S4">SKILL.md marketplaces: top skills about 500 to 3,000 USD per month, median under 50 USD per month, most revenue in the top 10% of listings. Typical price 5 to 25 USD per skill.</cited>
+      <cited source="S5">Gumroad revenue is top-heavy: the top 1% of products take about 77% of revenue. A curated n8n template pack raised its price from 15 to 100 USD after 194 sales.</cited>
+    </diy_market_data>
+
+    <external_evidence kind="cited">
+      <point source="S1">Upwork In-Demand Skills 2026: demand for skills that mention AI grew 109% year over year, against 23% for other skills. AI integration grew 178%; AI chatbot development 71%.</point>
+      <point source="S2">Upwork launched its MCP server on 2026-08-10, free for all users.</point>
+      <point source="S3">48 agencies that publish prices: a single workflow starts around 1,000 USD, a multi-workflow project around 3,556 USD, a retainer around 1,423 USD per month.</point>
+    </external_evidence>
+
+    <verdict>
+      <supported>Daily demand for Claude implementation, coaching and audit work, much of it from experienced Upwork clients.</supported>
+      <supported>A ladder of small fixed jobs leading to expansion and retainers; one comparable freelancer's public history shows it.</supported>
+      <not_supported>A 120 USD hourly sticker. Nine open Claude-title jobs allow it.</not_supported>
+      <not_supported>Large project budgets from cold proposals. Only 5 Claude-title and 6 AI-agent-title fixed jobs are over 5,000 USD, and they draw 50+ proposals.</not_supported>
+      <not_supported>Meaningful income from a paid skills pack without an audience.</not_supported>
+    </verdict>
+  </market_evidence>
+
+  <positioning>
+    <core_promise>I set up Claude so your team uses it every day: connected to your tools, with custom skills for your workflows, documented and handed over.</core_promise>
+    <target_buyers basis="my reading of the postings; test and adjust">
+      <buyer>Small and mid-sized companies that already pay for Claude and want it wired into operations (the manufacturer and the marketing firm above are typical).</buyer>
+      <buyer>Agencies and professional-services firms: marketing, SEO, recruiting, accounting, legal.</buyer>
+      <buyer>Founders with a Claude Code-built product who need review, hardening or coaching.</buyer>
+    </target_buyers>
+    <new_title>Claude AI Implementation | Claude Code, Skills &amp; MCP | AI Agents &amp; n8n Automation</new_title>
+    <overview_structure>
+      <line order="1">First two lines: who you help, the outcome, and proof. Example: "I set up Claude for business teams: Claude Code, Cowork, custom skills and MCP connectors to your CRM, inbox and docs. Top Rated, 100% Job Success."</line>
+      <line order="2">One short client quote from your own reviews.</line>
+      <line order="3">An offer in the competitor's style that works: "Message me one process you want automated and I will send a short recorded walkthrough of how I would build it."</line>
+      <line order="4">Three packaged offers with scope and timeline.</line>
+      <line order="5">Three proof bullets, each a real project with a number.</line>
+      <line order="6">How you work: fixed scope, written acceptance criteria, stated risks and limits, recorded handover, 14 days of support.</line>
+      <remove>The "8 years" claim unless accurate and demonstrable; the compliance guarantee; the opening challenge to the reader; OpenClaw as a headline.</remove>
+    </overview_structure>
+    <specialized_profiles>
+      <profile name="AI Agent and Automation Development">Build-heavy jobs: agents, RAG, n8n, API integration, scraping.</profile>
+      <profile name="AI Training and Coaching">Coaching and training postings, where proposal counts were lowest.</profile>
+    </specialized_profiles>
+    <rate_strategy>
+      <rule>Set the profile rate to about 65 USD per hour now. That is twice your highest visible rate and inside the ceiling of the 46 better-paying Claude jobs. This number is my recommendation, not a measured optimum.</rule>
+      <rule>Earn your 120 USD per hour through packages: a 599 USD Setup Sprint delivered in 5 hours is 120 USD per hour without showing an hourly rate.</rule>
+      <rule>Move to 80, then 95 USD per hour after each set of three completed contracts at the current level. The proof case followed 55, then 75, then 95.</rule>
+      <rule>Never change the rate inside a running contract; open a new one (see job_success_protection).</rule>
+    </rate_strategy>
+    <certification_option kind="cited" source="S11">
+      Anthropic runs Claude certifications. The Claude Certified Architect Foundations exam costs 125 USD, but only people at organizations in the
+      Claude Partner Network can sit it. Check whether Revedor AI can join. A direct competitor leads his title with this certification.
+      Confirm the current rules on Anthropic's partner site before planning around it.
+    </certification_option>
+  </positioning>
+
+  <offer_ladder>
+    <principle>One body of work, sold three ways. The DIY kit is the same skills, templates and documents you use to deliver done-for-you work.</principle>
+    <pricing_note>Entry prices sit above 251 USD and team prices above 1,001 USD on purpose: those are the thresholds where Upwork gives a successful job more weight in your Job Success Score.</pricing_note>
+
+    <done_for_you>
+      <offer id="DFY1" name="Claude Setup Sprint" price="299 / 599 / 1,200 USD fixed" delivery="2 to 3 days" channel="Project Catalog, proposals, past clients">
+        <scope>Starter 299: setup plus 1 custom skill. Standard 599: setup, 3 skills, 1 connector, recorded training. Team 1,200: up to 5 users, 5 skills, 3 connectors, permissions guide.</scope>
+        <role>Door-opener and the offer for past-client reactivation.</role>
+      </offer>
+      <offer id="DFY2" name="AI Operations Audit" price="750 to 1,500 USD fixed" delivery="3 to 5 days">
+        <scope>Review a Claude or agent setup, or a Claude Code-built app. One written report: findings, risks, quick wins, prioritized roadmap with costs.</scope>
+        <role>Paid discovery before any large build. Matches the auditor job post and the proof case's 1,000 USD audit.</role>
+      </offer>
+      <offer id="DFY3" name="Done-For-You Claude Implementation" price="3,000 to 7,500 USD in 3 milestones" delivery="2 to 4 weeks">
+        <scope>Mirror the implementation job post: plan and workspace setup with role permissions, security and data rules, business knowledge base, 3 to 5 agents or workflows with human approval, team training, documentation, 14 days of support.</scope>
+        <role>Sold only to clients who have completed DFY1 or DFY2 with you.</role>
+      </offer>
+      <offer id="DFY4" name="AI Operations Care Plan" price="1,000 to 2,500 USD per month">
+        <scope>Fixed monthly hours for new skills, fixes and updates, plus a monthly review call.</scope>
+        <role>Recurring income. Each 90-day period with a payment counts as an extra successful job, up to 8.</role>
+      </offer>
+      <offer id="DFY5" name="Claude Coaching and Team Training" price="65 to 95 USD per hour, or 750 USD per workshop" channel="Consultations, proposals"/>
+      <offer id="DFY6" name="Automation Rescue" price="499 to 1,500 USD fixed">
+        <scope>Diagnose and fix a broken Claude Code build, agent or n8n workflow that someone else made.</scope>
+        <role>Urgent need, less price-sensitive buyers. Postings such as the pre-launch code review and the agent "stabilise and harden" job fit this.</role>
+      </offer>
+    </done_for_you>
+
+    <do_it_yourself>
+      <product id="DIY1" name="Claude Business OS Kit">
+        <contents>
+          <item>12 to 20 SKILL.md skills for business operations, each encoding one specific workflow: inbox triage, meeting notes to CRM, proposal drafting, client reporting, invoice chasing, research briefs, SOP writer.</item>
+          <item>CLAUDE.md and project-instruction templates for teams, plus a permissions and data-rules guide.</item>
+          <item>Connector setup guides for tools named in the job posts: HubSpot, Google Workspace, ClickUp, Notion, Slack, GoHighLevel, Zoho, QuickBooks.</item>
+          <item>A role-based prompt library and short walkthrough videos.</item>
+        </contents>
+        <pricing>Free sample of 5 skills. Full kit 49 USD. Kit plus videos and guides 149 USD. Kit plus a 30-minute setup call 299 USD.</pricing>
+      </product>
+      <product id="DIY2" name="Upwork MCP Proposal Engine Kit" price="29 to 79 USD">
+        <contents>The documentation in this repository turned into skills: job discovery, client vetting with the scorecard below, proposal drafting and Connects budgeting through the official Upwork MCP, with confirmation on every submission.</contents>
+        <compliance>Sell setup and templates for the buyer's own account. Never bid from another person's account and never sell unattended auto-bidding.</compliance>
+      </product>
+      <channels>
+        <off_upwork>Free sample skills in a public GitHub repository (your GitHub is already linked on the profile), LinkedIn posts with short demos, then Gumroad or Lemon Squeezy for the paid kit and one SKILL.md marketplace.</off_upwork>
+        <on_upwork>Only as a customized service in Project Catalog. No store links in proposals, messages or the profile.</on_upwork>
+        <hard_rule source="S8">A client found on Upwork pays through Upwork for 24 months unless the conversion fee is paid. Do not share contact details before a contract starts.</hard_rule>
+      </channels>
+      <realistic_expectation kind="assumption">0 to 300 USD per month from kits in the first two months. The kit earns its keep by cutting delivery time and serving as proof.</realistic_expectation>
+    </do_it_yourself>
+  </offer_ladder>
+
+  <seven_day_launch>
+    <budget>About 80 to 110 USD: Freelancer Plus (confirm current terms on your upgrade page) and 400 to 600 Connects at 0.15 USD each. At 15 to 20 Connects per proposal, your 110 Connects cover 5 to 7 proposals.</budget>
+    <day number="1" theme="Switch the funnel on">
+      <task>Rewrite title, overview and skills. Set the rate to 65 USD per hour.</task>
+      <task>Turn on the availability badge. Answer or decline the 2026-08-31 invitation (0 Connects).</task>
+      <task>Reconnect the Upwork MCP under your own login: claude mcp add --transport http upwork https://mcp.upwork.com/mcp, then run /mcp to log in.</task>
+    </day>
+    <day number="2" theme="Proof">
+      <task>Publish three portfolio case studies: the Upwork MCP documentation and proposal engine in this repository; a Claude skills and connector setup run on your own company as a live demo; your strongest agent or data-pipeline build.</task>
+      <task>Record one 2-minute demo of Claude running a business workflow end to end. Reuse it everywhere.</task>
+    </day>
+    <day number="3" theme="Past clients first">
+      <task>Message the five clients with open contracts and the past clients who rated you 5.0, through their existing Upwork rooms, with the Setup Sprint offer. Start with the enterprise client that has hired you at least six times.</task>
+      <task>For any open contract where the client does not want more work, ask them to close it and leave feedback.</task>
+      <task>Replace the two OpenClaw catalog projects with Claude Setup Sprint and AI Operations Audit.</task>
+    </day>
+    <day number="4-7" theme="Daily proposal routine">
+      <task>3 to 5 vetted proposals per day in the 18:30 to 23:30 IST window. Only jobs under 15 proposals, under 24 hours old, passing the scorecard. Across Claude, AI-agent and n8n titles that pool was about 140 jobs on 2026-10-04 before vetting.</task>
+      <task>Build the first 5 skills of the kit and publish them as the free sample.</task>
+    </day>
+    <first_week_cash_reality kind="cited" source="S12">
+      After a client releases a fixed-price milestone, Upwork holds the funds for 5 days. Hourly work is billed weekly and becomes available about 10 days later.
+      A milestone approved on day 6 pays out around day 11. Confirm the schedule in your Upwork payment settings.
+    </first_week_cash_reality>
+  </seven_day_launch>
+
+  <targets kind="assumption">
+    <note>Planning numbers to measure against. Not forecasts.</note>
+    <week number="1">15 to 20 proposals, all past clients contacted, 1 to 2 contracts signed, 300 to 1,500 USD contracted.</week>
+    <month number="1">3 to 5 Setup Sprints or audits, 1 implementation started: 2,500 to 7,000 USD contracted.</month>
+    <month number="3">1 to 2 retainers, rate at 80 USD per hour, 5,000 to 10,000 USD per month.</month>
+    <checkpoints basis="my rules of thumb">
+      <check>After 20 proposals, if fewer than 6 were viewed: change targeting and the first two lines.</check>
+      <check>Viewed but no replies: test the Audit as the entry offer, or lower the first milestone.</check>
+      <check>Calls that do not close: tighten scope and state risks earlier.</check>
+      <check>Track weekly on My Stats: proposals sent, viewed, interviews, hires, profile views, invites.</check>
+    </checkpoints>
+  </targets>
+
+  <job_success_protection>
+    <how_jss_works kind="observed" source="your Job Success insights page, plus S7">
+      <rule>Calculated daily over 6, 12 and 24 months; the best is shown. Only jobs in the last 24 months count.</rule>
+      <rule>Two parts decide client satisfaction: public star feedback and the private contract-ending reason. Both must be positive.</rule>
+      <rule>Weighting by earnings: 1 USD or more counts as 1 job, 251 USD or more as 1.25 jobs, 1,001 USD or more as 1.5 jobs.</rule>
+      <rule>Long-term relationship: if a client's latest payment is more than 90 days after their first, all ongoing and completed jobs with that client count as successful, even without feedback.</rule>
+      <rule>Contract length: each 90-day period with a payment on one contract counts as an extra job, up to 8.</rule>
+      <rule>Excluded: jobs with no earnings, jobs with no feedback, jobs with feedback removed. Conditions apply.</rule>
+      <rule>You need more than 2 eligible jobs in 24 months to keep a score. You have 8.</rule>
+      <rule>Contracts with rate changes can weigh more in either direction. Feedback from clients Upwork has flagged does not count against you (S7).</rule>
+      <rule>Top Rated perk: remove one outcome from the calculation once every 10 contracts and 3 months (S13, community source; confirm on your perks page).</rule>
+    </how_jss_works>
+    <your_position>
+      <illustration kind="assumption">
+        Upwork does not publish the formula. As a rough picture: 8 eligible jobs at an average weight of 1.25 is 10 weighted jobs. One failed job over 1,001 USD adds 1.5 on the
+        negative side: 10 out of 11.5 is about 87%, below the 90% Top Rated line. Add six successful jobs of 251 USD or more first (7.5 more weight) and the same failure leaves about 92%.
+      </illustration>
+      <conclusion>Stack several small successes before taking a large build with a new client. The weighting makes a 299 USD success worth almost as much as a 5,000 USD one.</conclusion>
+    </your_position>
+    <fastest_safe_gains>
+      <gain>Any new payment from a client whose first payment was over 90 days ago turns that relationship into a long-term success. Your five open contracts from 2023 and 2024 and your repeat enterprise client all qualify. This is my reading of the insights page; confirm with one client first.</gain>
+      <gain>A retainer adds one successful job every 90 days by itself.</gain>
+      <gain>Jobs closed without feedback are excluded rather than counted against you, so a quiet close is neutral. A pattern of them is not something to rely on.</gain>
+    </fastest_safe_gains>
+    <client_scorecard use="before spending Connects; all visible on the job page or through MCP find_jobs action=get">
+      <must_pass>Payment verified.</must_pass>
+      <must_pass>Average hourly rate paid of 25 USD or more for clients with history. Live example: a client with 430K USD spent pays an average of 5.04 USD per hour.</must_pass>
+      <must_pass>Client rating 4.7 or higher, or a new client with a specific, detailed post.</must_pass>
+      <must_pass>Hire rate 50% or higher.</must_pass>
+      <must_pass>Read the feedback this client gave other freelancers. Regular 4.0 to 4.5 ratings with complaints means skip.</must_pass>
+      <must_pass>Nobody hired yet, under 15 proposals, and you meet any stated location preference.</must_pass>
+      <red_flag>Tiny budget with large scope and urgency. Live example: 100 USD fixed to finish a full marketplace in 7 days, asking for perfection and "your very best price".</red_flag>
+      <red_flag>Lowest-bid language, unpaid tests, requests to talk or pay outside Upwork, commission-only pay.</red_flag>
+      <red_flag>Scope that cannot be written as acceptance criteria. Three of your five sub-5 ratings came from work where feasibility was uncertain (AutoGPT plugin, trading bot, complex plugin).</red_flag>
+      <note>A placeholder budget from a client with a healthy average hourly rate is fine. Quote your real price.</note>
+    </client_scorecard>
+    <contract_rules>
+      <rule>First contract with a new client is a Setup Sprint or Audit. The large build comes after it ends well.</rule>
+      <rule>State risks and limits in the proposal and again in the first contract message, with acceptance criteria and two revision rounds.</rule>
+      <rule>Keep the rate fixed inside a contract. New rate, new contract.</rule>
+      <rule>Hourly work goes through the Upwork time tracker so payment protection applies.</rule>
+      <rule>Written update twice a week; recorded demo at each milestone; use Upwork's mid-contract feedback request on longer work.</rule>
+      <rule>Before closing, ask what would stop a 10 out of 10 and fix it. Then ask the client to close and leave feedback.</rule>
+      <rule>If a client is unhappy, fix first. A refund does not by itself remove the outcome; read S7 before refunding.</rule>
+      <rule>All payment for Upwork-sourced clients stays on Upwork (S8).</rule>
+    </contract_rules>
+  </job_success_protection>
+
+  <mcp_operating_system reference="UPWORK_MCP_DOCUMENTATION.xml stages 1 to 5; official page S14">
+    <account_warning>
+      The Upwork connector in the Claude session used to prepare this plan is authorized to a different Upwork account (shown as "Patrick H."), not Aryan P.
+      Connect your own account before any MCP step. No change was made to any Upwork account while preparing this plan.
+    </account_warning>
+    <official_capabilities kind="observed" source="S14">
+      <item>Freelancer: dashboard summary, job search and recommendations, proposal drafts, invitations and offers, contracts and milestone submission, earnings, messaging, attachments, availability badge and profile boost, profile updates (availability, employment, languages, education, portfolio).</item>
+      <item>Every write action is a draft you confirm. Connects are spent only when you confirm. Binding actions finish on upwork.com.</item>
+    </official_capabilities>
+    <daily_routine runs="2 to 3 times in the evening IST window">
+      <step number="1" tool="find_jobs">smart_search mode=most_recent days_posted=1 verified_payment_only=true; then search with title "claude", "AI agent", "n8n", proposals_max=15, client_hires_min=1, sort=recency.</step>
+      <step number="2" tool="find_jobs" action="get">Score against the scorecard using client_record, activityStat.jobActivity, preferred_qualifications and client_feedback.</step>
+      <step number="3" tool="list_freelancer_proposals">Check invitations and existing proposals to avoid error VJ-JA-10.</step>
+      <step number="4" tool="manage_proposals" action="create">Draft with the template below, attach the matching portfolio item, boost only when the preview recommends it.</step>
+      <step number="5" tool="confirm_preview">You read the draft, the Connects cost and the bid, then confirm.</step>
+    </daily_routine>
+    <proposal_template>
+      <line order="1">One specific system you built and what happened, in two sentences. The auditor post asks for exactly this, and it answers the post's real question.</line>
+      <line order="2">The first three workflows you would look at for this client, named from their post.</line>
+      <line order="3">One stated risk or limit and how you handle it.</line>
+      <line order="4">A fixed first milestone with price and timeline, and what ongoing support looks like.</line>
+      <line order="5">One question about their setup. Offer the recorded walkthrough.</line>
+      <length>Under 150 words. No technology list.</length>
+    </proposal_template>
+    <connects_budget>Cap at 80 Connects per day. Stop boosting if a week of boosted proposals shows no better view rate.</connects_budget>
+  </mcp_operating_system>
+
+  <limits_of_this_analysis>
+    <limit>Counts are from one day and will move. Title searches miss jobs that mention Claude only in the description.</limit>
+    <limit>Competitor data is one results page and one full profile. The proof case is a single freelancer.</limit>
+    <limit>Buyer needs are drawn from two full posts and about 150 titles.</limit>
+    <limit>Gumroad ratings are a weak stand-in for sales; Gumroad does not show sales counts.</limit>
+    <limit>The Job Success illustration uses a simple ratio. Upwork does not publish its formula.</limit>
+    <limit>Targets, the recommended rate and the DIY revenue range are assumptions. No source proves a specific income.</limit>
+    <limit>Fees, Connects prices, Freelancer Plus terms, payment holds, the Top Rated perk and certification rules change. Confirm each before relying on it.</limit>
+  </limits_of_this_analysis>
+
+  <sources>
+    <source id="S1" url="https://www.upwork.com/research/in-demand-skills-2026">Upwork, In-Demand Skills 2026 (press release: https://investors.upwork.com/news-releases/news-release-details/upworks-demand-skills-2026-demand-top-ai-skills-more-doubles-ai)</source>
+    <source id="S2" url="https://www.upwork.com/press/releases/upwork-talent-is-now-everywhere-ai-works">Upwork press release, MCP server launch</source>
+    <source id="S3" url="https://aumiqx.com/services/ai-automation-agency/">AI automation agency 2026 pricing data</source>
+    <source id="S4" url="https://www.agensi.io/learn/how-to-monetize-skill-md-skills-developer-guide-2026">How to Monetize SKILL.md Skills, 2026</source>
+    <source id="S5" url="https://affstudio.org/2026/06/17/best-n8n-templates-to-sell-in-2026-15-automation-ideas-that-businesses-actually-pay-for/">n8n template sales examples; Gumroad distribution from https://insightraider.com/en/answers/can-you-sell-notion-templates-on-gumroad</source>
+    <source id="S6" url="https://gumroad.com/discover?query=claude+skills&amp;sort=best_selling">Gumroad search, "claude skills", best selling, read 2026-10-04</source>
+    <source id="S7" url="https://support.upwork.com/hc/en-us/articles/211068358-All-about-your-Job-Success-Score">Upwork Help, All about your Job Success Score</source>
+    <source id="S8" url="https://conductatlas.com/platform/upwork/upwork-terms-of-service/non-circumvention-and-conversion-fee/">Upwork Terms of Service section 7, non-circumvention</source>
+    <source id="S9" url="https://golance.com/blogs/upwork-fees-explained-2026">Upwork fees 2026; also https://upcat.app/upwork-fees-explained/</source>
+    <source id="S10" url="https://support.upwork.com/hc/en-us/articles/38437546570643-When-will-I-get-a-JSS">Upwork Help, Job Success Score eligibility</source>
+    <source id="S11" url="https://trainingcamp.com/articles/claude-certifications-explained-all-four-anthropic-exams-costs-and-who-can-take-them/">Claude certifications: exams, costs, eligibility; FAQ at https://anthropic-partners.skilljar.com/page/faq-certifications</source>
+    <source id="S12" url="https://gigradar.io/blog/how-to-get-paid-on-upwork">Upwork payment timing</source>
+    <source id="S13" url="https://community.upwork.com/t5/Freelancers/Can-I-remove-feedback-after-I-get-Top-Rated/m-p/1247318">Upwork Community, Top Rated feedback removal perk</source>
+    <source id="S14" url="https://www.upwork.com/ai/mcp">Upwork MCP Server, official page, read 2026-10-04</source>
+  </sources>
+</upwork_overhaul_plan>
