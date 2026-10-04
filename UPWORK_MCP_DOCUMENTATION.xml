@@ -1,0 +1,469 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<upwork_mcp_specification version="1.0" generated_at="2026-10-04T14:32:00+05:30">
+  <metadata>
+    <title>Upwork Model Context Protocol (MCP) Server Specification &amp; Automation Manual</title>
+    <official_docs_url>https://www.upwork.com/ai/mcp#see-what-you-can-do</official_docs_url>
+    <protocol_standard>Model Context Protocol (MCP) JSON-RPC 2.0</protocol_standard>
+    <tool_count total="51" />
+    <target_use_case>Autonomous Job Discovery, Client Intelligence &amp; Automated Proposal Drafting</target_use_case>
+  </metadata>
+
+  <architecture>
+    <description>
+      The Upwork MCP Server serves as a direct bridge between autonomous AI agents and the Upwork freelance marketplace.
+      It enforces a two-phase "Draft-and-Confirm" pattern to safeguard freelancer Connects balances, prevent platform spam,
+      and ensure full compliance with Upwork Terms of Service.
+    </description>
+    <auth_model>
+      <type>OAuth 2.1</type>
+      <context_resolution>
+        <step number="1" tool="upwork__list_accounts">
+          Enumerate available accounts across Freelancer, Client, and Agency personas.
+        </step>
+        <step number="2" parameter="org_uid">
+          Obtain the specific organization identifier (org_uid). Every subsequent tool invocation requires this org_uid.
+        </step>
+      </context_resolution>
+    </auth_model>
+    <safety_governance>
+      <principle name="draft_and_confirm">
+        All state-modifying actions (proposals, postings, milestone submissions, profile edits) generate an ephemeral server-side preview with a unique preview_id.
+        No change is made live until upwork__confirm_preview is called with that preview_id.
+      </principle>
+      <principle name="human_confirmation_gate">
+        AI agents are strictly prohibited from confirming proposals without presenting Connects costs, bid amounts, and full draft copy to the human operator.
+      </principle>
+      <principle name="legal_commitment_boundary">
+        Accepting contract offers (respond_to_offer action=accept) cannot be finalized via MCP. It returns a finalize_url requiring human cryptographic signature on upwork.com.
+      </principle>
+      <principle name="anti_disintermediation">
+        The tool requires explicit policy acknowledgment before facilitating direct client negotiations.
+      </principle>
+    </safety_governance>
+  </architecture>
+
+  <job_proposal_automation_engine>
+    <overview>
+      Designed specifically for freelancers seeking to automate the discovery of newly posted, high-converting marketplace jobs and prepare ready-to-confirm proposals.
+    </overview>
+
+    <workflow_stages>
+      <stage id="1" name="fresh_job_discovery">
+        <recommended_tool>upwork__find_jobs</recommended_tool>
+        <action>smart_search</action>
+        <configuration>
+          <param name="mode" value="most_recent">
+            Accesses the personalized recommendation feed ranked in reverse chronological order.
+          </param>
+          <param name="days_posted" value="1">
+            Enforces a strict 24-hour publication window ("posted today"). Note: smart_search is the ONLY endpoint supporting real date filtering.
+          </param>
+          <param name="verified_payment_only" value="true">
+            Eliminates unverified spam accounts and payment fraud risks.
+          </param>
+          <param name="limit" value="10">
+            Standard pagination size. Subsequent pages retrieved using the next_cursor token.
+          </param>
+        </configuration>
+        <alternative_search_tool action="search">
+          <description>Use for exact keyword or role targeting across the entire marketplace.</description>
+          <best_practice>
+            Prefer title parameter over query (e.g., title="Fullstack Python") to avoid semantic expansion noise. Title words are strictly ANDed and stemmed.
+          </best_practice>
+          <proposals_filter min="0" max="10">
+            Target jobs with fewer than 10 submissions before competition intensifies.
+          </proposals_filter>
+          <rate_overlap_logic>
+            <rate_min>Matches jobs where posted budget maximum is greater than or equal to rate_min.</rate_min>
+            <rate_max>Matches jobs where posted budget minimum is less than or equal to rate_max.</rate_max>
+          </rate_overlap_logic>
+        </alternative_search_tool>
+      </stage>
+
+      <stage id="2" name="deep_telemetry_vetting">
+        <recommended_tool>upwork__find_jobs</recommended_tool>
+        <action>get</action>
+        <payload_analysis>
+          <field name="client_record">
+            <attribute name="total_spent">Lifetime platform spend. Benchmark: prefer &gt; $1,000 USD.</attribute>
+            <attribute name="hire_rate_percent">Hiring velocity. Benchmark: prefer &gt; 50% hire rate.</attribute>
+            <attribute name="rating">Freelancers' aggregate review score of the client (1.0 to 5.0). Flag ratings below 4.6.</attribute>
+            <attribute name="active_contracts">Concurrent active engagements.</attribute>
+          </field>
+          <field name="activityStat.jobActivity">
+            <attribute name="totalHired">If &gt; 0 for a single-seat job, the role is filled. Discard immediately.</attribute>
+            <attribute name="totalOffered">Pending offers. High values indicate advanced client decision stages.</attribute>
+            <attribute name="totalInvitedToInterview">Current interviewing candidates.</attribute>
+          </field>
+          <field name="client_feedback">
+            <description>
+              Up to 5 recent reviews left by other freelancers. Automation engines should extract named contacts (e.g. 'Sarah was amazing')
+              to personalize cover letters directly without guesswork.
+            </description>
+          </field>
+          <field name="preferred_qualifications">
+            <description>Inspect English proficiency, Job Success Score (JSS), location bounds, and talent badges.</description>
+          </field>
+          <field name="connects_cost">Exact number of Connects debited upon submission.</field>
+          <field name="applied">Boolean check. If true, agent must abort proposal flow.</field>
+        </payload_analysis>
+      </stage>
+
+      <stage id="3" name="pre_submission_conflict_check">
+        <critical_rule error_code="VJ-JA-10">
+          Invoking manage_proposals action=create when an invitation or previous proposal already exists triggers error VJ-JA-10.
+          The agent MUST perform the following validations before drafting:
+        </critical_rule>
+        <validation_call step="A" tool="upwork__list_freelancer_proposals" action="invitations">
+          <condition>If invitation exists for target jobPosting.id, ABORT action=create and route to action=accept_invitation.</condition>
+        </validation_call>
+        <validation_call step="B" tool="upwork__list_freelancer_proposals" action="list">
+          <condition>If proposal already exists with status Pending/Accepted, ABORT.</condition>
+        </validation_call>
+      </stage>
+
+      <stage id="4" name="proposal_generation_and_drafting">
+        <recommended_tool>upwork__manage_proposals</recommended_tool>
+        <action>create</action>
+        <input_schema_mapping>
+          <param name="job_reference" type="string" required="true">
+            Numeric job ID from search results (NOT the ~02... ciphertext).
+          </param>
+          <param name="charged_amount" type="number" required="true">
+            Proposed hourly rate or fixed price project fee.
+          </param>
+          <param name="cover_letter" type="string" required="true" max_chars="5000">
+            Tailored, authentic cover letter referencing specific client requirements, named contacts from feedback, and relevant past project deliveries.
+          </param>
+          <param name="answers" type="array" required="conditional">
+            Required when job carries screening_questions. Array of { question, answer } objects.
+          </param>
+          <param name="portfolio_project_ids" type="array" required="false">
+            Project IDs fetched via upwork__get_profile action=list_highlights.
+          </param>
+          <param name="certificate_ids" type="array" required="false">
+            Certificate IDs fetched via upwork__get_profile action=list_highlights.
+          </param>
+          <param name="boost_connects" type="integer" required="false">
+            Connects bid for paid ranking slot. Must adhere to boost auction dynamics.
+          </param>
+        </input_schema_mapping>
+        <boost_auction_rules>
+          <rule name="minimum_bid">Must be greater than or equal to preview.boost.recommended_connects.</rule>
+          <rule name="balance_ceiling">Cannot exceed preview.boost.max_boost_connects (connects_balance minus proposal connects_cost).</rule>
+          <rule name="skip_condition">Do not boost if preview.boost.recommendation is 'skip' or boost.available is false.</rule>
+        </boost_auction_rules>
+      </stage>
+
+      <stage id="5" name="human_confirmation_and_execution">
+        <recommended_tool>upwork__confirm_preview</recommended_tool>
+        <action>confirm</action>
+        <execution_parameters>
+          <param name="type" value="proposal" />
+          <param name="preview_id" value="[server-issued preview_id from create action]" />
+        </execution_parameters>
+        <behavior>
+          The MCP server loads all previously staged parameters from internal server storage.
+          Upon successful execution, proposal status changes to 'Pending' / 'Accepted' (submitted and validated).
+        </behavior>
+      </stage>
+    </workflow_stages>
+  </job_proposal_automation_engine>
+
+  <tool_catalog>
+    <category name="Account &amp; Configuration">
+      <tool name="upwork__list_accounts" read_only="true">
+        <description>Enumerate available Upwork accounts (Freelancer, Client, Agency). Essential entry point.</description>
+        <parameters />
+      </tool>
+      <tool name="upwork__get_account" read_only="true">
+        <description>Retrieve company, team, or profile metadata for the authenticated org_uid.</description>
+        <actions><action name="get" /></actions>
+      </tool>
+      <tool name="upwork__update_account" read_only="false">
+        <description>Update account parameters, company details, team names, or member invites.</description>
+        <actions>
+          <action name="update_company" />
+          <action name="update_location" />
+          <action name="update_profile" />
+          <action name="rename_team" />
+          <action name="create_team" />
+          <action name="invite_member" />
+        </actions>
+      </tool>
+      <tool name="upwork__set_tool_mode" read_only="false">
+        <description>Configure MCP presentation mode: full_list vs search_execute.</description>
+        <actions><action name="get" /><action name="set" /></actions>
+      </tool>
+      <tool name="upwork__set_tool_permission" read_only="false">
+        <description>Configure write-tool confirmation thresholds: always_ask vs always_allow.</description>
+        <actions><action name="get" /><action name="set" /></actions>
+      </tool>
+      <tool name="upwork__get_tool_help" read_only="true">
+        <description>Introspect complete schema and documentation for any named Upwork MCP tool.</description>
+        <parameters><param name="tool_name" type="string" required="true" /></parameters>
+      </tool>
+    </category>
+
+    <category name="Job Discovery &amp; Marketplace">
+      <tool name="upwork__find_jobs" read_only="true">
+        <description>Comprehensive marketplace job search, detail retrieval, and personalized recommendation engine.</description>
+        <actions>
+          <action name="search">
+            <params>
+              <param name="query" type="string" />
+              <param name="title" type="string" />
+              <param name="job_type" type="string" enum="fixed,hourly" />
+              <param name="experience_level" type="string" enum="entry_level,intermediate,expert" />
+              <param name="budget_min" type="number" />
+              <param name="budget_max" type="number" />
+              <param name="rate_min" type="number" />
+              <param name="rate_max" type="number" />
+              <param name="skills" type="array" max_items="5" />
+              <param name="category" type="string" />
+              <param name="subcategory" type="string" />
+              <param name="workload" type="string" enum="full_time,part_time,as_needed" />
+              <param name="duration" type="string" enum="less_than_1_month,1_to_3_months,3_to_6_months,more_than_6_months" />
+              <param name="verified_payment_only" type="boolean" />
+              <param name="proposals_min" type="integer" />
+              <param name="proposals_max" type="integer" />
+              <param name="client_hires_min" type="integer" />
+              <param name="client_hires_max" type="integer" />
+              <param name="sort" type="string" enum="recency,relevance,client_total_charge,client_rating" />
+              <param name="location" type="string" />
+              <param name="timezone" type="string" />
+              <param name="limit" type="integer" default="10" />
+              <param name="cursor" type="string" />
+            </params>
+          </action>
+          <action name="get">
+            <params>
+              <param name="id" type="string" required="true" />
+            </params>
+          </action>
+          <action name="smart_search">
+            <params>
+              <param name="mode" type="string" enum="best_match,most_recent" required="true" />
+              <param name="days_posted" type="integer" />
+              <param name="from_date" type="string" />
+              <param name="to_date" type="string" />
+              <param name="limit" type="integer" default="10" />
+              <param name="cursor" type="string" />
+            </params>
+          </action>
+        </actions>
+      </tool>
+      <tool name="upwork__find_saved_jobs" read_only="true">
+        <description>Browse and count bookmarked favorite job postings.</description>
+        <actions><action name="list" /><action name="count" /></actions>
+      </tool>
+      <tool name="upwork__save_job" read_only="false">
+        <description>Save/bookmark a job, unsave, or hide a job from future search results with specific feedback.</description>
+        <actions>
+          <action name="save" />
+          <action name="unsave" />
+          <action name="hide" />
+          <action name="unhide" />
+          <action name="hide_status" />
+        </actions>
+      </tool>
+      <tool name="upwork__get_rate_insights" read_only="true">
+        <description>Fetch market hourly rate range (rate_low / rate_high) for given occupation and experience level.</description>
+        <actions><action name="get" /></actions>
+      </tool>
+      <tool name="upwork__get_job_posting" read_only="true">
+        <description>View organization-owned job postings (for client or agency accounts).</description>
+        <actions><action name="get" /><action name="list" /></actions>
+      </tool>
+    </category>
+
+    <category name="Freelancer Profile &amp; Intelligence">
+      <tool name="upwork__get_profile" read_only="true">
+        <description>Retrieve freelancer profile aggregates, work history, portfolio highlights, and Connects ledger.</description>
+        <actions>
+          <action name="get" />
+          <action name="list_highlights" />
+          <action name="transactions" />
+          <action name="connects_balance" />
+        </actions>
+      </tool>
+      <tool name="upwork__get_freelancer_dashboard" read_only="true">
+        <description>Consolidated parallel check for invitations, offers, active messages, contract updates, and Connects.</description>
+        <actions><action name="check" /></actions>
+      </tool>
+      <tool name="upwork__get_freelancer_financials" read_only="true">
+        <description>Retrieve freelancer balance, lifetime earnings, pending payments, and escrow releases.</description>
+      </tool>
+      <tool name="upwork__update_profile" read_only="false">
+        <description>Update profile overview, title, skills, employment, education, language, and availability.</description>
+      </tool>
+      <tool name="upwork__boost_profile" read_only="false">
+        <description>Manage profile boost bidding and toggle the availability badge.</description>
+      </tool>
+    </category>
+
+    <category name="Proposal Lifecycle &amp; Confirmations">
+      <tool name="upwork__manage_proposals" read_only="false">
+        <description>Draft proposals, accept/decline client invites, withdraw proposals, edit terms, or propose contracts.</description>
+        <actions>
+          <action name="create" />
+          <action name="accept_invitation" />
+          <action name="decline_invitation" />
+          <action name="withdraw" />
+          <action name="edit_terms" />
+          <action name="send_proposal" />
+          <action name="acknowledge_policy" />
+        </actions>
+      </tool>
+      <tool name="upwork__list_freelancer_proposals" read_only="true">
+        <description>Inspect submitted proposals, status codes, stored Connects bids, competitor insights, and invitations.</description>
+        <actions>
+          <action name="list" />
+          <action name="invitations" />
+          <action name="get" />
+          <action name="get_room" />
+        </actions>
+      </tool>
+      <tool name="upwork__confirm_preview" read_only="false">
+        <description>The primary execution gate. Confirms and executes any staged preview using preview_id.</description>
+        <actions><action name="confirm" /></actions>
+      </tool>
+      <tool name="upwork__get_preview" read_only="true">
+        <description>Inspect details of a pending preview prior to execution.</description>
+        <actions><action name="get" /></actions>
+      </tool>
+    </category>
+
+    <category name="Attachments &amp; Files">
+      <tool name="upwork__start_attachment_upload" read_only="false">
+        <description>Initialize secure file upload session for proposals, messages, or milestones.</description>
+        <actions><action name="upload" /></actions>
+      </tool>
+      <tool name="upwork__confirm_attachment_upload" read_only="false">
+        <description>Confirm completion of an attachment upload.</description>
+      </tool>
+      <tool name="upwork__get_upload_status" read_only="true">
+        <description>Check upload status of a file in transit.</description>
+      </tool>
+      <tool name="upwork__store_uploaded_files" read_only="false">
+        <description>Persist uploaded attachments into platform storage.</description>
+      </tool>
+    </category>
+
+    <category name="Messaging &amp; Rooms">
+      <tool name="upwork__get_messages" read_only="true">
+        <description>Read messaging rooms, stories, threads, and conversation history.</description>
+      </tool>
+      <tool name="upwork__send_message" read_only="false">
+        <description>Send messages to active rooms, initiate direct conversations, or message applicants (clients).</description>
+        <actions>
+          <action name="send" />
+          <action name="send_to_user" />
+          <action name="message_proposal" />
+          <action name="create_room" />
+          <action name="edit" />
+        </actions>
+      </tool>
+      <tool name="upwork__agency_rooms" read_only="false">
+        <description>Manage multi-user agency chat rooms and communication permissions.</description>
+      </tool>
+    </category>
+
+    <category name="Contracts, Offers &amp; Milestones">
+      <tool name="upwork__list_contracts" read_only="true">
+        <description>Enumerate active, paused, and closed contracts.</description>
+      </tool>
+      <tool name="upwork__update_contract" read_only="false">
+        <description>Update weekly hourly limits or pause/resume contracts.</description>
+      </tool>
+      <tool name="upwork__end_contract" read_only="false">
+        <description>Close contracts and submit closing feedback.</description>
+      </tool>
+      <tool name="upwork__list_offers" read_only="true">
+        <description>List received client offers.</description>
+      </tool>
+      <tool name="upwork__respond_to_offer" read_only="false">
+        <description>Decline, counter-offer, or obtain the secure finalize_url to accept an offer on upwork.com.</description>
+        <actions>
+          <action name="accept" />
+          <action name="decline" />
+          <action name="request_changes" />
+        </actions>
+      </tool>
+      <tool name="upwork__list_milestones" read_only="true">
+        <description>List active milestones for fixed-price contracts.</description>
+      </tool>
+      <tool name="upwork__manage_milestones" read_only="false">
+        <description>Create, edit, delete, or reject milestone deliverables.</description>
+      </tool>
+      <tool name="upwork__submit_milestones" read_only="false">
+        <description>Submit completed work for milestone approval and escrow release.</description>
+      </tool>
+      <tool name="upwork__manage_meetings" read_only="false">
+        <description>Request, schedule, reschedule, or cancel Upwork Zoom consultations.</description>
+      </tool>
+    </category>
+
+    <category name="Client &amp; Agency Marketplace Operations">
+      <tool name="upwork__find_freelancers" read_only="true">
+        <description>Search global freelancer talent pool by skill, rate, rating, and location.</description>
+      </tool>
+      <tool name="upwork__post_job" read_only="false">
+        <description>Draft, update, and publish marketplace job postings.</description>
+      </tool>
+      <tool name="upwork__list_client_proposals" read_only="true">
+        <description>Review inbound proposals submitted to client job postings.</description>
+      </tool>
+      <tool name="upwork__manage_client_proposals" read_only="false">
+        <description>Shortlist, message, or decline proposals submitted by applicants.</description>
+      </tool>
+      <tool name="upwork__invite_freelancer" read_only="false">
+        <description>Send direct job invitations to specific freelancers.</description>
+      </tool>
+      <tool name="upwork__list_client_invitations" read_only="true">
+        <description>Track status of invitations sent to talent.</description>
+      </tool>
+      <tool name="upwork__manage_talent_lists" read_only="false">
+        <description>Curate and organize talent bookmarks and custom candidate shortlists.</description>
+      </tool>
+      <tool name="upwork__get_client_dashboard" read_only="true">
+        <description>Consolidated overview of client jobs, proposals, and messages.</description>
+      </tool>
+      <tool name="upwork__get_client_financials" read_only="true">
+        <description>Client escrow balances, billings, and payment transaction summaries.</description>
+      </tool>
+      <tool name="upwork__get_agency" read_only="true">
+        <description>Retrieve agency profile, rosters, and operational stats.</description>
+      </tool>
+      <tool name="upwork__update_agency" read_only="false">
+        <description>Update agency branding, agency projects, and service offerings.</description>
+      </tool>
+      <tool name="upwork__get_agency_dashboard" read_only="true">
+        <description>Consolidated dashboard for agency activities, contracts, and proposals.</description>
+      </tool>
+    </category>
+  </tool_catalog>
+
+  <error_catalog>
+    <error code="VJ-JA-10">
+      <name>Proposal Conflict Error</name>
+      <trigger>Calling manage_proposals action=create when an invitation or proposal already exists.</trigger>
+      <resolution>Call list_freelancer_proposals action=invitations first; use accept_invitation if invitation is present.</resolution>
+    </error>
+    <error code="filters_rejected">
+      <name>Strict Taxonomy Rejection</name>
+      <trigger>Supplying non-canonical string in timezone or location filters.</trigger>
+      <resolution>Inspect response filters_rejected object to extract accepted canonical spelling and retry.</resolution>
+    </error>
+    <error code="filters_ignored">
+      <name>Unmatched Skill Filter</name>
+      <trigger>Supplying a skill name that does not exist in Upwork's ontology.</trigger>
+      <resolution>Inspect response filters_ignored. If all skills were ignored, broaden terms or use query parameter.</resolution>
+    </error>
+    <error code="boost_below_recommended">
+      <name>Insufficient Boost Bid</name>
+      <trigger>Bidding fewer Connects than preview.boost.recommended_connects.</trigger>
+      <resolution>Set boost_connects &gt;= recommended_connects or omit boosting entirely.</resolution>
+    </error>
+  </error_catalog>
+</upwork_mcp_specification>

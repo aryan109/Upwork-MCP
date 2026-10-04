@@ -1,0 +1,14 @@
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Temporary files and logs
+*.log
+scratch/
+tmp/
+node_modules/
+dist/
+build/
+.DS_Store
+Thumbs.db
