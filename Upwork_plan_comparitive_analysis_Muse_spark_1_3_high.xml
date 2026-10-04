@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<comparative_analysis version="1.0" generated_at="2026-10-04T15:40:00+05:30" author="Muse Spark 1.3-high">
+  <metadata>
+    <title>Comparative Analysis of Upwork MCP and Overhaul Plans</title>
+    <profile_url>https://www.upwork.com/freelancers/~01c405f48e970fd854</profile_url>
+    <profile_snapshot>Aryan P. — Top Rated, 100% Job Success, 20K+ USD earned, 35 jobs, 395 hours, listed rate 120 USD/hr, 12-month earnings 2172 USD, 0 proposals last 7 days, 0 profile views last 7 days, availability badge off, 110 Connects</profile_snapshot>
+    <documents_analyzed>
+      <document id="D1" file="UPWORK_MCP_DOCUMENTATION.xml">Upwork MCP Server Specification and Automation Manual — 51 tools, OAuth 2.1, draft-and-confirm, 5-stage proposal engine</document>
+      <document id="D2" file="UPWORK_OVERHAUL_PLAN_by_claude.xml" version="1.0">Claude Overhaul Plan v1 — Claude implementation pivot, 85 USD/hr, Setup Sprint / Audit / Implementation ladder, DIY kit</document>
+      <document id="D3" file="UPWORK_OVERHAUL_PLAN_v2_by_claude.xml" version="2.0">Claude Overhaul Plan v2 — exact marketplace counts, 65 USD/hr, competitor proof case, JSS weighting, past-client reactivation</document>
+      <document id="D4" file="upwork_strategy_overhaul_by_Gemini.xml">Gemini Enterprise AI Architect — 120-150 USD/hr, 3000+ USD floor, custom MCP / LangGraph / multi-agent, consultations, boilerplate catalog</document>
+    </documents_analyzed>
+    <verdict_master_reference>UPWORK_OVERHAUL_PLAN_v2_by_claude.xml is the master execution reference. UPWORK_MCP_DOCUMENTATION.xml is the daily operating engine. Gemini plan contributes architecture language, consultation framing, and milestone safeguards only. v1 is superseded by v2.</verdict_master_reference>
+  </metadata>
+
+  <document_breakdown>
+    <document id="D1" name="UPWORK_MCP_DOCUMENTATION.xml">
+      <what_it_suggests>
+        <point>Bridge AI agents to Upwork marketplace via MCP JSON-RPC 2.0 with two-phase Draft-and-Confirm: every write creates server-side preview_id; upwork__confirm_preview executes; offer accept returns finalize_url for human signature on upwork.com.</point>
+        <point>Auth via upwork__list_accounts then org_uid on every call. Human confirmation gate for Connects cost, bid amount, and full draft copy. Explicit policy acknowledgment for direct negotiations.</point>
+        <point>Stage 1 fresh discovery: find_jobs smart_search mode=most_recent days_posted=1 verified_payment_only=true limit=10 + cursor; alternative search with title (ANDed/stemmed, prefer over query), proposals 0-10, rate_min/rate_max overlap logic.</point>
+        <point>Stage 2 vetting via find_jobs get: client_record total_spent (prefer over 1000), hire_rate_percent (prefer over 50), rating (flag below 4.6), activityStat.jobActivity totalHired/totalOffered/totalInvitedToInterview, client_feedback names for personalization, preferred_qualifications, connects_cost, applied boolean abort.</point>
+        <point>Stage 3 conflict check to avoid VJ-JA-10: list_freelancer_proposals invitations then list; route to accept_invitation if invite exists.</point>
+        <point>Stage 4 drafting via manage_proposals create: job_reference numeric ID, charged_amount, cover_letter max 5000 chars, answers for screening questions, portfolio_project_ids and certificate_ids via get_profile list_highlights, boost_connects respecting recommended_connects and max_boost_connects, skip if recommendation is skip.</point>
+        <point>Stage 5 human confirm_preview type=proposal. Full 51-tool catalog across Account, Job Discovery, Profile, Proposals, Attachments, Messaging, Contracts/Offers/Milestones, Client/Agency ops. Error catalog: VJ-JA-10, filters_rejected, filters_ignored, boost_below_recommended.</point>
+      </what_it_suggests>
+      <agreement>
+        <agree>Agree fully on technical mechanics. Matches official page https://www.upwork.com/ai/mcp. Draft-and-confirm, org_uid flow, smart_search date filtering, VJ-JA-10 guard, and boost rules are correct and must be followed.</agree>
+        <agree>Agree on account warning carried into Claude plans: connector was authorized as Patrick H., must reconnect as Aryan P. via claude mcp add --transport http upwork https://mcp.upwork.com/mcp before live runs. No account was modified during planning.</agree>
+      </agreement>
+      <disagreement_or_limit>
+        <point>Not a strategy document. Gives no targeting, pricing, positioning, or JSS defense. Must be paired with v2 scorecard, rate strategy, and 18:30-23:30 IST routine.</point>
+      </disagreement_or_limit>
+    </document>
+
+    <document id="D2" name="UPWORK_OVERHAUL_PLAN_by_claude.xml v1">
+      <what_it_suggests>
+        <point>Diagnoses funnel-off not reputation-off: 0 proposals 3 months, 0 views 7 days, badge off, 2172 USD trailing earnings. Reposition from OpenClaw (24 jobs / ~2 quarters, mostly under 1000 USD) to Claude implementation (Claude Code, Cowork, skills, MCP connectors), ~300-350 open Claude titles ~10/day.</point>
+        <point>Targets low-competition pockets: setup, training, coaching, audits, tool integrations from 40K-400K+ spend clients. DFY ladder: Setup Sprint 299-1200 USD, Audit 750-1500 USD, Implementation 3000-7500 USD, Care Plan 1000-2500/mo, Coaching 100-150/hr. DIY Business OS Kit 49/149/299 + MCP Proposal Engine Kit 29-79 as bonus.</point>
+        <point>Rate 120 to ~85 USD/hr until 3+ contracts at new level; prefer fixed packages. Title with buyer keywords. Remove 8-years and 100pct GxP/HIPAA guarantees, opening challenge line, OpenClaw headline. Three new portfolio cases + 2-min demo video. Add Claude Code / Agent / MCP / n8n / RAG skills.</point>
+        <point>7-day launch: badge on, answer 2026-08-31 invite, close idle contracts, replace 2 OpenClaw catalog items, 4-6 vetted proposals/day under 15 proposals and under 24h old, build 5 skills in parallel. Budget ~80-110 USD for Plus + 400-600 Connects at 0.15 each. Honest cash reality: 5-day fixed hold + ~10-day hourly cycle; contract in 7 days realistic, cash in bank not.</point>
+      </what_it_suggests>
+      <agreement>
+        <agree>Agree on core diagnosis, OpenClaw-to-Claude pivot, fixed-first pricing, claim sanitization, catalog replacement, small-milestone-first JSS protection, and payment-hold honesty.</agree>
+      </agreement>
+      <disagreement_or_limit>
+        <point>Superseded by v2. Counts were approximate (7 pages x 50). Rate 85 still above ceiling of all but ~20-30 jobs. JSS weighting hand-wavy. Missed avg-hourly-paid check, stale-contract 90-day rule, competitor proof, Gumroad reality check, and certification option. Do not execute v1 directly; execute v2.</point>
+      </disagreement_or_limit>
+    </document>
+
+    <document id="D3" name="UPWORK_OVERHAUL_PLAN_v2_by_claude.xml v2">
+      <what_it_suggests>
+        <point>Exact payment-verified counts 2026-10-04: title claude 313 (215 hourly / 98 fixed; only 46 allow 50+/hr, only 9 allow 100+/hr; fixed under-100:40, 100-500:34, 500-1k:10, 1k-5k:9, over-5k:5; proposals under-5:9, 5-10:26, 10-15:33, 15-20:34, 20-50:102, over-50:109). AI agent 404, n8n 204, openclaw 24, MCP-server high-budget 8/2mo, upwork-bidder 50-100 (~20 new/week, low spend).</point>
+        <point>Buyer lessons from 2 full posts: 430K-spend implementation client pays 5.04 avg hourly — total spend misleads, avg paid decides. 245K-spend auditor at 41.87 avg offers small 30-40 USD/hr x 5-10h paid discovery — ideal entry shape.</point>
+        <point>Competitors: South Asia 10-35 USD/hr at 200-300K+ earned vs EU 89-100 USD/hr with outcome/certification lead. Proof case Andrew W. Ireland Top Rated Plus 95/hr 70K+ 105 jobs 597 hrs: 220 tutoring, 500 build, 1000 audit, 1200 assistant, 1700 app, 1522 agent at 55/hr, 10400 retainer at 75/hr — small, audit, expand, retain.</point>
+        <point>Rate 65 USD/hr now (2x max visible 30), earn 120 effective via packages; step to 80 then 95 per 3 contracts; never change rate mid-contract. Title: Claude AI Implementation | Claude Code, Skills and MCP | AI Agents and n8n Automation. Specialized profiles for build-heavy and coaching. Certification check via Revedor AI for Claude Partner Network.</point>
+        <point>Offer ladder with JSS-aware pricing above 251 and 1001 thresholds: Sprint 299/599/1200 (2-3 days), Audit 750-1500 (3-5 days), Implementation 3000-7500 in 3 milestones (2-4 weeks, only post Sprint/Audit), Care Plan 1000-2500/mo, Coaching 65-95/hr or 750/workshop, Rescue 499-1500. DIY as free 5-skill sample + 49/149/299 kit, MCP kit 29-79, GitHub free + Gumroad/Lemon Squeezy off-Upwork, customized-service only on Upwork, 24-month non-circumvention respected.</point>
+        <point>JSS from insights page: daily calc over 6/12/24mo best shown; satisfaction = public stars + private ending reason; weights 1 USD+=1.0, 251+=1.25, 1001+=1.5; 90-day repeat makes all jobs with client successful; each 90-day paid period +1 job up to 8; no-earning/no-feedback excluded; need over 2 eligible (has 8); rate changes amplify weight; Top Rated removal perk every 10 contracts/3mo. Illustration: 8 jobs x1.25=10 weight; one 1.5 failure alone drops to ~87pct; +6x1.25 successes first keeps ~92pct. Scorecard: verified payment, avg paid 25+, rating 4.7+, hire rate 50%+, read given feedback, 0 hired under 15 proposals + location fit; red flags tiny-budget-huge-scope, lowest-bid/unpaid-test/off-platform/commission-only, untestable scope. Contract rules: small first, risks+acceptance+2 revisions in first message, fixed rate in-contract, tracker for hourly, 2x weekly updates + demo per milestone, mid-contract feedback, 10/10 check before close, fix-first not refund-first, close idle, keep on-platform.</point>
+        <point>Daily MCP routine 2-3x in 18:30-23:30 IST: smart_search most_recent days_posted=1 verified + search title claude/AI agent/n8n proposals_max=15 hires_min=1 sort=recency; get scoring; invitations/list VJ-JA-10 check; create under 150 words (specific system built + 3 workflows + 1 risk + fixed milestone + 1 question + walkthrough offer); human confirm_preview; cap 80 Connects/day. Targets as assumptions: Wk1 15-20 proposals 1-2 signed 300-1500 contracted; Mo1 3-5 Sprints/audits +1 implementation 2500-7000; Mo3 1-2 retainers at 80/hr 5000-10000/mo. Checkpoints after 20 proposals.</point>
+      </what_it_suggests>
+      <agreement>
+        <agree>Agree and adopt as master. Exact counts prove 120 sticker unviable (only 9 jobs allow it) and 65 + fixed-package path correct. Competitor + proof-case logic sound. JSS thresholds and 90-day reactivation are highest-leverage defense for small-base 100pct score. Scorecard with avg-paid filter is essential. Free-sample kit correct; paid-pack-only income correctly rejected (Gumroad 815 products, top 36 mostly 0-6 ratings, ~1/3 free).</agree>
+      </agreement>
+      <disagreement_or_limit>
+        <point>Minor limits acknowledged in-file: one-day counts move; title search misses description-only mentions; single-page competitor sample; single proof freelancer (Top Rated Plus, Europe, certified — not identical); JSS illustration is ratio simplification since formula unpublished; targets/rate/DIY ranges are assumptions; fees/Connects/Plus/holds/perks/cert rules must be re-confirmed on Upwork before reliance.</point>
+      </disagreement_or_limit>
+    </document>
+
+    <document id="D4" name="upwork_strategy_overhaul_by_Gemini.xml">
+      <what_it_suggests>
+        <point>Reposition as Enterprise AI Architect | Custom MCP Servers, LangGraph and Autonomous Multi-Agent Systems. Keep 120-150 USD/hr headline. Floor 3000 USD (3000-12000+ DFY). Dual funnel: Tier1 DIY 149-499 self-serve repo/skills.md/guide, 24-48h via Catalog; Tier2 DFY end-to-end VPC/multi-agent/docs, 5-7 days consult-to-funded.</point>
+        <point>Overview copy around resilient enterprise agentic infra: custom MCP over OAuth2.1/SSE/STDIO to Claude Code/Cursor, LangGraph/CrewAI orchestration with HITL, zero-leakage local LLM/RAG (Llama3/Mistral/vLLM/Qdrant) for healthcare/legal, turnkey plugins. Skills: MCP, multi-agent, LangGraph, CrewAI, architecture, API, Python, Claude Code, RAG, enterprise automation.</point>
+        <point>Catalog CAT-01 boilerplate 199/299/499 (1 day, code+Docker+transports+manifests+checklist, no wiring), CAT-02 custom MCP 1500/2500/4000 (4 days, 3 endpoints, secrets, tested on Claude/Cursor/ChatGPT + handoff), CAT-03 feasibility audit blueprint 299 (2 days, stack eval + diagram + roadmap + threat model, no code). Consultations 150 USD/45min. JSS filters: rating 4.8+, spend 1000+, structured scope, decline open under 200; DIY listings state self-hosted/no free calls, 1 doc-clarity revision, video walkthrough; milestones 1500/2000/1500 with arch sign-off and chat acceptance before approval.</point>
+        <point>7-day roadmap: Day1 title/overview/skills + 150 consultations; Day2 boilerplate repo + skills.md + README; Day3 publish catalog + badge (10 Connects/week) + claude mcp add; Day4 search MCP/LangGraph/Claude-integration/AI-Agent, 5 proposals on architecture patterns; Day5 fulfill catalog + consults + 2h summaries; Day6 upsell 3500-6000 DFY; Day7 funded escrow + 5-star requests.</point>
+      </what_it_suggests>
+      <agreement>
+        <agree>Agree on technical direction (private authenticated MCP, RBAC/OAuth, LangGraph orchestration) as the DFY3 upsell language. Agree consultations as paid discovery, blueprint deliverable shape, milestone splitting, written acceptance before deploy, and video-with-code to cut disputes.</agree>
+      </agreement>
+      <disagreement>
+        <disagree id="R1">Reject 120 USD/hr sticker and 3000 USD cold floor as primary entry. Evidence: only 9/215 hourly Claude jobs allow 100+; visible history max 30/hr; search/filter + first-impression drop-off. Earn 120 effective via 599 Sprint in ~5h instead.</disagree>
+        <disagree id="R2">Reject MCP-server as headline offer. Evidence: 8 jobs in 2 months. Sell wired business outcomes (CRM/inbox/docs/agents/training/runbook); keep MCP as feature inside Sprint/Implementation.</disagree>
+        <disagree id="R3">Reject raw boilerplate-only Catalog as core. Upwork buyers expect implementation; code-without-setup invites refunds/disputes and JSS harm. Sell customized setup + handover; keep repo as delivery accelerator and free sample.</disagree>
+        <disagree id="R4">Reject 24-48h cash and Day6 3500-6000 close. Upwork holds fixed 5 days post-release and hourly ~10 days; Day6 approval pays ~Day11. High-ticket cold closes need trust ladder (Sprint/Audit first); 15K+/20K posts draw 50+ proposals in days.</disagree>
+        <disagree id="R5">Reject compliance absolutes (100pct GxP/HIPAA, zero-leakage guarantees). No freelancer can guarantee client-environment compliance; state controls, deployment boundaries, and test evidence instead. Also corrects facts: consultations were enabled with one 30 USD sale (not off), badge/boost off, 5 idle opens must be reactivated not left.</disagree>
+      </disagreement>
+    </document>
+  </document_breakdown>
+
+  <synthesis>
+    <what_to_keep>
+      <keep from="D1">Daily engine: smart_search + title search, get telemetry, invitations/list VJ-JA-10 guard, create with screening answers + portfolio attach + boost only on recommend, human confirm_preview. Re-auth as Aryan P. first.</keep>
+      <keep from="D3">Master positioning, pricing, and defense: 65/hr sticker; title with Claude Code/Skills/MCP/Agents/n8n; outcome-first overview with client quote + walkthrough hook + 3 packages + proof + risks/acceptance/handover; Sprint 299/599/1200 + Audit 750-1500 + Rescue 499-1500 first; Implementation 3000-7500 only after Sprint/Audit; Care Plan 1000-2500/mo; Coaching 65-95/hr; free 5-skill sample; scorecard (verified, avg-paid 25+, 4.7+, 50%+ hire, under 15/under 24h, location fit); contract rules; 18:30-23:30 IST 3-5/day cap 80 Connects/day; past-client + 5-idle reactivation first; Top Rated removal check on 3.8-rated 4408 USD job; 251/1001 JSS-aware pricing.</keep>
+      <keep from="D4">Borrow architecture vocabulary for DFY3, consultation paid-discovery framing (start 50/30m + 75/45m until reviews, then raise), blueprint report structure, milestone acceptance discipline.</keep>
+      <keep from="D2">Historical context only; do not execute separately.</keep>
+    </what_to_keep>
+    <what_to_reject>
+      <reject>120/hr sticker and 3000 floor for cold proposals; MCP-only headline; code-only catalog; week-one huge-money expectations; DIY-pack-as-income; unverifiable years/compliance guarantees; OpenClaw headline (keep one skills mention at most).</reject>
+    </what_to_reject>
+    <seven_day_execution>
+      <day n="1">Rewrite title/overview/skills, rate 65/hr, badge on, answer/decline 2026-08-31 invite, Top Rated perk check, MCP re-auth as Aryan P.</day>
+      <day n="2">Publish 3 portfolio cases (MCP repo engine, own-company Claude skills+connector demo, strongest agent/pipeline) + 2-min end-to-end demo video reused everywhere.</day>
+      <day n="3">Message 5 idle opens + 5.0 repeaters (enterprise 6x client first) with Sprint offer in existing rooms; close-or-reactivate idle; replace 2 OpenClaw catalog with Sprint + Audit.</day>
+      <day n="4-7">3-5 vetted proposals/day 18:30-23:30 IST across Claude/AI-agent/n8n titles pre-vet pool ~140 before scorecard; build first 5 kit skills as free sample + delivery assets. Expect 15-20 proposals, 1-2 funded 300-1500 contracted Wk1; payout ~Day11 after approval. Mo1 3-5 Sprints/audits +1 implementation 2500-7000; Mo3 1-2 retainers at 80/hr.</day>
+    </seven_day_execution>
+    <honest_expectation>Signed and funded contract in 7 days realistic (most likely past client). Cash in bank in 7 days not (holds). No evidence supports huge money week one. All income targets are assumptions to measure against, not forecasts.</honest_expectation>
+  </synthesis>
+
+  <limits>
+    <limit>Counts from one day move; title search misses description-only Claude mentions; competitor sample is one page + one profile; buyer needs from ~150 titles + 2 full posts; Gumroad ratings proxy sales weakly; JSS illustration is simplified ratio; targets/rate/DIY ranges are assumptions; fees/Connects/Plus/holds/perks/cert rules must be confirmed on Upwork live pages.</limit>
+  </limits>
+
+  <sources_reference>See UPWORK_OVERHAUL_PLAN_v2_by_claude.xml S1-S14: In-Demand Skills 2026, MCP launch 2026-08-10, agency pricing, SKILL.md monetization, n8n/Gumroad distribution, skill-pack prices, Gumroad claude-skills search 2026-10-04, JSS help, non-circumvention ToS-7, fees/Connects, JSS eligibility, Claude certifications, payment timing, Top Rated removal community thread, official MCP page.</sources_reference>
+</comparative_analysis>
