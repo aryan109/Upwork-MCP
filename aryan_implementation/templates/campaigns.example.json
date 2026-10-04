@@ -1,0 +1,76 @@
+{
+  "version": "1.0.0",
+  "updated_at": "2026-10-04T00:00:00+05:30",
+  "changelog": [
+    { "at": "2026-10-04T00:00:00+05:30", "by": "agent", "change": "initial campaigns from 08_MCP_ACQUISITION_ENGINE.md §3", "reason": "launch" }
+  ],
+  "global": {
+    "max_submits_per_day": 5,
+    "target_submits_per_day": 3,
+    "connects_budget_month": 250,
+    "searches_per_pass": 20,
+    "detail_fetches_per_pass": 25,
+    "lookback_cap_hours": 72,
+    "default_score_threshold": 70,
+    "review_band_min": 55,
+    "boost_max_connects": 10,
+    "boost_min_score": 80,
+    "priority_order": ["claude-implementation", "mcp-integrations", "rag-knowledge", "ai-agents", "n8n-automation", "integrations-repair", "ai-training-coaching"],
+    "exclude_terms": ["cold email", "deliverability", "gohighlevel", "clay", "apollo", "smartlead", "instantly", "linkedin outreach", "ios", "android", "unity", "solidity", "video editing", "data entry", "voice over"]
+  },
+  "campaigns": [
+    {
+      "id": "claude-implementation", "active": true,
+      "queries": ["Claude", "Claude Code", "Anthropic Claude setup", "Claude for business team", "Claude Cowork", "Claude Skills"],
+      "title_filters": ["Claude"], "subcategories": ["AI Apps & Integration"],
+      "fixed_floor": 250, "hourly_floor": 30, "max_drafts_per_day": 3, "connects_cap_per_day": 40, "score_threshold": 70,
+      "rung_default": "sprint", "proof_cluster": "agent-mcp-engine|chatbot",
+      "notes": "Highest fit, lowest pile-on cluster (snapshot 2026-10-04: 313 jobs, 109 with 50+ proposals)."
+    },
+    {
+      "id": "ai-agents", "active": true,
+      "queries": ["AI agent build", "autonomous agent workflow", "LLM agent business process", "agentic workflow approval"],
+      "title_filters": ["AI agent"], "subcategories": ["AI Apps & Integration"],
+      "fixed_floor": 500, "hourly_floor": 35, "max_drafts_per_day": 2, "connects_cap_per_day": 30, "score_threshold": 72,
+      "rung_default": "implementation", "proof_cluster": "agent-mcp-engine|scraping-warehouse",
+      "notes": "Crowded (404 jobs, 205 with 50+ proposals on 2026-10-04); higher threshold."
+    },
+    {
+      "id": "n8n-automation", "active": true,
+      "queries": ["n8n", "n8n AI workflow", "Make.com AI automation", "Zapier to n8n migration"],
+      "title_filters": ["n8n"], "subcategories": ["Scripting & Automation", "AI Apps & Integration"],
+      "fixed_floor": 300, "hourly_floor": 30, "max_drafts_per_day": 2, "connects_cap_per_day": 25, "score_threshold": 70,
+      "rung_default": "sprint", "proof_cluster": "n8n-workflow|repair"
+    },
+    {
+      "id": "mcp-integrations", "active": true,
+      "queries": ["MCP server", "Model Context Protocol", "Claude connector", "custom MCP tool"],
+      "title_filters": ["MCP"], "subcategories": ["AI Apps & Integration"],
+      "fixed_floor": 500, "hourly_floor": 40, "max_drafts_per_day": 1, "connects_cap_per_day": 15, "score_threshold": 70,
+      "rung_default": "implementation", "proof_cluster": "agent-mcp-engine",
+      "notes": "Tiny volume (8 filtered posts in 2 months on 2026-10-04) but near-zero competition."
+    },
+    {
+      "id": "rag-knowledge", "active": true,
+      "queries": ["RAG", "knowledge base assistant documents", "internal AI assistant SharePoint Notion", "document Q&A LLM"],
+      "title_filters": ["RAG"], "subcategories": ["AI Apps & Integration"],
+      "fixed_floor": 750, "hourly_floor": 40, "max_drafts_per_day": 1, "connects_cap_per_day": 20, "score_threshold": 72,
+      "rung_default": "audit", "proof_cluster": "chatbot|scraping-warehouse"
+    },
+    {
+      "id": "integrations-repair", "active": true,
+      "queries": ["fix automation", "Zapier Make broken", "OpenAI integration failing", "API integration automation"],
+      "title_filters": [], "subcategories": ["Scripting & Automation"],
+      "fixed_floor": 250, "hourly_floor": 35, "max_drafts_per_day": 1, "connects_cap_per_day": 15, "score_threshold": 70,
+      "rung_default": "audit", "proof_cluster": "repair"
+    },
+    {
+      "id": "ai-training-coaching", "active": true,
+      "queries": ["Claude training team", "AI workshop small business", "ChatGPT Claude coaching"],
+      "title_filters": [], "subcategories": [],
+      "fixed_floor": 300, "hourly_floor": 40, "max_drafts_per_day": 1, "connects_cap_per_day": 10, "score_threshold": 70,
+      "rung_default": "sprint", "proof_cluster": "training",
+      "notes": "Secondary; cut at G2 if 0 qualified in 5 days."
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "scoring_version": "1.0",
+  "updated_at": "2026-10-04T00:00:00+05:30",
+  "thresholds": { "apply": 70, "review": 55 },
+  "blocks": {
+    "A_fit": { "weight": 35, "features": { "A1_title_match": 15, "A2_workflow_clarity": 8, "A3_rung_match": 7, "A4_proof_match": 5 } },
+    "B_client": { "weight": 25, "features": { "B1_total_spent": 8, "B2_hire_rate": 5, "B3_rating": 4, "B4_avg_hourly_paid": 5, "B5_payment_verified": 3 } },
+    "C_money": { "weight": 15, "features": { "C1_budget_or_ceiling": 10, "C2_duration": 5 } },
+    "D_competition": { "weight": 15, "features": { "D1_proposals": 7, "D2_freshness": 4, "D3_client_engagement": 4 } },
+    "E_risk": { "weight": 10, "features": { "E1_screening_questions": 3, "E2_red_flags": 3, "E3_scope_clarity": 2, "E4_connects_cost": 2 } }
+  },
+  "scales": {
+    "A1_title_match": { "strong": 1.0, "adjacent": 0.6, "none": 0.0 },
+    "B1_total_spent": { ">=10000": 1.0, "1000-10000": 0.8, "100-1000": 0.5, "0_verified": 0.3, "unknown": 0.4 },
+    "B2_hire_rate": { ">=70": 1.0, "40-70": 0.7, "<40": 0.3, "unknown": 0.5 },
+    "B3_rating": { ">=4.8": 1.0, "4.5-4.8": 0.7, "<4.5": 0.2, "none": 0.6 },
+    "B4_avg_hourly_paid": { ">=50": 1.0, "30-50": 0.7, "15-30": 0.3, "<15": 0.0, "unknown": 0.5 },
+    "C1_fixed": { ">=3000": 1.0, "1000-3000": 0.9, "500-1000": 0.7, "250-500": 0.5, "100-250": 0.2 },
+    "C1_hourly": { ">=80": 1.0, "60-80": 0.9, "45-60": 0.7, "30-45": 0.4, "25-30": 0.1 },
+    "D1_proposals": { "<5": 1.0, "5-10": 0.9, "10-15": 0.7, "15-20": 0.5, "20-50": 0.25, "50+": 0.05 },
+    "D2_freshness_hours": { "<6": 1.0, "6-24": 0.8, "24-72": 0.5, ">72": 0.2 },
+    "E1_questions": { "0-2": 1.0, "3-4": 0.6, "5+": 0.3 },
+    "E4_connects": { "<=12": 1.0, "13-18": 0.7, ">=19": 0.4 }
+  },
+  "modifiers": {
+    "open_related_jobs_or_active_contracts": 5,
+    "claude_or_anthropic_named": 5,
+    "ist_friendly_timezone": 3,
+    "pile_on_and_above_avg_paid": -10,
+    "preferred_location_soft_mismatch": -5
+  },
+  "disqualifiers": ["D1", "D2", "D3", "D4", "D5", "D6", "D7", "D8", "D9", "D10"],
+  "capability_gate_terms": ["ios", "swift", "android", "kotlin", "unity", "unreal", "solidity", "smart contract", "salesforce apex", "sap abap", "video editing", "after effects", "figma only", "ui/ux designer", "copywriter", "voice actor", "data entry", "transcription"],
+  "red_flag_terms": ["ninja", "rockstar", "should take 1 hour", "simple task", "unlimited revisions", "asap today", "i know exactly what i want", "easy job", "lowest bid"],
+  "changelog": [{ "at": "2026-10-04", "by": "agent", "change": "initial weights from 06_LEAD_SCORING_RUBRIC.md", "reason": "launch" }]
+}

@@ -1,0 +1,8 @@
+client_key,first_name,segment,contract_title,contract_type,contract_value,last_active,rating,room_link,msg1_sent_at,msg1_template,reply_at,reply_summary,followup_sent_at,outcome,value_won,notes
+S1-enterprise,{{FIRST_NAME}},S1,"{{$7,000 enterprise build + 6 contracts}}",fixed,7000,2025,{{}},{{}},,S1,,,,,,"repeat enterprise client [VERIFY LIVE]"
+S2-finetune,{{FIRST_NAME}},S2,Finetune GPT-3 model,fixed,590,2023-01,{{}},{{}},,S2,,,,,,"idle open contract; do not close"
+S2-scraping,{{FIRST_NAME}},S2,Scraping and warehousing of Data,fixed,1175,2023-04,{{}},{{}},,S2,,,,,,"idle open contract; do not close"
+S2-chatbot,{{FIRST_NAME}},S2,AI chat-bot development,fixed,900,2023-07,{{}},{{}},,S2,,,,,,"idle open contract; do not close"
+S2-prompt,{{FIRST_NAME}},S2,AI Solutions Designer and Prompt Engineer,fixed,175,2023-08,{{}},{{}},,S2,,,,,,"idle open contract; do not close"
+S2-scraper,{{FIRST_NAME}},S2,Phase 1 of Web App Scraper,fixed,120,2024-12,{{}},{{}},,S2,,,,,,"idle open contract; do not close"
+S5-invite,{{FIRST_NAME}},S5,Data Science & GenAI Instructors for Live Online Training (invitation 2026-08-31),invitation,,2026-08-31,,{{}},,S5,,,,,,"reply Day 1 [VERIFY LIVE: still open]"

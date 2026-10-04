@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "aryan-upwork-engine/jobs.schema.json",
+  "title": "Upwork engine job record",
+  "type": "object",
+  "required": ["job_id", "first_seen_at", "campaign", "title", "status"],
+  "properties": {
+    "job_id": { "type": "string", "description": "Upwork job id, e.g. ~01abc..." },
+    "url": { "type": "string" },
+    "first_seen_at": { "type": "string", "format": "date-time" },
+    "posted_at": { "type": ["string", "null"], "format": "date-time" },
+    "last_checked_at": { "type": ["string", "null"], "format": "date-time" },
+    "campaign": { "type": "string", "enum": ["claude-implementation", "ai-agents", "n8n-automation", "mcp-integrations", "rag-knowledge", "integrations-repair", "ai-training-coaching", "manual"] },
+    "title": { "type": "string" },
+    "description_excerpt": { "type": "string", "maxLength": 600 },
+    "type": { "type": ["string", "null"], "enum": ["hourly", "fixed", null] },
+    "budget_fixed": { "type": ["number", "null"] },
+    "hourly_min": { "type": ["number", "null"] },
+    "hourly_max": { "type": ["number", "null"] },
+    "duration": { "type": ["string", "null"] },
+    "connects_cost": { "type": ["integer", "null"] },
+    "proposals_tier": { "type": ["string", "null"], "description": "e.g. '<5', '5-10', '10-15', '15-20', '20-50', '50+'" },
+    "proposals_count": { "type": ["integer", "null"] },
+    "client": {
+      "type": "object",
+      "properties": {
+        "country": { "type": ["string", "null"] },
+        "total_spent": { "type": ["number", "null"], "description": "null = unknown (not zero)" },
+        "hire_rate": { "type": ["number", "null"] },
+        "rating": { "type": ["number", "null"] },
+        "avg_hourly_paid": { "type": ["number", "null"] },
+        "payment_verified": { "type": ["boolean", "null"] },
+        "open_jobs": { "type": ["integer", "null"] },
+        "active_contracts": { "type": ["integer", "null"] },
+        "member_since": { "type": ["string", "null"] },
+        "hash": { "type": ["string", "null"], "description": "sha1 of stable client attributes for conflict checks" }
+      }
+    },
+    "activity": {
+      "type": "object",
+      "properties": {
+        "invitesSent": { "type": ["integer", "null"] },
+        "interviewing": { "type": ["integer", "null"] },
+        "hired": { "type": ["integer", "null"] },
+        "offered": { "type": ["integer", "null"] }
+      }
+    },
+    "screening_questions": { "type": "array", "items": { "type": "string" } },
+    "location_required": { "type": ["boolean", "null"] },
+    "locations": { "type": "array", "items": { "type": "string" } },
+    "score": { "type": ["number", "null"], "minimum": 0, "maximum": 110 },
+    "score_breakdown": {
+      "type": "object",
+      "properties": {
+        "A_fit": { "type": "number" }, "B_client": { "type": "number" }, "C_money": { "type": "number" },
+        "D_competition": { "type": "number" }, "E_risk": { "type": "number" }, "modifiers": { "type": "number" },
+        "features": { "type": "object", "additionalProperties": { "type": ["number", "string", "boolean", "null"] } }
+      }
+    },
+    "scoring_version": { "type": "string" },
+    "decision": { "type": ["string", "null"], "enum": ["APPLY", "REVIEW", "SKIP", null] },
+    "disqualifiers": { "type": "array", "items": { "type": "string", "pattern": "^D([1-9]|10)$" } },
+    "reasons": { "type": "array", "items": { "type": "string" } },
+    "rung_suggested": { "type": ["string", "null"], "enum": ["consultation", "sprint", "audit", "implementation", "care_plan", "hourly", null] },
+    "pricing_hint": { "type": ["string", "null"] },
+    "queued_for_next_day": { "type": "boolean", "default": false },
+    "status": {
+      "type": "string",
+      "enum": ["discovered", "scored", "drafted", "in_review", "approved", "submitted", "submitted_manually", "viewed", "replied", "interview", "offer", "hired",
+               "skipped", "rejected_by_aryan", "declined", "withdrawn", "expired", "duplicate", "error"]
+    },
+    "draft": {
+      "type": "object",
+      "properties": {
+        "cover_letter": { "type": "string", "maxLength": 5000 },
+        "answers": { "type": "array", "items": { "type": "string" } },
+        "terms": {
+          "type": "object",
+          "properties": {
+            "type": { "type": "string", "enum": ["fixed", "hourly"] },
+            "amount": { "type": "number" },
+            "milestones": { "type": "array", "items": { "type": "object", "properties": { "name": { "type": "string" }, "amount": { "type": "number" }, "days": { "type": "integer" } } } }
+          }
+        },
+        "proof_ids": { "type": "array", "items": { "type": "string" } },
+        "risk_stated": { "type": "string" },
+        "opener": { "type": "string", "enum": ["mirror", "explicit_ask"] },
+        "word_count": { "type": "integer" },
+        "self_check": { "type": "object", "additionalProperties": { "type": "boolean" } },
+        "needs_edit": { "type": "array", "items": { "type": "string" } },
+        "draft_version": { "type": "integer" }
+      }
+    },
+    "review": {
+      "type": "object",
+      "properties": {
+        "reviewed_at": { "type": "string", "format": "date-time" },
+        "outcome": { "type": "string", "enum": ["submit", "submit_with_edits", "skip", "hold", "manual"] },
+        "edits_summary": { "type": "string" },
+        "reject_reason": { "type": ["string", "null"] }
+      }
+    },
+    "submission": {
+      "type": "object",
+      "properties": {
+        "proposal_id": { "type": ["string", "null"] },
+        "preview_id": { "type": ["string", "null"] },
+        "submitted_at": { "type": "string", "format": "date-time" },
+        "connects_spent": { "type": "integer" },
+        "boost": { "type": "integer" },
+        "charged_amount": { "type": "number" }
+      }
+    },
+    "outcome": {
+      "type": "object",
+      "properties": {
+        "viewed_at": { "type": ["string", "null"] }, "replied_at": { "type": ["string", "null"] }, "interview_at": { "type": ["string", "null"] },
+        "offer_at": { "type": ["string", "null"] }, "hired_at": { "type": ["string", "null"] }, "contract_id": { "type": ["string", "null"] },
+        "contract_value": { "type": ["number", "null"] }, "lost_reason": { "type": ["string", "null"] }
+      }
+    },
+    "revedor_candidate": { "type": "boolean", "default": false },
+    "notes": { "type": "string" }
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "aryan-upwork-engine/campaigns.schema.json",
+  "title": "Upwork engine campaigns config",
+  "type": "object",
+  "required": ["version", "updated_at", "global", "campaigns"],
+  "properties": {
+    "version": { "type": "string" },
+    "updated_at": { "type": "string", "format": "date-time" },
+    "changelog": { "type": "array", "items": { "type": "object", "properties": { "at": { "type": "string" }, "by": { "type": "string" }, "change": { "type": "string" }, "reason": { "type": "string" } } } },
+    "global": {
+      "type": "object",
+      "required": ["max_submits_per_day", "connects_budget_month", "searches_per_pass", "detail_fetches_per_pass", "lookback_cap_hours"],
+      "properties": {
+        "max_submits_per_day": { "type": "integer", "minimum": 0, "maximum": 5 },
+        "target_submits_per_day": { "type": "integer", "default": 3 },
+        "connects_budget_month": { "type": "integer" },
+        "searches_per_pass": { "type": "integer", "default": 20 },
+        "detail_fetches_per_pass": { "type": "integer", "default": 25 },
+        "lookback_cap_hours": { "type": "integer", "default": 72 },
+        "default_score_threshold": { "type": "integer", "default": 70 },
+        "review_band_min": { "type": "integer", "default": 55 },
+        "boost_max_connects": { "type": "integer", "default": 10 },
+        "boost_min_score": { "type": "integer", "default": 80 },
+        "priority_order": { "type": "array", "items": { "type": "string" } },
+        "exclude_terms": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "campaigns": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "active", "queries", "fixed_floor", "hourly_floor", "max_drafts_per_day", "connects_cap_per_day", "score_threshold", "rung_default", "proof_cluster"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+          "active": { "type": "boolean" },
+          "queries": { "type": "array", "minItems": 1, "maxItems": 8, "items": { "type": "string" } },
+          "title_filters": { "type": "array", "maxItems": 3, "items": { "type": "string" } },
+          "subcategories": { "type": "array", "items": { "type": "string" } },
+          "exclude_terms": { "type": "array", "items": { "type": "string" } },
+          "fixed_floor": { "type": "number", "minimum": 0 },
+          "hourly_floor": { "type": "number", "minimum": 0 },
+          "max_drafts_per_day": { "type": "integer", "minimum": 0 },
+          "connects_cap_per_day": { "type": "integer", "minimum": 0 },
+          "score_threshold": { "type": "integer", "minimum": 0, "maximum": 100 },
+          "rung_default": { "type": "string", "enum": ["consultation", "sprint", "audit", "implementation", "care_plan", "hourly"] },
+          "proof_cluster": { "type": "string" },
+          "notes": { "type": "string" }
+        }
+      }
+    }
+  }
+}

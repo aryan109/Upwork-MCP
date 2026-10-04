@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "aryan-upwork-engine/state.schema.json",
+  "title": "Upwork engine singleton state",
+  "type": "object",
+  "required": ["kill_switch", "scoring_version", "campaigns_version"],
+  "properties": {
+    "last_run_at": { "type": ["string", "null"], "format": "date-time" },
+    "last_run_id": { "type": ["string", "null"] },
+    "run_in_progress": { "type": "boolean", "default": false },
+    "runs_today": { "type": "integer", "default": 0 },
+    "applies_today": { "type": "integer", "default": 0 },
+    "applies_today_by_campaign": { "type": "object", "additionalProperties": { "type": "integer" } },
+    "search_rotation_index": { "type": "object", "additionalProperties": { "type": "integer" } },
+    "connects_balance": { "type": ["integer", "null"] },
+    "connects_spent_month": { "type": "integer", "default": 0 },
+    "connects_budget_month": { "type": "integer", "default": 250 },
+    "badge_on": { "type": "boolean" },
+    "badge_since": { "type": ["string", "null"], "format": "date" },
+    "scoring_version": { "type": "string" },
+    "campaigns_version": { "type": "string" },
+    "mcp_account_name": { "type": ["string", "null"] },
+    "mcp_tool_count_observed": { "type": ["integer", "null"] },
+    "kill_switch": { "type": "boolean", "default": false },
+    "kill_switch_reason": { "type": ["string", "null"] },
+    "incidents": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["at", "type", "detail", "resolved"],
+        "properties": {
+          "at": { "type": "string", "format": "date-time" },
+          "type": { "type": "string", "enum": ["auth", "rate_limit", "validation", "business", "transient", "data", "tool_mismatch", "ledger", "secret_in_log", "other"] },
+          "detail": { "type": "string" },
+          "run_id": { "type": "string" },
+          "resolved": { "type": "boolean" },
+          "resolution": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "telemetry": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "date": { "type": "string", "format": "date" },
+          "profile_views_7d": { "type": ["integer", "null"] },
+          "invites_7d": { "type": ["integer", "null"] },
+          "connects_balance": { "type": ["integer", "null"] },
+          "jss": { "type": ["number", "null"] },
+          "earnings_12m": { "type": ["number", "null"] }
+        }
+      }
+    },
+    "daily_summary": { "type": "object", "additionalProperties": true }
+  }
+}
