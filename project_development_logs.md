@@ -17,3 +17,5 @@
   - Standardized error codes catalog (VJ-JA-10, filters_rejected, filters_ignored, boost constraints).
 - **Action**: Authored `README.md` introducing the repository, links to both documentation formats, workflow highlights, and project navigation.
 - **Action**: Created remote repository `Upwork-MCP` on GitHub under `aryan109` via authenticated API.
+- **Action**: Staged all documentation and ignore files, verified `.env` exclusion, committed changes, and pushed branch `main` to `https://github.com/aryan109/Upwork-MCP`.
+- **Action**: Sanitized remote configuration to preserve security without token retention in git remotes.
