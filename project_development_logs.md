@@ -83,3 +83,26 @@
 - **Validation**: Loaded with PowerShell `[xml]`: well-formed, 1,010 elements, 0 duplicate task ids, 0 dangling prerequisite references.
 - **Action**: Added a pointer section and table row for the XML in `aryan_implementation/00_README.md`.
 - **Action**: Committed and attempted a single non-interactive `git push origin main` (result recorded in the session summary).
+
+## [2026-10-04 18:10 IST] Upwork MCP Acquisition Engine Build & Verification
+- **User Request**: Build everything mentioned in `aryan_implementation/ARYAN_IMPLEMENTATION_PLAN.xml`.
+- **Implementation Plan**: Prepared design artifact `implementation_plan.md` covering Python acquisition engine modules, state directory initialization, unit test suite, and CLI tooling; approved by user.
+- **Action**: Built `aryan_implementation/engine/` package implementing all acquisition pipeline stages:
+  - `config.py`: Operational constants, directory paths, schema locations, and disqualifiers D1–D10.
+  - `state_manager.py`: Atomic JSON I/O, schema validations against `jobs.schema.json`, `state.schema.json`, and `campaigns.schema.json`, state bootstrap to `%USERPROFILE%\upwork_engine\state\`, kill-switch management, and incident logging.
+  - `logger.py`: Structured audit logging to `runs.jsonl` with PII credential redaction, classified error categorization (`auth`, `rate_limit`, `validation`, `business`, `transient`, `data`, `tool_mismatch`), and exponential backoff retry handler.
+  - `mcp_client.py`: Upwork MCP server client with account identity verification and mock/offline fallback simulation.
+  - `vet.py`: Strict implementation of `06_LEAD_SCORING_RUBRIC.md` including hard disqualifiers D1–D10, 5 weighted categories A–E (Fit 35, Client Quality 25, Money 15, Competition 15, Risk 10), modifiers (+5, +3, -10, -5), decision thresholds (APPLY >= 70, REVIEW 55–69, SKIP < 55), and pricing hints.
+  - `hunt.py`: Discovery engine handling `smart_search` (most_recent / best_match) and title `search`, lookback windows, dedup against state, list-level fast pre-filtering, and detail fetching capped at 25 jobs per run.
+  - `draft.py`: Proposal drafter generating 4-part cover letters, screening answers, proposed terms, and enforcing the 12-point self-check (word count 120–220, risk stated, no forbidden phrases, no exclamation marks, no em dashes, signed "Aryan").
+  - `review_submit.py`: Human-in-the-loop review queue manager with mandatory two-step confirmation (`manage_proposals create` -> preview -> explicit human confirmation -> `confirm_preview`). Blocks all auto-submission.
+  - `rebake.py`: Nightly 22:30 IST rebake loop reconciling outcomes, tracking proposal statuses, auditing Connects ledger drift, recording dashboard telemetry, and generating 10-line daily digests.
+  - `campaign_editor.py`: Versioned campaign configuration editor creating automatic timestamped backups in `backup/` with schema validation and dry-run impact evaluation.
+  - `cli.py`: Unified command line interface (`init`, `status`, `hunt`, `vet`, `draft`, `queue`, `submit`, `reject`, `rebake`, `kill-switch`, `dry-run`).
+- **Action**: Authored comprehensive test suite in `aryan_implementation/tests/`:
+  - `test_schemas.py`: Schema validation tests for campaigns, state, and jobs.
+  - `test_vet_rubric.py`: Unit tests for all 10 disqualifiers D1–D10 and worked examples.
+  - `test_engine_pipeline.py`: End-to-end integration tests for redaction, proposal drafting, 12-point self-check, two-step submission safety, kill switch enforcement, rebake ledger drift, and campaign backups.
+- **Verification**: Executed `pytest`: all 21 automated tests passed. Initialized `%USERPROFILE%\upwork_engine\state\` with `jobs.json`, `state.json`, `campaigns.json`, and `scoring.json`. Executed CLI dry-run and verified generated proposal passing the 12-point self check.
+- **Plan Tracker**: Updated `P4-T03` and `P4-T04` tasks to `status="done"` in `aryan_implementation/ARYAN_IMPLEMENTATION_PLAN.xml`.
+

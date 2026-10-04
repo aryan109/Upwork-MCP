@@ -518,7 +518,7 @@
           <rollback>None.</rollback>
           <estimated_hours>0.25</estimated_hours>
         </task>
-        <task id="P4-T03" status="todo" day="0" owner="agent" priority="high">
+        <task id="P4-T03" status="done" day="0" owner="agent" priority="high">
           <title>Create the private state directory from templates</title>
           <description>%USERPROFILE%\upwork_engine\state\ with jobs.json, state.json, campaigns.json (from campaigns.example.json), scoring.json (from scoring.example.json); validate against schemas.</description>
           <prerequisites/>
@@ -529,7 +529,7 @@
           <rollback>Delete directory (contains no client data yet).</rollback>
           <estimated_hours>0.5</estimated_hours>
         </task>
-        <task id="P4-T04" status="todo" day="3" owner="agent" priority="critical">
+        <task id="P4-T04" status="done" day="3" owner="agent" priority="critical">
           <title>Implement logging wrapper and read-only smoke tests</title>
           <description>call_mcp wrapper with classified errors and runs.jsonl audit lines; smoke-test find_jobs search/smart_search/get, get_profile, list_freelancer_proposals list.</description>
           <prerequisites>P4-T01 P4-T03</prerequisites>
