@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Upwork plan consensus — follow Claude v2</title>
+  <style>
+    :root {
+      --ink: #1c1917;
+      --muted: #57534e;
+      --line: #e7e5e4;
+      --paper: #fafaf9;
+      --card: #ffffff;
+      --accent: #1d4ed8;
+      --good: #166534;
+      --good-bg: #f0fdf4;
+      --warn: #9a3412;
+      --warn-bg: #fff7ed;
+      --info-bg: #eff6ff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font: 16px/1.55 "Segoe UI", system-ui, sans-serif;
+    }
+    main {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 40px 24px 72px;
+    }
+    h1 { font-size: 32px; line-height: 1.2; margin: 0 0 8px; letter-spacing: -0.02em; }
+    h2 { font-size: 22px; margin: 36px 0 12px; letter-spacing: -0.01em; }
+    h3 { font-size: 16px; margin: 0 0 8px; }
+    p { margin: 0 0 12px; }
+    .lede { color: var(--muted); margin-bottom: 20px; }
+    .path {
+      background: var(--good-bg);
+      border: 1px solid #bbf7d0;
+      border-radius: 10px;
+      padding: 16px 18px;
+      margin: 20px 0 24px;
+    }
+    .path strong { color: var(--good); }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin: 0 0 8px;
+    }
+    .stat {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 14px 14px 12px;
+    }
+    .stat b { display: block; font-size: 22px; letter-spacing: -0.02em; }
+    .stat span { display: block; color: var(--muted); font-size: 13px; margin-top: 4px; }
+    .note { color: var(--muted); font-size: 14px; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      overflow: hidden;
+      font-size: 14.5px;
+    }
+    th, td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+    th { background: #f5f5f4; font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+    tr:last-child td { border-bottom: 0; }
+    .bars { list-style: none; margin: 0; padding: 0; }
+    .bars li { display: grid; grid-template-columns: 220px 1fr 48px; gap: 10px; align-items: center; margin: 8px 0; font-size: 14px; }
+    .track { background: #e7e5e4; height: 10px; border-radius: 99px; overflow: hidden; }
+    .fill { display: block; height: 100%; background: var(--accent); border-radius: 99px; }
+    .week {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    .week article {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 14px 16px;
+    }
+    .split { display: grid; grid-template-columns: 1.15fr 1fr; gap: 16px; }
+    .warn {
+      background: var(--warn-bg);
+      border: 1px solid #fed7aa;
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-top: 28px;
+    }
+    .warn strong { color: var(--warn); }
+    footer { margin-top: 28px; color: var(--muted); font-size: 13px; }
+    @media (max-width: 760px) {
+      .stats, .week, .split { grid-template-columns: 1fr; }
+      .bars li { grid-template-columns: 1fr; }
+    }
+    @media print {
+      body { background: white; }
+      main { max-width: none; padding: 0; }
+      .stat, .week article, table { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Follow Claude v2, with stricter execution</h1>
+    <p class="lede">Synthesis of six independent reviews of the Gemini strategy, Claude v1, Claude v2, and the Upwork MCP specification. All six were written on 4 October 2026.</p>
+
+    <section class="path">
+      <p><strong>The path.</strong> Sell Claude setup for business teams as fixed-price packages. Show $65 per hour on the profile. Start every new client with a Setup Sprint or an Audit. Use the Upwork MCP server only to find jobs and draft proposals that you confirm yourself. Treat Gemini’s enterprise architect position as the destination you earn into after new contracts support it. Keep that headline, the $120–$150 rate, and the $3,000 floor off the profile this week.</p>
+    </section>
+
+    <section class="stats" aria-label="Consensus figures">
+      <div class="stat"><b>6 / 6</b><span>Reviews that use Claude v2 as the base</span></div>
+      <div class="stat"><b>$65/hr</b><span>Displayed rate the reviews converge on</span></div>
+      <div class="stat"><b>313 vs 8</b><span>Claude-title jobs vs serious MCP-server jobs</span></div>
+      <div class="stat"><b>Day 11+</b><span>Earliest realistic payout after a week-one approval</span></div>
+    </section>
+
+    <h2>Demand the headline has to match</h2>
+    <p class="note">Open jobs by search, payment-verified clients. Source: Claude v2 marketplace counts, 4 October 2026. “MCP server” is the high-budget slice only (hourly ceiling $50+ or fixed $1,000+), counted over about two months. The other bars are open jobs that day.</p>
+    <ul class="bars">
+      <li><span>AI agent (title)</span><span class="track"><span class="fill" style="width:100%"></span></span><span>404</span></li>
+      <li><span>Claude (title)</span><span class="track"><span class="fill" style="width:77.5%"></span></span><span>313</span></li>
+      <li><span>n8n (title)</span><span class="track"><span class="fill" style="width:50.5%"></span></span><span>204</span></li>
+      <li><span>OpenClaw</span><span class="track"><span class="fill" style="width:6%"></span></span><span>24</span></li>
+      <li><span>MCP server, serious budget</span><span class="track"><span class="fill" style="width:2%"></span></span><span>8</span></li>
+    </ul>
+    <p class="note">Of 215 hourly Claude-title jobs, 46 allow $50/hr or more and 9 allow $100/hr or more. About 67% of Claude-title jobs already had 20 or more proposals.</p>
+
+    <h2>How the six reviews voted</h2>
+    <table>
+      <thead>
+        <tr><th>Review</th><th>Base plan</th><th>Displayed rate</th><th>What to do with Gemini</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>ChatGPT Think</td><td>Claude v2</td><td>$65, then $80, $95, $120+</td><td>Long-term destination, after the profile has new proof</td></tr>
+        <tr><td>Claude Opus 5.5</td><td>Claude v2; archive v1</td><td>$65–$75; packages matter more</td><td>Keep delivery habits. Leave the positioning and the 7-day timeline</td></tr>
+        <tr><td>Gemini Flash</td><td>Claude v2</td><td>$65 sticker, $120–$150 effective</td><td>Leave the go-to-market</td></tr>
+        <tr><td>GPT 5.6 Sol</td><td>Claude v2 as a test</td><td>$65 as a controlled test</td><td>Keep delivery safeguards only</td></tr>
+        <tr><td>Grok 4.7</td><td>Claude v2</td><td>$65, then $80 after 3 contracts</td><td>Leave it as the profile strategy</td></tr>
+        <tr><td>Muse Spark</td><td>Claude v2 verbatim</td><td>$65</td><td>Architecture language and milestone rules only</td></tr>
+      </tbody>
+    </table>
+    <p class="note">Sol treats the rate, the Claude-only focus, and the income targets as hypotheses to measure. The direction matches the other five.</p>
+
+    <h2>What all six agree on</h2>
+    <table>
+      <thead><tr><th>Finding</th><th>Consequence</th></tr></thead>
+      <tbody>
+        <tr><td>Reputation is already strong. The funnel is off.</td><td>Top Rated and 100% Job Success stay. Turn the badge on and start outreach.</td></tr>
+        <tr><td>OpenClaw is the wrong storefront.</td><td>Replace the two OpenClaw catalog projects. About 24 jobs in two quarters.</td></tr>
+        <tr><td>A $120–$150 sticker locks the profile out.</td><td>Visible hourly history tops out at $30. Only 9 Claude-title jobs allow $100/hr.</td></tr>
+        <tr><td>MCP is a capability inside the offer.</td><td>Put it in the title as a keyword and in the later build.</td></tr>
+        <tr><td>Fixed packages carry the economics.</td><td>A $599 sprint delivered in about 5 hours is roughly $120/hr without showing that rate.</td></tr>
+        <tr><td>Large first contracts threaten the score.</td><td>Only 8 eligible jobs in 24 months. A bad job over $1,001 can weigh 1.5.</td></tr>
+        <tr><td>Lifetime spend is a weak client filter.</td><td>One client with $430k spent pays an average of $5.04/hr. Check average hourly paid.</td></tr>
+        <tr><td>A paid skills pack will not carry income.</td><td>815 Gumroad “claude skills” products, mostly unrated. Build files when a client needs them.</td></tr>
+        <tr><td>Cash in the bank inside 7 days is outside the payment schedule.</td><td>Fixed-price funds are held about 5 days after release. A day-6 approval pays around day 11.</td></tr>
+        <tr><td>Every proposal stays human-confirmed.</td><td>Reconnect MCP as Aryan P. The planning session was on a different account.</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Offers to publish</h2>
+    <p class="note">Entry prices sit near the Job Success weight steps ($251 and $1,001). Implementation is an upsell after a finished sprint or audit.</p>
+    <table>
+      <thead><tr><th>Offer</th><th>Price</th><th>When</th></tr></thead>
+      <tbody>
+        <tr><td>Claude Setup Sprint</td><td>$299 / $599 / $1,200</td><td>Catalog, past clients, and cold proposals</td></tr>
+        <tr><td>AI Operations Audit</td><td>$750–$1,500</td><td>Paid discovery before any large build</td></tr>
+        <tr><td>Automation Rescue</td><td>$499–$1,500</td><td>Broken Claude, agent, or n8n work someone else shipped</td></tr>
+        <tr><td>Implementation</td><td>$3,000–$7,500 in milestones</td><td>After that client finishes a sprint or audit</td></tr>
+        <tr><td>Care plan</td><td>$1,000–$2,500 / month</td><td>Price it after a finished sprint</td></tr>
+        <tr><td>Consultation</td><td>$75 for 30 minutes</td><td>Architecture review</td></tr>
+      </tbody>
+    </table>
+
+    <h2>This week, in order</h2>
+    <div class="week">
+      <article>
+        <h3>Day 1 — profile, spend nothing</h3>
+        <p>Title: Claude AI Implementation | Claude Code, MCP &amp; Agents. Confirm it fits the title field; Upwork’s limit is believed to be near 70 characters. First two lines name the buyer and the outcome, plus Top Rated and 100% Job Success.</p>
+        <p>Set the rate to $65. Turn the availability badge on. Decline the 31 August instructor invite unless the pay and scope are specific. Reconnect the Upwork MCP server under the Aryan P. login. Leave profile boost off. Buy Connects on the day applications start.</p>
+      </article>
+      <article>
+        <h3>Days 2–3 — proof, then warm clients</h3>
+        <p>Record one two-minute demo of Claude running a real workflow. Portfolio: that demo, the strongest real agent or automation project, and this MCP repository labeled as a technical sample.</p>
+        <p>Message the repeat enterprise client first, in the existing room, with the Setup Sprint. Then other clients who left a clear 5.0 and for whom the sprint fits. Replace the OpenClaw listings with the sprint. Submit the audit after the sprint is in review.</p>
+      </article>
+      <article>
+        <h3>Days 4–7 — only jobs that pass</h3>
+        <p>Search in the 18:30–23:30 IST window. Many days will have one to three real targets. A good week is about 15 to 20 tailored proposals if the pool supports it.</p>
+        <p>Hard skips: unverified payment, off-platform pay, unpaid tests, commission-only, impossible scope, a location that excludes you, and a single seat that is already hired. Strong skip: average hourly paid under $25, and clients who leave complaint-heavy 4.0–4.5 reviews.</p>
+      </article>
+      <article>
+        <h3>After 20 proposals</h3>
+        <p>If fewer than about 6 were opened, change the first two lines and who you target. If they are opened and nobody replies, lead with the audit or a smaller first milestone.</p>
+        <p>Compare Claude, broader AI automation, and n8n as search clusters. Raise the displayed rate to $80 only after three completed contracts at $65 are visible. Keep the rate fixed inside a running contract.</p>
+      </article>
+    </div>
+
+    <h2>Where the reviews disagree, and the call</h2>
+    <table>
+      <thead><tr><th>Issue</th><th>Split</th><th>Call</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Title</td>
+          <td>Muse and Gemini Flash keep v2’s long title. Opus, Sol, and Grok shorten it. Grok also keeps n8n out of the headline because many n8n jobs are under $100.</td>
+          <td>Short buyer title. n8n stays a skill and a search term.</td>
+        </tr>
+        <tr>
+          <td>Five idle 2023–2024 contracts</td>
+          <td>Gemini Flash and Muse want a small new payment to trip the 90-day rule. Opus, Sol, and Grok warn that waking a dead contract, or closing it now, can drag a bad private review into the score.</td>
+          <td>Enterprise client first. New work only when it continues the original job. Leave manufactured payments out.</td>
+        </tr>
+        <tr>
+          <td>Daily proposal quota</td>
+          <td>Several reviews say 3–5 a day. Grok and Sol say the scorecard will not produce that many good jobs.</td>
+          <td>Send the jobs that pass. Cap the week around 15–20.</td>
+        </tr>
+        <tr>
+          <td>Client scorecard</td>
+          <td>v2 uses hard gates (4.7 rating, 50% hire rate, $25 average paid). Sol wants those as weights, with hard gates only for payment, policy, and impossible scope.</td>
+          <td>Hard gates for policy and fit. $25 average paid is a strong default skip, with room for a detailed new client.</td>
+        </tr>
+        <tr>
+          <td>Consultation price</td>
+          <td>Gemini wants $150 / 45 min. Gemini Flash and Muse start at $50. Grok and ChatGPT Think land near $75.</td>
+          <td>$75 for 30 minutes. Verify whether consultations are already on; Claude says yes, Gemini says off.</td>
+        </tr>
+        <tr>
+          <td>Feedback-removal perk</td>
+          <td>Several reviews would spend it on the visible 3.8-rated $4,408 job. Grok says those ratings sit outside the 24-month window, so they do not move the current score.</td>
+          <td>Check the perks page. Save a scarce removal for a future in-window problem.</td>
+        </tr>
+        <tr>
+          <td>DIY kit this month</td>
+          <td>Most reviews build five skills as a free sample in parallel. Grok waits until a paid delivery needs the files.</td>
+          <td>Write skills when the first sprint needs them. Leave Gumroad and a proposal-engine product for later.</td>
+        </tr>
+        <tr>
+          <td>Connects on day 1</td>
+          <td>v2 budgets $80–$110 up front. Opus and Grok wait until proposals actually start. 110 Connects cover about 5–7 submits.</td>
+          <td>Past-client messages are free. Buy Connects on the day you start applying.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Keep from Gemini, and leave out</h2>
+    <div class="split">
+      <div>
+        <h3>Keep</h3>
+        <p>Funded escrow before any build. Written acceptance criteria and two revision rounds. Risks and limits stated in the proposal — one 3.8 review said the score would have been higher if risks had been clearer. A recorded handover. Milestones split so architecture is approved before implementation. Architecture language (private MCP, permissions, human approval) belongs inside the later implementation offer.</p>
+      </div>
+      <div>
+        <h3>Leave out</h3>
+        <p>Enterprise AI Architect as the headline. A $3,000 cold floor. Raw MCP boilerplates on Project Catalog. Zero-leakage, HIPAA, or GxP guarantees. The “8 years” claim beside a 2017–2021 degree. Asking clients for a five-star rating. Unattended bidding. Names scraped from other people’s reviews. Using this repository as a client case study.</p>
+      </div>
+    </div>
+
+    <section class="warn">
+      <p><strong>Confirm on the live account before you change it.</strong> Consultation status, the exact title character limit, Job Success wording for the 90-day repeat rule, badge cost, Connects price, and whether the Top Rated removal perk is scarce. The MCP specification claims 51 tools and lists 48, and its smart_search parameters may not match the live schema. Read tool help after you reconnect as Aryan P.</p>
+    </section>
+
+    <footer>
+      Sources reviewed: UPWORK_MCP_DOCUMENTATION.xml, UPWORK_OVERHAUL_PLAN_by_claude.xml, UPWORK_OVERHAUL_PLAN_v2_by_claude.xml, upwork_strategy_overhaul_by_Gemini.xml, and the six comparative analyses from ChatGPT Think, Claude Opus 5.5, Gemini Flash, GPT 5.6 Sol, Grok 4.7, and Muse Spark. Marketplace counts are from 4 October 2026 and were not re-checked when this page was written.
+    </footer>
+  </main>
+</body>
+</html>

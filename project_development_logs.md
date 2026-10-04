@@ -67,3 +67,6 @@
 - **Calls on reviewer splits**: n8n stays a skill and a search term. Idle 2023–2024 contracts are not woken for a manufactured payment. No daily proposal quota. The $25 average-hourly-paid check is a strong default skip. The Top Rated removal perk is saved. The DIY kit waits until a paid sprint needs the files. Connects are bought when applications start.
 - **Action**: Wrote the synthesis canvas at `C:\Users\Aryan\.cursor\projects\e-Ventures-Upwork-MCP\canvases\upwork-plan-consensus.canvas.tsx` (outside the git repo).
 
+## [2026-10-04 16:05 IST] Consensus saved as HTML
+- **Action**: Saved the six-reviewer consensus as `upwork_plan_consensus.html` so the chosen path (Claude v2 base, $65/hr, Setup Sprint ladder, human-confirmed MCP loop, Gemini safeguards only) can be opened in a browser without the canvas.
+
