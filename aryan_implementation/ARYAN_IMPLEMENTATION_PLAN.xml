@@ -380,7 +380,7 @@
     <!-- ===================== P3 NETWORK REACTIVATION ===================== -->
     <phase id="P3" name="Network reactivation" goal="Zero-Connects pipeline from warm past clients; first JSS-weighted job and review" window="Day 1–14 (retainer offers Week 7, Week 11)" status="todo">
       <tasks>
-        <task id="P3-T01" status="todo" day="1" owner="aryan" priority="critical">
+        <task id="P3-T01" status="done" day="1" owner="aryan" priority="critical">
           <title>Reply to the 2026-08-31 invitation (S5)</title>
           <description>Accept to interview if hourly 65+ or fixed workshop 750+; otherwise decline politely with the template.</description>
           <prerequisites/>
@@ -507,7 +507,7 @@
           <rollback>None.</rollback>
           <estimated_hours>0.5</estimated_hours>
         </task>
-        <task id="P4-T02" status="todo" day="0" owner="agent" priority="high">
+        <task id="P4-T02" status="done" day="0" owner="agent" priority="high">
           <title>Capture tools/list and tool count</title>
           <description>Call tools/list and get_tool_help for find_jobs, manage_proposals, confirm_preview; record count (doc says 51, XML lists 48).</description>
           <prerequisites>P4-T01</prerequisites>
@@ -1094,16 +1094,16 @@
     <item id="VL-17" status="unverified" verified="false" used_in="03 §5">Top Rated feedback-removal perk eligibility (save it, do not spend).</item>
     <item id="VL-18" status="unverified" verified="false" used_in="03 §3.1">Employment entry supports "since 2020".</item>
     <item id="VL-19" status="unverified" verified="false" used_in="07 §3; facts §3">portfolio_project_id values for proof items.</item>
-    <item id="VL-20" status="unverified" verified="false" used_in="facts §1; P1-T03; P5-T07">Exact live numbers: JSS, earnings, 35 jobs, 395 hours, Connects.</item>
-    <item id="VL-21" status="unverified" verified="false" used_in="facts §1">Displayed name on profile.</item>
-    <item id="VL-22" status="unverified" verified="false" used_in="facts §1">Education and employment entries.</item>
+    <item id="VL-20" status="verified" verified="true" used_in="facts §1; P1-T03; P5-T07">Exact live numbers: JSS (100%), earnings ($20K+), 38 jobs (23 fixed, 15 hourly; 21 reviews), 395 hours, Connects (110).</item>
+    <item id="VL-21" status="verified" verified="true" used_in="facts §1">Displayed name on profile: Aryan P. (Aryan Pegwar).</item>
+    <item id="VL-22" status="verified" verified="true" used_in="facts §1">Education: RNSIT (BEng 2017-2021), Udacity (Intel Edge AI 2020); Employment: TillyBilly, Deloitte.</item>
     <item id="VL-23" status="unverified" verified="false" used_in="03 §7; facts §2; P2-T04">Repeat enterprise client contract count and permission to describe it.</item>
-    <item id="VL-24" status="unverified" verified="false" used_in="05 S5; P3-T01">2026-08-31 invitation still open.</item>
-    <item id="VL-25" status="unverified" verified="false" used_in="05 §1; P3-T02">Fields returned by list_contracts.</item>
+    <item id="VL-24" status="verified" verified="true" used_in="05 S5; P3-T01">2026-08-31 invitation: Closed/declined on 2026-09-03.</item>
+    <item id="VL-25" status="verified" verified="true" used_in="05 §1; P3-T02">Fields returned by list_contracts (data.vendorContracts.contracts[] with id, offerId, title, status, clientOrganization).</item>
     <item id="VL-26" status="unverified" verified="false" used_in="05 §1">Client counts per reactivation segment (16 clients in 24 months).</item>
     <item id="VL-27" status="unverified" verified="false" used_in="05 §4; P3-T08">JSS treatment of milestones on existing contracts vs new contracts.</item>
     <item id="VL-28" status="verified" verified="true" used_in="08 NN4; P4-T01">MCP connector identity confirmed as Aryan.</item>
-    <item id="VL-29" status="unverified" verified="false" used_in="08 §1 step 0; P4-T02">MCP tool count and names (48 vs 51).</item>
+    <item id="VL-29" status="verified" verified="true" used_in="08 §1 step 0; P4-T02">MCP tool count: exactly 51 tools observed on Upwork MCP server.</item>
     <item id="VL-30" status="unverified" verified="false" used_in="08 §1 step 1a; hunt skill">verified_payment_only accepted on smart_search or only on search.</item>
     <item id="VL-31" status="unverified" verified="false" used_in="06 D2; jobs schema">preferred_locations field names.</item>
     <item id="VL-32" status="unverified" verified="false" used_in="08 §5; vet skill">Stable client id in payload for conflict checks.</item>
@@ -1113,9 +1113,9 @@
   </verify_live_registry>
 
   <placeholders_registry>
-    <placeholder id="PH-01" file="skills/aryan-profile-facts/SKILL.md" section="1" name="{{FIRST_NAME LAST_NAME}}" status="todo">Displayed profile name.</placeholder>
-    <placeholder id="PH-02" file="skills/aryan-profile-facts/SKILL.md" section="1" name="{{YYYY-MM-DD}}" status="todo">Last verified date.</placeholder>
-    <placeholder id="PH-03" file="skills/aryan-profile-facts/SKILL.md" section="1" name="{{Degree, institution}} / {{role, company}} / {{Languages}} / {{Certifications}}" status="todo">Education, employment, languages, certifications.</placeholder>
+    <placeholder id="PH-01" file="skills/aryan-profile-facts/SKILL.md" section="1" name="{{FIRST_NAME LAST_NAME}}" status="done">Displayed profile name: Aryan P. (Aryan Pegwar).</placeholder>
+    <placeholder id="PH-02" file="skills/aryan-profile-facts/SKILL.md" section="1" name="{{YYYY-MM-DD}}" status="done">Last verified date: 2026-10-05.</placeholder>
+    <placeholder id="PH-03" file="skills/aryan-profile-facts/SKILL.md" section="1" name="{{Degree, institution}} / {{role, company}} / {{Languages}} / {{Certifications}}" status="done">Education, employment, languages, certifications filled from live Upwork profile.</placeholder>
     <placeholder id="PH-04" file="skills/aryan-profile-facts/SKILL.md" section="2" name="C1–C10 {{title}} {{rating}} {{permission}} {{description}}" status="todo">Past contracts usable as proof with permission levels.</placeholder>
     <placeholder id="PH-05" file="skills/aryan-profile-facts/SKILL.md" section="3" name="P1–P9 {{one_line}} {{permission}} {{asset}} {{portfolio_project_id}}" status="todo">Proof inventory.</placeholder>
     <placeholder id="PH-06" file="skills/aryan-profile-facts/SKILL.md" section="3" name="{{client quotes}}" status="todo">Up to three verbatim review quotes.</placeholder>

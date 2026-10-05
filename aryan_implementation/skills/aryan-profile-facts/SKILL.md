@@ -5,27 +5,27 @@ description: The single source of truth for what may be claimed about Aryan in U
 
 # aryan-profile-facts
 
-**Maintained by:** Aryan. **Last verified against the live profile:** `{{YYYY-MM-DD}}` `[VERIFY LIVE]`. If any `{{}}` remains in §1–§4, drafting skills must refuse to draft and list the missing items.
+**Maintained by:** Aryan. **Last verified against the live profile:** 2026-10-05 (via Upwork MCP API live profile inspection). If any `{{}}` remains in §1–§4, drafting skills must refuse to draft and list the missing items.
 
-## 1. Profile numbers (snapshot 2026-10-04; re-verify on Day 1)
+## 1. Profile numbers (snapshot 2026-10-05; verified live via Upwork MCP)
 | Fact | Value | Verified on |
 |---|---|---|
-| Name shown on profile | `{{FIRST_NAME LAST_NAME as displayed}}` (Gemini plan used "Aryan Pegwar"; confirm) | `{{date}}` |
-| Profile URL | https://www.upwork.com/freelancers/~01c405f48e970fd854 (never pasted in letters) | 2026-10-04 |
-| Badge | Top Rated | 2026-10-04 |
-| Job Success Score | 100% | 2026-10-04 |
-| Total earned | $20K+ | 2026-10-04 |
-| Completed jobs | 35 | 2026-10-04 |
-| Hours billed | 395 | 2026-10-04 |
+| Name shown on profile | Aryan P. (Account: Aryan Pegwar) | 2026-10-05 |
+| Profile URL | https://www.upwork.com/freelancers/~01c405f48e970fd854 (never pasted in letters) | 2026-10-05 |
+| Badge | Top Rated | 2026-10-05 |
+| Job Success Score | 100% | 2026-10-05 |
+| Total earned | $20K+ | 2026-10-05 |
+| Completed jobs | 38 (23 fixed, 15 hourly; 21 reviews) | 2026-10-05 |
+| Hours billed | 395 | 2026-10-05 |
 | Earnings last 12 months | $2,172 | 2026-10-04 |
-| Hourly rate (sticker) | $65 (from Day 2; previously $120) | `{{date}}` |
-| Connects balance | 110 (2026-10-04) | daily via MCP |
-| Location / time zone | India / IST | — |
-| Education | `{{Degree, institution}}`, 2017–2021 | `{{date}}` |
-| Employment history start | 2020 (`{{role, company}}`) | `{{date}}` |
-| Company | Revedor (Revedor AI) — may be mentioned as "my company" | — |
-| Languages | `{{…}}` | |
-| Certifications | `{{only certifications that exist; else "none"}}` | |
+| Hourly rate (sticker) | $65 (target per plan; currently $120 on profile) | 2026-10-05 |
+| Connects balance | 110 (110 free, 30 rollover, 0 paid) | 2026-10-05 |
+| Location / time zone | India (MP) / UTC+05:30 (Mumbai, New Delhi) | 2026-10-05 |
+| Education | BEng Computer Engineering, RNS Institute of Technology (2017–2021); Intel Edge AI Nanodegree, Udacity (2020) | 2026-10-05 |
+| Employment history start | 2020 (Machine Learning Engineer, TillyBilly; Intern, Deloitte) | 2026-10-05 |
+| Company | Revedor (Revedor AI) — may be mentioned as "my company" | 2026-10-05 |
+| Languages | English (Native or bilingual) | 2026-10-05 |
+| Certifications | Intel® Edge AI for IoT Developers Nanodegree (Udacity, 2020) | 2026-10-05 |
 
 ## 2. Past Upwork contracts usable as proof (from the 2026-10-04 audit; confirm titles/values; set permission)
 | id | Contract (as titled on Upwork) | Year | Value | Rating | Permission (`named` / `anonymised` / `do_not_use`) | One-line description Aryan approves |

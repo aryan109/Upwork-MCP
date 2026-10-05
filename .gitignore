@@ -15,3 +15,6 @@ dist/
 build/
 .DS_Store
 Thumbs.db
+
+# External reference input datasets
+Upwork Analysis Agent Data/
