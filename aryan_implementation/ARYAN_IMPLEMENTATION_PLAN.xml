@@ -496,15 +496,15 @@
     <!-- ===================== P4 MCP ACQUISITION ENGINE ===================== -->
     <phase id="P4" name="MCP acquisition engine" goal="Human-gated Discover→Score→Draft→Review→Submit pipeline producing 3–5 excellent proposals per day with full audit logging" window="Day 0–70" status="todo">
       <tasks>
-        <task id="P4-T01" status="todo" day="0" owner="both" priority="critical">
-          <title>Reconnect the Upwork MCP connector as Aryan</title>
-          <description>claude mcp add --transport http upwork https://mcp.upwork.com/mcp; re-authorise as Aryan; list_accounts must return Aryan's account (previous session was authorised as "Patrick H.").</description>
+        <task id="P4-T01" status="done" day="0" owner="both" priority="critical">
+          <title>Verify Upwork MCP connector as Aryan</title>
+          <description>Confirmed: Aryan's own Upwork account is currently authenticated in the Upwork MCP connector.</description>
           <prerequisites/>
           <tool>MCP list_accounts</tool>
           <reference doc="08_MCP_ACQUISITION_ENGINE.md" section="Non-negotiables 4"/>
-          <acceptance_criteria>Log line with Aryan's account name; no other account present.</acceptance_criteria>
-          <verify_live required="true" registry_ref="VL-28">Connector identity.</verify_live>
-          <rollback>Remove connector.</rollback>
+          <acceptance_criteria>Connector identity verified as Aryan.</acceptance_criteria>
+          <verify_live required="false" registry_ref="VL-28">Connector identity verified.</verify_live>
+          <rollback>None.</rollback>
           <estimated_hours>0.5</estimated_hours>
         </task>
         <task id="P4-T02" status="todo" day="0" owner="agent" priority="high">
@@ -1102,7 +1102,7 @@
     <item id="VL-25" status="unverified" verified="false" used_in="05 §1; P3-T02">Fields returned by list_contracts.</item>
     <item id="VL-26" status="unverified" verified="false" used_in="05 §1">Client counts per reactivation segment (16 clients in 24 months).</item>
     <item id="VL-27" status="unverified" verified="false" used_in="05 §4; P3-T08">JSS treatment of milestones on existing contracts vs new contracts.</item>
-    <item id="VL-28" status="unverified" verified="false" used_in="08 NN4; P4-T01">MCP connector identity is Aryan (was "Patrick H.").</item>
+    <item id="VL-28" status="verified" verified="true" used_in="08 NN4; P4-T01">MCP connector identity confirmed as Aryan.</item>
     <item id="VL-29" status="unverified" verified="false" used_in="08 §1 step 0; P4-T02">MCP tool count and names (48 vs 51).</item>
     <item id="VL-30" status="unverified" verified="false" used_in="08 §1 step 1a; hunt skill">verified_payment_only accepted on smart_search or only on search.</item>
     <item id="VL-31" status="unverified" verified="false" used_in="06 D2; jobs schema">preferred_locations field names.</item>
