@@ -149,6 +149,27 @@
   - Built-in drag-and-drop listener and manual file selector for inspecting external XML files.
 - **Action**: Updated `visualizer.py` launcher to open `visualizer.html` directly in the user's default browser by default without spinning up background daemons, while retaining optional `--server` and `--build` CLI flags.
 - **Action**: Authored `aryan_implementation/tests/test_standalone_visualizer.py` verifying HTML generation, embedded payload integrity, DOMParser logic, and File System Access API presence.
-- **Verification**: Executed pytest test suite: all 28 automated tests passed cleanly.
 - **Documentation**: Updated `README.md` with instructions on how to use `visualizer.html` in serverless mode.
+
+## [2026-10-05 20:45 IST] Live Acquisition Pipeline Run for Aryan Profile
+- **User Request**: Run the Upwork acquisition engine for Aryan's authenticated profile.
+- **Execution Context**: Executed during prime operating window (18:30–23:30 IST) at 20:45 IST with 110 Connects available.
+- **Live Discovery**:
+  - Queried `smart_search` (mode `most_recent`, `days_posted=1`) and `search` (title `Claude`).
+  - Evaluated marketplace postings against D1–D10 disqualifiers and 0–100 rubric in `vet.py`.
+  - Disqualified below-floor $15/hr posting (`Connect WhatsApp Business API to Claude`, D7 triggered).
+  - Qualified top match: **AI Solutions Engineer: Take Our AI Prototype to Production (RAG, Evals)** (`2107079311620473280`).
+    - Client: Malta, 100% hire rate, 5.0 rating (53 reviews), $21,700 spend, past client for OpenClaw / AI agents.
+    - Score: **92.5/100** (APPLY).
+    - Terms: Hourly at $65.00/hr (client posted $50–$80/hr).
+- **Proposal Generation & Self-Check**:
+  - Authored targeted 190-word 4-part cover letter addressing Cursor prototype hallucinations, evaluation harness, Supabase pgvector chunking, and risk management.
+  - Validated with 12-point self-check in `draft.py`: all 12 points passed.
+- **Preview Staged on Upwork Server (Step 1)**:
+  - Invoked `upwork__manage_proposals action="create"` with `job_reference="2107079311620473280"`, `charged_amount=65`.
+  - Upwork server generated preview `b251de25-a5e9-4ccd-b6ce-2b10bebb87cf` (type `proposal`).
+  - Connects required: 27. Boost: skipped (competing bids at 233, 70, 67).
+  - Saved live record into `%USERPROFILE%\upwork_engine\state\jobs.json`.
+- **Review Queue**:
+  - Enforced mandatory two-step confirmation safety gate. Placed proposal in pending review queue awaiting Aryan's explicit confirmation before submission.
 

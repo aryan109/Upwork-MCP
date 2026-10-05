@@ -26,7 +26,7 @@ class ReviewSubmitManager:
         jobs = self.state_mgr.load_jobs()
         queue = []
         for jid, job in jobs.items():
-            if job.get("status") in ("drafted", "in_review"):
+            if job.get("status") in ("drafted", "in_review", "preview_ready"):
                 queue.append(job)
         # Sort by score descending
         queue.sort(key=lambda x: x.get("score", 0), reverse=True)
