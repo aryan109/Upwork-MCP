@@ -25,5 +25,23 @@ All write operations (`create` proposal, `post_job`, profile edits) return a ser
 
 ---
 
+## ⚡ Serverless XML Visualizer (`visualizer.html`)
+
+An interactive, zero-server visualizer for exploring all workspace XML files (implementation plans, MCP protocols, and comparative evaluations):
+
+- **Zero-Server Instant Launch**: Double-click [`visualizer.html`](./visualizer.html) or open it directly in any browser (`file:///...`). No Python daemon, open ports, or web server needed.
+- **Embedded Snapshot**: Pre-packaged with all 11 workspace XML models, rendering dashboards and interactive DOM trees instantly on load.
+- **0-Server Live Disk Sync**: Click *"🟢 Enable Live Disk Watch"* to grant one-time read access to the workspace folder via the Web File System Access API. The browser polls file timestamps every 1 second and re-renders live in real time when files change on disk.
+- **Drag & Drop**: Drop any external XML file directly onto the browser window.
+- **Optional CLI Launcher**:
+  ```powershell
+  python visualizer.py            # Opens visualizer.html directly in browser
+  python visualizer.py --server   # Starts optional local HTTP daemon (port 8765)
+  python visualizer.py --build    # Recompiles visualizer.html with latest XML snapshots
+  ```
+
+---
+
 ## 🛠️ Project Logs
 Detailed execution logs and changes are tracked in [project_development_logs.md](./project_development_logs.md).
+
