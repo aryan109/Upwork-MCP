@@ -111,6 +111,44 @@ def test_disqualifier_d10_conflict_client() -> None:
     assert d_id == "D10"
 
 
+def test_disqualifier_d11_already_filled() -> None:
+    # 1. Filled job: 1 to hire, 1 already hired
+    job_filled = {
+        "title": "AI Solutions Engineer: Take Our AI Prototype to Production",
+        "contractTerms": {"personsToHire": 1},
+        "activityStat": {
+            "jobActivity": {"totalHired": 1, "totalInvitedToInterview": 0}
+        },
+    }
+    disq, d_id, reason = check_disqualifiers(job_filled)
+    assert disq is True
+    assert d_id == "D11"
+    assert "Job already filled" in reason
+    assert "(1/1 hired)" in reason
+
+    # 2. Multi-hire job still open: 3 to hire, 1 hired
+    job_multi = {
+        "title": "AI Solutions Engineer",
+        "contractTerms": {"personsToHire": 3},
+        "activityStat": {
+            "jobActivity": {"totalHired": 1, "totalInvitedToInterview": 2}
+        },
+    }
+    disq, _, _ = check_disqualifiers(job_multi)
+    assert disq is False
+
+    # 3. Unfilled job: 1 to hire, 0 hired
+    job_unfilled = {
+        "title": "AI Solutions Engineer",
+        "contractTerms": {"personsToHire": 1},
+        "activityStat": {
+            "jobActivity": {"totalHired": 0, "totalInvitedToInterview": 1}
+        },
+    }
+    disq, _, _ = check_disqualifiers(job_unfilled)
+    assert disq is False
+
+
 def test_worked_example_1_claude_implementation_expert() -> None:
     # Example 1 from 06_LEAD_SCORING_RUBRIC.md
     job = {

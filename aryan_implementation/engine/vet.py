@@ -1,6 +1,6 @@
 """
 Lead scoring rubric and deterministic qualification engine for Aryan Upwork pipeline.
-Implements the 0–100 weighted rubric and D1–D10 disqualifiers from 06_LEAD_SCORING_RUBRIC.md.
+Implements the 0–100 weighted rubric and D1–D11 disqualifiers from 06_LEAD_SCORING_RUBRIC.md.
 """
 from __future__ import annotations
 
@@ -70,7 +70,7 @@ def check_disqualifiers(
     open_clients: Optional[Set[str]] = None,
 ) -> Tuple[bool, Optional[str], Optional[str]]:
     """
-    Check hard disqualifiers D1–D10.
+    Check hard disqualifiers D1–D11.
     Returns (is_disqualified, disqualifier_id, reason_str).
     """
     title = str(job.get("title", "")).lower()
@@ -146,9 +146,37 @@ def check_disqualifiers(
         return True, "D9", "Asks for free test task or trial before hire"
 
     # D10: Conflict with same client
-    client_hash = client.get("hash") or client.get("id") or client.get("client_id")
-    if open_clients and client_hash and str(client_hash) in open_clients:
-        return True, "D10", f"Conflict: open proposal or contract exists with client {client_hash}"
+    if client and open_clients:
+        client_hash = client.get("hash") or client.get("id") or client.get("client_id")
+        if client_hash and str(client_hash) in open_clients:
+            return True, "D10", f"Conflict: open proposal or contract exists with client {client_hash}"
+
+    # D11: Job already filled (totalHired >= personsToHire)
+    contract_terms = job.get("contractTerms") or {}
+    raw_pth = (
+        job.get("persons_to_hire")
+        or contract_terms.get("personsToHire")
+        or job.get("personsToHire")
+        or 1
+    )
+    raw_hired = (
+        activity.get("totalHired")
+        or job.get("total_hired")
+        or activity.get("hired")
+        or 0
+    )
+    try:
+        persons_to_hire = int(raw_pth)
+    except (ValueError, TypeError):
+        persons_to_hire = 1
+
+    try:
+        total_hired = int(raw_hired)
+    except (ValueError, TypeError):
+        total_hired = 0
+
+    if persons_to_hire > 0 and total_hired >= persons_to_hire:
+        return True, "D11", f"Job already filled ({total_hired}/{persons_to_hire} hired)"
 
     return False, None, None
 

@@ -10,6 +10,7 @@ from typing import Dict, List, Any
 # Root directory of this package
 PACKAGE_ROOT = Path(__file__).resolve().parent.parent
 WORKSPACE_ROOT = PACKAGE_ROOT.parent
+PROJECT_ROOT = WORKSPACE_ROOT
 
 # User state directory outside the repo
 DEFAULT_ENGINE_DIR = Path(os.environ.get("USERPROFILE", os.path.expanduser("~"))) / "upwork_engine"
@@ -61,4 +62,5 @@ DISQUALIFIERS = {
     "D8": "Older than 72h AND 50+ proposals AND 0 interviewing",
     "D9": "Free test task over 1 hour",
     "D10": "Conflict: open proposal or contract with same client",
+    "D11": "Job already filled (hires reached limit)",
 }

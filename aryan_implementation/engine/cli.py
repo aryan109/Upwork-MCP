@@ -20,9 +20,17 @@ from .draft import ProposalDrafter
 from .review_submit import ReviewSubmitManager
 from .rebake import RebakeEngine
 from .campaign_editor import CampaignEditor
+from .market_intel import MarketIntelEngine
 
 
 def main() -> None:
+    if hasattr(sys.stdout, "reconfigure"):
+        try:
+            sys.stdout.reconfigure(encoding="utf-8")
+            sys.stderr.reconfigure(encoding="utf-8")
+        except Exception:
+            pass
+
     parser = argparse.ArgumentParser(
         prog="upwork-engine",
         description="Aryan Upwork MCP Acquisition Engine",
@@ -80,10 +88,15 @@ def main() -> None:
     p_dr = subparsers.add_parser("dry-run", help="Run simulated dry run across sample jobs")
     p_dr.add_argument("--sample-count", type=int, default=5)
 
+    # intel
+    p_intel = subparsers.add_parser("intel", help="View or update Market Intelligence & Demand signals")
+    p_intel.add_argument("--job-id", type=str, default=None, help="Catalog specific job into intelligence base")
+    p_intel.add_argument("--notes", type=str, default="", help="Optional notes on the job")
+
     args = parser.parse_args()
 
     state_mgr = StateManager(args.state_dir)
-    mcp_client = UpworkMCPClient(mock_mode=args.mock or True)  # default mock if offline
+    mcp_client = UpworkMCPClient(mock_mode=args.mock)
 
     if args.command == "init":
         res = state_mgr.init_state_directory(force=args.force)
@@ -136,6 +149,7 @@ def main() -> None:
         scored_count = 0
         apply_count = 0
 
+        intel_eng = MarketIntelEngine(state_mgr.state_dir)
         for jid in target_ids:
             if jid not in jobs:
                 continue
@@ -147,6 +161,8 @@ def main() -> None:
                 job["disqualifiers"] = [d_id]
                 job["reasons"] = [d_reason]
                 job["score"] = 0
+                if d_id == "D11":
+                    intel_eng.record_job(job, status_override="FILLED")
             else:
                 score_res = score_job(job)
                 job["status"] = "scored"
@@ -158,6 +174,8 @@ def main() -> None:
                 job["pricing_hint"] = score_res["pricing_hint"]
                 if score_res["decision"] == "APPLY":
                     apply_count += 1
+                if score_res["score"] >= 60:
+                    intel_eng.record_job(job, status_override="OPEN")
             scored_count += 1
 
         state_mgr.save_jobs(jobs)
@@ -304,6 +322,25 @@ def main() -> None:
         print(f"Self-Check Passed: {draft_res['self_check']['passed']}")
         print(f"Cover Letter Word Count: {draft_res['self_check']['word_count']}")
         print("Draft Status: Ready for human review")
+
+    elif args.command == "intel":
+        intel_eng = MarketIntelEngine(state_mgr.state_dir)
+        if args.job_id:
+            jobs = state_mgr.load_jobs()
+            job = jobs.get(args.job_id)
+            if not job:
+                print(f"Job {args.job_id} not found in state jobs.")
+            else:
+                rec = intel_eng.record_job(job, notes=args.notes)
+                print(f"Cataloged {args.job_id} into Market Intelligence Knowledge Base.")
+                print(f"  Title: {rec.get('title')}")
+                print(f"  Archetype: {rec.get('archetype')}")
+                print(f"  Tech Stack: {', '.join(rec.get('tech_stack', []))}")
+                print(f"  Status: {rec.get('status')}")
+                print(f"  Content Hook: {rec.get('content_angles', {}).get('headline_hook')}")
+        else:
+            digest = intel_eng.generate_digest()
+            print(digest)
 
     else:
         parser.print_help()

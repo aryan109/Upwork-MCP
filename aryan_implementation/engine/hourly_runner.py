@@ -1,0 +1,187 @@
+"""
+Hourly Hunter & Market Intelligence Automation Runner for Aryan Upwork Acquisition Pipeline.
+Discovers new jobs within minutes of posting, vets with D1-D11 disqualifiers, records demand
+signals into Market Intelligence, and stages high-scoring drafts for rapid human review.
+"""
+from __future__ import annotations
+
+import argparse
+import logging
+import sys
+import time
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+from .config import STATE_DIR, PROJECT_ROOT
+from .draft import ProposalDrafter
+from .hunt import JobHunter
+from .market_intel import MarketIntelEngine
+from .mcp_client import UpworkMCPClient
+from .state_manager import StateManager
+from .vet import check_disqualifiers, score_job
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+logger = logging.getLogger("hourly_hunter")
+
+
+def run_single_pass(
+    state_mgr: StateManager,
+    mcp_client: UpworkMCPClient,
+    max_searches: int = 15,
+    max_details: int = 20,
+) -> Dict[str, Any]:
+    """Execute a single hourly hunt, vet, intel capture, and staging pass."""
+    now_utc = datetime.now(timezone.utc)
+    run_id = f"hourly_{now_utc.strftime('%Y%m%d_%H%M%S')}"
+    logger.info(f"=== Starting Hourly Hunter Pass [{run_id}] ===")
+
+    state = state_mgr.load_state()
+    if state.get("kill_switch", False):
+        logger.warning("Emergency kill switch is active. Aborting hourly hunt pass.")
+        return {"status": "aborted", "reason": "kill_switch_active"}
+
+    jobs = state_mgr.load_jobs()
+    hunter = JobHunter(mcp_client, state_mgr)
+    intel_eng = MarketIntelEngine(state_mgr.state_dir)
+    drafter = ProposalDrafter()
+
+    # 1. Discover newly posted jobs
+    hunt_res = hunter.run_hunt(
+        run_id=run_id,
+        max_searches=max_searches,
+        max_details=max_details,
+        include_best_match=False,
+    )
+    logger.info(
+        f"Discovery completed: {hunt_res['candidates_found']} candidates found, "
+        f"{hunt_res['new']} new, {hunt_res['detail_fetched']} details fetched."
+    )
+
+    # 2. Vet all newly discovered or refreshed jobs
+    jobs = state_mgr.load_jobs()
+    discovered_ids = [
+        jid for jid, j in jobs.items()
+        if j.get("status") == "discovered"
+    ]
+
+    vetted_count = 0
+    staged_proposals: List[Dict[str, Any]] = []
+    filled_caught: List[Dict[str, Any]] = []
+    skipped_count = 0
+
+    for jid in discovered_ids:
+        job = jobs[jid]
+        is_disq, d_id, d_reason = check_disqualifiers(job)
+
+        if is_disq:
+            job["status"] = "skipped"
+            job["decision"] = "SKIP"
+            job["disqualifiers"] = [d_id]
+            job["reasons"] = [d_reason]
+            job["score"] = 0.0
+
+            if d_id == "D11":
+                filled_caught.append(job)
+                logger.info(f"⚡ [D11] Already-filled job caught: {job.get('title')} ({d_reason})")
+                # Even though filled, catalog into Market Intelligence!
+                intel_eng.record_job(job, status_override="FILLED")
+            else:
+                skipped_count += 1
+        else:
+            score_res = score_job(job)
+            job["status"] = "scored"
+            job["decision"] = score_res["decision"]
+            job["score"] = score_res["score"]
+            job["score_breakdown"] = score_res["score_breakdown"]
+            job["reasons"] = score_res["reasons"]
+            job["rung_suggested"] = score_res["rung_suggested"]
+            job["pricing_hint"] = score_res["pricing_hint"]
+
+            # Always capture high scoring jobs into intelligence
+            if score_res["score"] >= 60.0:
+                intel_eng.record_job(job, status_override="OPEN")
+
+            # 3. Draft proposals for top-scoring APPLY jobs
+            if score_res["decision"] == "APPLY":
+                draft = drafter.generate_full_draft(job, score_res)
+                job["draft"] = draft
+                job["status"] = "drafted"
+                staged_proposals.append(job)
+                logger.info(
+                    f"🎯 [APPLY] Staged proposal for '{job.get('title')}' "
+                    f"(Score: {score_res['score']}) in review queue."
+                )
+
+        vetted_count += 1
+
+    # Save state
+    state_mgr.save_jobs(jobs)
+    intel_eng.generate_digest()
+
+    summary = {
+        "run_id": run_id,
+        "timestamp": now_utc.isoformat(),
+        "discovered_total": len(discovered_ids),
+        "vetted_count": vetted_count,
+        "already_filled_caught": len(filled_caught),
+        "staged_proposals": len(staged_proposals),
+        "staged_titles": [p.get("title") for p in staged_proposals],
+        "skipped_other": skipped_count,
+    }
+
+    logger.info(
+        f"=== Hourly Pass Finished: {len(staged_proposals)} staged for review, "
+        f"{len(filled_caught)} filled jobs intercepted by D11 ==="
+    )
+    return summary
+
+
+def main():
+    if hasattr(sys.stdout, "reconfigure"):
+        try:
+            sys.stdout.reconfigure(encoding="utf-8")
+            sys.stderr.reconfigure(encoding="utf-8")
+        except Exception:
+            pass
+
+    parser = argparse.ArgumentParser(description="Aryan Upwork Hourly Hunter & Intel Runner")
+    parser.add_argument("--once", action="store_true", help="Run a single pass and exit")
+    parser.add_argument("--loop", action="store_true", help="Run continuously on an hourly schedule")
+    parser.add_argument("--interval-minutes", type=int, default=60, help="Loop interval in minutes")
+    parser.add_argument("--state-dir", type=Path, default=STATE_DIR, help="Path to state dir")
+    parser.add_argument("--mock", action="store_true", default=False, help="Force mock mode")
+    args = parser.parse_args()
+
+    state_mgr = StateManager(args.state_dir)
+    mcp_client = UpworkMCPClient(mock_mode=args.mock)
+
+    if args.loop:
+        logger.info(f"Starting continuous hourly hunter loop (interval: {args.interval_minutes}m)...")
+        while True:
+            try:
+                run_single_pass(state_mgr, mcp_client)
+            except Exception as e:
+                logger.error(f"Error during hourly hunter execution: {e}", exc_info=True)
+            logger.info(f"Sleeping for {args.interval_minutes} minutes until next run...")
+            time.sleep(args.interval_minutes * 60)
+    else:
+        summary = run_single_pass(state_mgr, mcp_client)
+        print("\n=== HOURLY HUNTER SUMMARY ===")
+        print(f"Run ID: {summary.get('run_id')}")
+        print(f"Discovered: {summary.get('discovered_total')}")
+        print(f"Vetted: {summary.get('vetted_count')}")
+        print(f"Filled Jobs Intercepted (D11): {summary.get('already_filled_caught')}")
+        print(f"New Proposals Staged for Review: {summary.get('staged_proposals')}")
+        if summary.get("staged_titles"):
+            for t in summary["staged_titles"]:
+                print(f"  - {t}")
+        print("Market intelligence digest updated at market_intelligence_digest.md\n")
+
+
+if __name__ == "__main__":
+    main()

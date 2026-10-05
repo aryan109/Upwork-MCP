@@ -173,3 +173,33 @@
 - **Review Queue**:
   - Enforced mandatory two-step confirmation safety gate. Placed proposal in pending review queue awaiting Aryan's explicit confirmation before submission.
 
+## [2026-10-05 21:10 IST] Hard Disqualifier D11, Market Intelligence Knowledge Base & Hourly Background Hunter
+- **User Feedback & Problem Analysis**:
+  - User pointed out that job `2107079311620473280` (`AI Solutions Engineer: Take Our AI Prototype to Production`) was already hired (`Hires: 1` out of 1 person to hire) within 3 hours of posting.
+  - Required:
+    1. Check activity stats (`activityStat.jobActivity.totalHired`, `contractTerms.personsToHire`) and disqualify filled jobs to save Connects and avoid late applications.
+    2. Build a Market Intelligence & Content Knowledge Base to catalog high-demand jobs (even if filled) to uncover emerging tech stacks, client pain points, engagement tags, and content ideas for Aryan.
+    3. Automate hourly discovery via background scheduling to catch opportunities within minutes of posting.
+- **Implemented Changes**:
+  - **Hard Disqualifier D11 in `aryan_implementation/engine/vet.py`**:
+    - Added `D11`: `totalHired >= personsToHire` (when `personsToHire > 0`).
+    - Disqualifies jobs where client has already completed hiring before proposal creation or submission.
+    - Updated `DISQUALIFIERS` catalog in `config.py`.
+  - **Market Intelligence & Content Knowledge Base (`aryan_implementation/engine/market_intel.py`)**:
+    - Built `MarketIntelEngine` extracting tech stacks (`Lovable`, `Cursor`, `Supabase`, `pgvector`, `OpenAI`, `Claude`, `n8n`), core client friction points, engagement tags, and content hooks.
+    - Generates ready-to-post content angles for LinkedIn/Twitter, portfolio proof items (e.g., Loom demo on eval runners), and profile positioning advice.
+    - Saves data to `%USERPROFILE%\upwork_engine\state\market_intelligence.json` and compiles human-readable `market_intelligence_digest.md`.
+    - Integrated with `cli.py intel` subcommand with UTF-8 stdout configuration for Windows.
+  - **State Clean-up**:
+    - Updated `2107079311620473280` in `%USERPROFILE%\upwork_engine\state\jobs.json` to `status: skipped`, `decision: SKIP`, `disqualifiers: ["D11"]`.
+    - Removed preview from pending submission queue and recorded it into the Market Intelligence Knowledge Base as a high-velocity signal.
+  - **Automated Hourly Background Hunter (`aryan_implementation/engine/hourly_runner.py`)**:
+    - Created hourly runner executing discovery across campaigns, vetting with D1–D11 disqualifiers, capturing market signals, and staging top-scoring drafts into the review queue.
+    - Created Windows batch wrapper `run_hourly_hunt.bat` with logging to `%USERPROFILE%\upwork_engine\hourly_runner.log`.
+    - Authored `register_hourly_task.ps1` to register `AryanUpworkHourlyHunter` in Windows Task Scheduler (`schtasks`) to run every 1 hour silently in the background.
+  - **Testing**:
+    - Created `aryan_implementation/tests/test_market_intel.py` covering tech stack extraction, archetype classification, content angle synthesis, digest compilation, and hourly runner execution.
+    - Added unit tests in `aryan_implementation/tests/test_vet_rubric.py` for D11.
+    - All 34 tests passing with zero failures.
+
+
