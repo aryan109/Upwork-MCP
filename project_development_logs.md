@@ -105,4 +105,5 @@
   - `test_engine_pipeline.py`: End-to-end integration tests for redaction, proposal drafting, 12-point self-check, two-step submission safety, kill switch enforcement, rebake ledger drift, and campaign backups.
 - **Verification**: Executed `pytest`: all 21 automated tests passed. Initialized `%USERPROFILE%\upwork_engine\state\` with `jobs.json`, `state.json`, `campaigns.json`, and `scoring.json`. Executed CLI dry-run and verified generated proposal passing the 12-point self check.
 - **Plan Tracker**: Updated `P4-T03` and `P4-T04` tasks to `status="done"` in `aryan_implementation/ARYAN_IMPLEMENTATION_PLAN.xml`.
+- **Action**: Installed all 9 Upwork acquisition skills (`aryan-profile-facts`, `past-client-reactivation`, `upwork-campaign-editor`, `upwork-human-review-submit`, `upwork-hunt`, `upwork-proposal-draft`, `upwork-rebake-analytics`, `upwork-state-and-debugging`, `upwork-vet`) directly into `%USERPROFILE%\.claude\skills\` per `00_README.md` guidelines.
 
