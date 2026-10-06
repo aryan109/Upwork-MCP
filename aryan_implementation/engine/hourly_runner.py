@@ -128,6 +128,11 @@ def run_single_pass(
                     budget_info=b_info,
                     reasons=score_res.get("reasons", []),
                 )
+                try:
+                    from .telegram_bot import send_interactive_proposal
+                    send_interactive_proposal(job, score_res, draft)
+                except Exception as e:
+                    logger.debug(f"Interactive proposal card note: {e}")
 
         vetted_count += 1
 

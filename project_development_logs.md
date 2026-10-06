@@ -298,10 +298,37 @@
       - Displays direct prompt to open Telegram and send a message or `/start`.
       - Polls `getUpdates` with configurable timeout (default 60s).
       - Automatically captures the user's Chat ID, writes it to `.env`, and sends an instant welcome confirmation message to Telegram.
-  - **Verification**:
-    - Confirmed bot token in `.env` corresponds to live verified bot `@Argus_Trinetra_bot`.
-    - Tested dry-run execution of `link-telegram`.
-    - All 41 unit tests passing 100% green.
+## [2026-10-06 18:35 IST] Railway 24/7 Cloud Service Architecture & Telegram Interactive 1-Click Approvals
+- **User Request**:
+  - Deploy to Railway (`RAILWAY_PROJECT_ID` and `RAILWAY_TOKEN` provided) for 24/7 persistence.
+  - Implement high-value interactive Telegram 1-click proposal approvals.
+- **Implemented Changes**:
+  - **Interactive Telegram Bot Engine (`aryan_implementation/engine/telegram_bot.py`)**:
+    - Built interactive proposal card dispatcher with Inline Keyboard Buttons:
+      - `[✅ Approve & Submit]`: Tapping immediately calls `confirm_submission` with `human_confirmed=True`, submits proposal to Upwork via MCP, updates message text to show confirmed status and connects spent, and removes buttons to prevent double submission.
+      - `[📖 View Draft]`: Tapping displays the full cover letter and screening answers directly in Telegram.
+      - `[❌ Skip / Reject]`: Tapping marks lead as skipped/rejected in state and archives it.
+      - `[🌐 View on Upwork]`: Direct link to original job posting.
+    - Added slash commands support: `/status`, `/queue`, `/hunt`, `/report`, `/sync`, `/help`.
+    - Integrated automatic interactive card dispatch in `hourly_runner.py` whenever a proposal is drafted.
+  - **24/7 Service Runner (`service.py`, `railway.json`, `Procfile`, `requirements.txt`)**:
+    - Built unified `service.py` background runner running:
+      1. HTTP Healthcheck server (binds to `$PORT` for Railway healthchecks).
+      2. Background Telegram Bot listener thread (handling button callbacks & commands).
+      3. Background Hourly Hunter loop (executing discovery, vetting, D1–D11 rules every 60 mins).
+    - Created `railway.json` and `Procfile` specifying start command, Nixpacks builder, and `/health` healthcheck endpoint.
+  - **Railway Cloud Provisioning & Configuration**:
+    - Created dedicated service `upwork-engine` (ID: `d35fc7d1-1790-451b-b554-fa900ff4778b`) in Railway project `AI CRM` (`b197eb1c-796a-47e2-aa92-a49ac00ab566`).
+    - Configured service instance settings via GraphQL: `startCommand: "python service.py"`, `healthcheckPath: "/health"`, `restartPolicyType: ON_FAILURE`.
+    - Upserted all required environment variables to Railway: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `NOTION_API_KEY`, `UPWORK_ENGINE_DIR`.
+  - **CLI Expansion (`aryan_implementation/engine/cli.py`)**:
+    - Added `python -m aryan_implementation.engine.cli bot` to run interactive bot listener locally.
+    - Added `python -m aryan_implementation.engine.cli serve` to run complete service runner.
+  - **Testing & Verification**:
+    - Added unit tests in `test_telegram_and_notion.py` covering interactive card generation, approve callback, view callback, and reject callback.
+    - Dispatched live test interactive approval card to Aryan's Telegram chat (`830710314`).
+    - All 43 pytest unit tests passing 100% green.
+
 
 
 

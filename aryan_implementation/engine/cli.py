@@ -122,6 +122,13 @@ def main() -> None:
     # sync-notion
     subparsers.add_parser("sync-notion", help="Sync Daily Reports, Market Intel & Master Hub to Notion")
 
+    # bot
+    subparsers.add_parser("bot", help="Run interactive Telegram 1-click approval bot listener")
+
+    # serve
+    p_srv = subparsers.add_parser("serve", help="Run 24/7 background worker (HTTP healthcheck + bot + hourly hunter)")
+    p_srv.add_argument("--port", type=int, default=8080, help="Port for HTTP health checks (default: 8080)")
+
     args = parser.parse_args()
 
     state_mgr = StateManager(args.state_dir)
@@ -458,6 +465,24 @@ def main() -> None:
         print("\nHub URL: https://app.notion.com/p/Upwork-Acquisition-Market-Intelligence-OS-3f197b4f8610816e8ab0cf54ac7b3a3e")
         print("Daily Reports URL: https://app.notion.com/p/Daily-Intelligence-Action-Reports-3f197b4f861081a1ac3ed59e9c8bf7d7")
         print("Market Intel URL: https://app.notion.com/p/Market-Intelligence-Demand-Knowledge-Base-3f197b4f861081a7b919f430b7816837")
+
+    elif args.command == "bot":
+        from .telegram_bot import TelegramBotListener
+        print("🤖 Starting interactive Telegram bot listener...")
+        print("Listening for 1-click approvals, /status, /queue, /hunt, /report...")
+        listener = TelegramBotListener(mcp_client, state_mgr)
+        try:
+            listener.run_forever()
+        except KeyboardInterrupt:
+            print("\nBot listener stopped.")
+            listener.stop()
+
+    elif args.command == "serve":
+        try:
+            import service
+            service.main()
+        except Exception as e:
+            print(f"Error starting service: {e}")
 
     else:
         parser.print_help()

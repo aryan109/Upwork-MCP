@@ -1,0 +1,2 @@
+# Dependencies for Aryan Upwork MCP Acquisition Engine
+pytest>=8.0.0

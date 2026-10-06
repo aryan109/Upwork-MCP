@@ -198,3 +198,7 @@ class ReviewSubmitManager:
         }
         self.state_mgr.save_jobs(jobs)
         return {"ok": True, "job_id": job_id, "status": "rejected_by_aryan"}
+
+    def reject_proposal(self, job_id: str, reason: str = "Rejected") -> Dict[str, Any]:
+        """Alias for reject_draft."""
+        return self.reject_draft(job_id, reason)
