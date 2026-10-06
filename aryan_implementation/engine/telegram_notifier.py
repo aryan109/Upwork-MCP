@@ -76,7 +76,72 @@ def get_telegram_credentials() -> Tuple[Optional[str], Optional[str]]:
             except Exception:
                 pass
 
+    # If token exists but chat_id is missing, try automatic discovery from getUpdates
+    if token and not chat_id:
+        chat_info = auto_discover_chat_id(token=token, save=True)
+        if chat_info and "id" in chat_info:
+            chat_id = str(chat_info["id"])
+
     return token, chat_id
+
+
+def get_bot_info(token: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    """Retrieve bot metadata from Telegram getMe endpoint."""
+    bot_token = token or get_telegram_credentials()[0]
+    if not bot_token:
+        return None
+    url = f"https://api.telegram.org/bot{bot_token}/getMe"
+    try:
+        req = urllib.request.Request(url)
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            if data.get("ok"):
+                return data.get("result")
+    except Exception as e:
+        logger.debug(f"Error fetching bot info: {e}")
+    return None
+
+
+def auto_discover_chat_id(
+    token: Optional[str] = None,
+    save: bool = True,
+) -> Optional[Dict[str, Any]]:
+    """
+    Auto-detect user chat ID by reading recent messages sent to the bot via getUpdates.
+    If save=True, automatically persists TELEGRAM_CHAT_ID into .env and config.json.
+    """
+    bot_token = token
+    if not bot_token:
+        env_vars = load_env_file(PROJECT_ROOT / ".env")
+        bot_token = os.environ.get("TELEGRAM_BOT_TOKEN") or env_vars.get("TELEGRAM_BOT_TOKEN")
+    if not bot_token:
+        return None
+
+    url = f"https://api.telegram.org/bot{bot_token}/getUpdates"
+    try:
+        req = urllib.request.Request(url)
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            if not data.get("ok"):
+                return None
+            results = data.get("result", [])
+            for update in reversed(results):
+                msg = (
+                    update.get("message")
+                    or update.get("channel_post")
+                    or update.get("my_chat_member", {})
+                    or update.get("callback_query", {}).get("message", {})
+                )
+                chat = msg.get("chat", {})
+                chat_id = chat.get("id")
+                if chat_id:
+                    if save:
+                        save_telegram_credentials(bot_token, str(chat_id))
+                        logger.info(f"Auto-discovered and linked Telegram Chat ID: {chat_id}")
+                    return chat
+    except Exception as e:
+        logger.debug(f"Error in auto_discover_chat_id: {e}")
+    return None
 
 
 def save_telegram_credentials(token: str, chat_id: str) -> None:

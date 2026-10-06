@@ -26,6 +26,8 @@ from .telegram_notifier import (
     send_telegram_message,
     save_telegram_credentials,
     get_telegram_credentials,
+    get_bot_info,
+    auto_discover_chat_id,
 )
 from .notion_publisher import NotionPublisher
 
@@ -112,6 +114,10 @@ def main() -> None:
     # test-telegram
     p_tg_test = subparsers.add_parser("test-telegram", help="Send a test notification to Telegram")
     p_tg_test.add_argument("--message", type=str, default="🚀 Test alert from Aryan Upwork Acquisition Pipeline.")
+
+    # link-telegram
+    p_link = subparsers.add_parser("link-telegram", help="Auto-detect Telegram Chat ID by listening for messages to your bot")
+    p_link.add_argument("--timeout", type=int, default=60, help="Seconds to wait for incoming message (default: 60)")
 
     # sync-notion
     subparsers.add_parser("sync-notion", help="Sync Daily Reports, Market Intel & Master Hub to Notion")
@@ -390,6 +396,56 @@ def main() -> None:
                 print("✅ Telegram message dispatched successfully! Check your Telegram chat.")
             else:
                 print("❌ Failed to send Telegram message. Check console logs and verify bot permissions.")
+
+    elif args.command == "link-telegram":
+        import time
+        token = os.environ.get("TELEGRAM_BOT_TOKEN")
+        if not token:
+            from .telegram_notifier import load_env_file, PROJECT_ROOT
+            token = load_env_file(PROJECT_ROOT / ".env").get("TELEGRAM_BOT_TOKEN")
+
+        if not token:
+            print("❌ TELEGRAM_BOT_TOKEN not found in .env or environment!")
+            print("Please add TELEGRAM_BOT_TOKEN to your .env file first.")
+        else:
+            bot_info = get_bot_info(token)
+            bot_user = bot_info.get("username", "your bot") if bot_info else "your bot"
+            bot_name = bot_info.get("first_name", "") if bot_info else ""
+            print(f"\n🤖 Telegram Bot Connected: {bot_name} (@{bot_user})")
+            print("=" * 60)
+            print("👉 Open Telegram on your phone or computer:")
+            print(f"   1. Search for: @{bot_user}")
+            print(f"   2. Click 'START' or send any message (e.g. 'hello')")
+            print("=" * 60)
+            print(f"Listening for your message (waiting up to {args.timeout}s)...")
+
+            found = False
+            start_t = time.time()
+            while time.time() - start_t < args.timeout:
+                chat = auto_discover_chat_id(token=token, save=True)
+                if chat and "id" in chat:
+                    found = True
+                    c_id = chat["id"]
+                    user_name = chat.get("username") or chat.get("first_name") or "User"
+                    print(f"\n🎉 SUCCESS! Message received from @{user_name} (Chat ID: {c_id})")
+                    print(f"✅ TELEGRAM_CHAT_ID={c_id} automatically saved to .env and engine config.")
+                    welcome_msg = (
+                        "🎉 <b>Connection Successful!</b>\n\n"
+                        "You are now linked to Aryan's Upwork Autonomous Acquisition & Intelligence Engine.\n\n"
+                        "• 🎯 Proposal reviews will be alerted here instantly\n"
+                        "• 📊 Daily 4-part reports will be delivered here every morning\n"
+                        "• 🚨 Urgent client messages & invites will trigger critical alerts\n\n"
+                        "<i>Everything is running smoothly!</i>"
+                    )
+                    send_telegram_message(welcome_msg, parse_mode="HTML")
+                    print("✅ Welcome confirmation message sent to your Telegram chat!")
+                    break
+                time.sleep(2)
+
+            if not found:
+                print(f"\n⏳ Timed out after {args.timeout}s without receiving a message.")
+                print(f"Please open Telegram, send a message to @{bot_user}, and run this command again:")
+                print("  python -m aryan_implementation.engine.cli link-telegram")
 
     elif args.command == "sync-notion":
         print("Syncing Daily Reports, Market Intel & Master Hub to Notion...")

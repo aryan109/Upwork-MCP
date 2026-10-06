@@ -281,5 +281,27 @@
     - Created `aryan_implementation/tests/test_telegram_and_notion.py` verifying credential fallback, message dispatch, alert formatters, Notion token resolution, and markdown sync.
     - All 41 unit tests passing with zero failures.
 
+## [2026-10-06 18:10 IST] Telegram Chat ID Auto-Discovery & Zero-Config Linking
+- **User Request**:
+  - `TELEGRAM_BOT_TOKEN` added to `.env`, but user does not have a Chat ID. Implement automatic Chat ID discovery and link the system.
+- **Implemented Changes**:
+  - **Auto-Discovery Engine (`aryan_implementation/engine/telegram_notifier.py`)**:
+    - Added `get_bot_info()` using Telegram `getMe` endpoint to verify bot connectivity and retrieve bot username (`@Argus_Trinetra_bot`).
+    - Added `auto_discover_chat_id()` using Telegram `getUpdates` endpoint:
+      - Reads inbound updates (messages, channel posts, member status changes).
+      - Automatically extracts user chat ID and username.
+      - Automatically writes `TELEGRAM_CHAT_ID` to `.env` and `config.json`.
+    - Integrated automatic discovery as a fallback inside `get_telegram_credentials()`: if a bot token exists without a chat ID, the system checks for updates and links the chat automatically on the fly.
+  - **CLI One-Command Linker (`aryan_implementation/engine/cli.py`)**:
+    - Added `python -m aryan_implementation.engine.cli link-telegram` command:
+      - Connects to `@Argus_Trinetra_bot`.
+      - Displays direct prompt to open Telegram and send a message or `/start`.
+      - Polls `getUpdates` with configurable timeout (default 60s).
+      - Automatically captures the user's Chat ID, writes it to `.env`, and sends an instant welcome confirmation message to Telegram.
+  - **Verification**:
+    - Confirmed bot token in `.env` corresponds to live verified bot `@Argus_Trinetra_bot`.
+    - Tested dry-run execution of `link-telegram`.
+    - All 41 unit tests passing 100% green.
+
 
 
