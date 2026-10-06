@@ -513,3 +513,11 @@
     - Deployed codebase updates to Railway: builds `0725f9d4-1007-4c94-a303-81ae16279df9` and `996a3fdf-e945-46ee-bec9-ec7a8e13d182` built and deployed successfully (`SUCCESS`).
     - Service online on port 8080 answering `/health` with live 15-minute autonomous runner and Telegram bot listener.
 
+## [2026-10-07 05:15 IST] Local Scheduled Hunter Decommissioning in Favor of 24/7 Railway Runner
+- **User Request**: Stop any local background tasks or scripts invoking the local system every hour, since the autonomous service is already operating 24/7 online on Railway.
+- **Actions Taken**:
+  - Queried active Windows Task Scheduler tasks and identified `AryanUpworkHourlyHunter` (which was triggering `run_hourly_hunt.bat` and `python -m aryan_implementation.engine.hourly_runner --once` hourly).
+  - Unregistered and removed `AryanUpworkHourlyHunter` from Windows Task Scheduler using `Unregister-ScheduledTask`.
+  - Verified no residual processes or scheduled triggers exist locally for `hourly_runner` or `run_hourly_hunt.bat`.
+  - Verified Railway 24/7 autonomous runner remains exclusively in charge of continuous 15-minute discovery, AI analysis, and Telegram alerts.
+
