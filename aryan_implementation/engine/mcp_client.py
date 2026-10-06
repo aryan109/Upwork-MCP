@@ -88,8 +88,98 @@ class UpworkMCPClient:
 
             return {"ok": True, "mock": True, "tool": tool, "params": params}
 
-        # Real MCP invocation over JSON-RPC or transport
-        raise NotImplementedError("Live remote MCP transport requires active MCP session or daemon connection.")
+        # Real MCP invocation over JSON-RPC HTTP transport
+        return self._call_remote_mcp(tool, params)
+
+    def _call_remote_mcp(self, tool: str, params: Dict[str, Any]) -> Any:
+        import os
+        import urllib.request
+        from pathlib import Path
+
+        # Resolve access token
+        access_token = self.auth_token
+        if not access_token:
+            for potential_path in [
+                Path(os.environ.get("USERPROFILE", "")) / ".gemini" / "antigravity" / "mcp_oauth_tokens.json",
+                Path(os.environ.get("USERPROFILE", "")) / ".gemini" / "antigravity-ide" / "mcp_oauth_tokens.json",
+            ]:
+                if potential_path.exists():
+                    try:
+                        with open(potential_path, "r", encoding="utf-8") as tf:
+                            td = json.load(tf)
+                            upwork_tok = td.get("https://mcp.upwork.com/mcp", {}).get("token", {})
+                            access_token = upwork_tok.get("access_token")
+                            if access_token:
+                                break
+                    except Exception:
+                        pass
+
+        if not access_token:
+            raise RuntimeError("Live Upwork MCP requires valid OAuth token in mcp_oauth_tokens.json")
+
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json",
+            "Accept": "application/json, text/event-stream",
+            "User-Agent": "Antigravity/1.0 (Windows)",
+        }
+
+        # Initialize session if not cached
+        if not getattr(self, "_mcp_session_id", None):
+            init_body = json.dumps({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "initialize",
+                "params": {
+                    "protocolVersion": "2024-11-05",
+                    "capabilities": {},
+                    "clientInfo": {"name": "aryan-upwork-engine", "version": "1.0"},
+                },
+            }).encode("utf-8")
+            init_req = urllib.request.Request(self.endpoint_url, data=init_body, headers=headers, method="POST")
+            with urllib.request.urlopen(init_req, timeout=15) as r:
+                self._mcp_session_id = r.headers.get("mcp-session-id")
+                self._mcp_cookie = r.headers.get("set-cookie")
+
+        headers["mcp-session-id"] = self._mcp_session_id
+        if getattr(self, "_mcp_cookie", None):
+            headers["Cookie"] = self._mcp_cookie
+
+        # Prepare tool call
+        full_tool_name = f"upwork__{tool}" if not tool.startswith("upwork__") else tool
+        action = params.get("action", "")
+        # Remove action from inner params copy to avoid duplicate
+        inner_params = {k: v for k, v in params.items() if k != "action"}
+
+        arguments: Dict[str, Any] = {
+            "org_uid": "1243443370794516481",
+        }
+        if action:
+            arguments["action"] = action
+        if inner_params:
+            arguments["params"] = inner_params
+
+        call_body = json.dumps({
+            "jsonrpc": "2.0",
+            "id": 2,
+            "method": "tools/call",
+            "params": {
+                "name": full_tool_name,
+                "arguments": arguments,
+            },
+        }).encode("utf-8")
+
+        call_req = urllib.request.Request(self.endpoint_url, data=call_body, headers=headers, method="POST")
+        with urllib.request.urlopen(call_req, timeout=20) as r:
+            res_json = json.loads(r.read().decode("utf-8"))
+            content = res_json.get("result", {}).get("content", [])
+            if content and "text" in content[0]:
+                text = content[0]["text"]
+                try:
+                    return json.loads(text)
+                except Exception:
+                    return text
+            return res_json.get("result", {})
 
     def call_tool(
         self,

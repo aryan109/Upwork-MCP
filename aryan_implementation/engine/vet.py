@@ -65,6 +65,21 @@ RED_FLAG_PATTERNS = [
 ]
 
 
+def parse_number(val: Any, default: Optional[float] = None) -> Optional[float]:
+    if val is None:
+        return default
+    if isinstance(val, (int, float)):
+        return float(val)
+    s = str(val).strip()
+    if not s:
+        return default
+    cleaned = re.sub(r"[^\d.]", "", s)
+    try:
+        return float(cleaned) if cleaned else default
+    except (ValueError, TypeError):
+        return default
+
+
 def check_disqualifiers(
     job: Dict[str, Any],
     open_clients: Optional[Set[str]] = None,
@@ -112,27 +127,28 @@ def check_disqualifiers(
     activity = job.get("activityStat", {}).get("jobActivity", {}) or job.get("activity", {})
     if client is not None:
         verified = client.get("payment_verified", False)
-        total_spent = float(client.get("total_spent", 0.0) or 0.0)
+        total_spent = parse_number(client.get("total_spent"), 0.0) or 0.0
         total_hired = int(activity.get("totalHired", 0) or 0)
         if not verified and total_spent == 0.0 and total_hired == 0:
             return True, "D6", "Payment unverified AND $0 spend AND 0 hires"
 
     # D7: Fixed budget < $100 or hourly max < $25
-    job_type = str(job.get("type", "")).lower()
-    budget_fixed = job.get("budget_fixed") or job.get("budget", {}).get("amount")
-    hourly_max = job.get("hourly_max") or job.get("hourly_budget", {}).get("max")
-    if job_type == "fixed" and budget_fixed is not None:
-        try:
-            if float(budget_fixed) < 100.0:
-                return True, "D7", f"Fixed budget ${budget_fixed} is under $100 floor"
-        except (ValueError, TypeError):
-            pass
-    elif job_type == "hourly" and hourly_max is not None:
-        try:
-            if float(hourly_max) < 25.0:
-                return True, "D7", f"Hourly ceiling ${hourly_max}/hr is under $25 floor"
-        except (ValueError, TypeError):
-            pass
+    job_type = str(job.get("type") or job.get("job_type") or "").lower()
+    raw_b = job.get("budget_fixed") or job.get("budget")
+    budget_fixed = raw_b.get("amount") if isinstance(raw_b, dict) else raw_b
+
+    raw_h = job.get("hourly_max") or job.get("hourly_budget")
+    hourly_max = raw_h.get("max") if isinstance(raw_h, dict) else raw_h
+
+    b_val = parse_number(budget_fixed)
+    h_val = parse_number(hourly_max)
+
+    if job_type == "fixed" and b_val is not None:
+        if b_val < 100.0:
+            return True, "D7", f"Fixed budget ${b_val} is under $100 floor"
+    elif job_type == "hourly" and h_val is not None:
+        if h_val < 25.0:
+            return True, "D7", f"Hourly ceiling ${h_val}/hr is under $25 floor"
 
     # D8: Posted > 72h AND proposals >= 50 AND interviewing == 0
     posted_age_hours = job.get("posted_age_hours")
@@ -258,11 +274,11 @@ def score_job(
     # Category B: Client Quality (25 pts)
     # B1: Total spent (8 pts)
     total_spent_val = client.get("total_spent")
-    if total_spent_val is None:
+    total_spent = parse_number(total_spent_val)
+    if total_spent is None:
         b1 = 8.0 * 0.4  # unknown = 0.4
         reasons.append("spend_unknown")
     else:
-        total_spent = float(total_spent_val)
         if total_spent >= 10000:
             b1 = 8.0 * 1.0
             reasons.append("spend_high")
@@ -279,10 +295,10 @@ def score_job(
 
     # B2: Hire rate (5 pts)
     hire_rate_val = client.get("hire_rate_percent") or client.get("hire_rate")
-    if hire_rate_val is None:
+    hire_rate = parse_number(hire_rate_val)
+    if hire_rate is None:
         b2 = 5.0 * 0.5
     else:
-        hire_rate = float(hire_rate_val)
         if hire_rate >= 70:
             b2 = 5.0 * 1.0
         elif hire_rate >= 40:
@@ -294,10 +310,10 @@ def score_job(
 
     # B3: Rating (4 pts)
     rating_val = client.get("rating")
-    if rating_val is None or float(rating_val) == 0:
+    rating = parse_number(rating_val)
+    if rating is None or rating == 0:
         b3 = 4.0 * 0.6
     else:
-        rating = float(rating_val)
         if rating >= 4.8:
             b3 = 4.0 * 1.0
         elif rating >= 4.5:
@@ -309,10 +325,10 @@ def score_job(
 
     # B4: Avg hourly paid (5 pts)
     avg_hourly = client.get("avg_hourly_paid") or client.get("avg_hourly_rate_paid")
-    if avg_hourly is None:
+    avg_h = parse_number(avg_hourly)
+    if avg_h is None:
         b4 = 5.0 * 0.5
     else:
-        avg_h = float(avg_hourly)
         if avg_h >= 50:
             b4 = 5.0 * 1.0
         elif avg_h >= 30:
@@ -333,12 +349,14 @@ def score_job(
     breakdown["B5_payment_verified"] = round(b5, 2)
 
     # Category C: Money (15 pts)
-    job_type = str(job.get("type", "fixed")).lower()
-    budget_fixed = job.get("budget_fixed") or job.get("budget", {}).get("amount")
-    hourly_max = job.get("hourly_max") or job.get("hourly_budget", {}).get("max")
+    job_type = str(job.get("type") or job.get("job_type") or "fixed").lower()
+    raw_b = job.get("budget_fixed") or job.get("budget")
+    bf = parse_number(raw_b.get("amount") if isinstance(raw_b, dict) else raw_b)
 
-    if job_type == "fixed" and budget_fixed is not None:
-        bf = float(budget_fixed)
+    raw_h = job.get("hourly_max") or job.get("hourly_budget")
+    hm = parse_number(raw_h.get("max") if isinstance(raw_h, dict) else raw_h)
+
+    if job_type == "fixed" and bf is not None:
         if bf >= 3000:
             c1 = 10.0 * 1.0
             reasons.append("budget_strong")
@@ -351,8 +369,7 @@ def score_job(
         else:
             c1 = 10.0 * 0.2
             reasons.append("budget_low")
-    elif hourly_max is not None:
-        hm = float(hourly_max)
+    elif hm is not None:
         if hm >= 80:
             c1 = 10.0 * 1.0
             reasons.append("budget_strong")
@@ -510,7 +527,7 @@ def score_job(
         modifier_score += 3.0
 
     # -10 pile-on and bidding above avg paid
-    if prop_count >= 50 and avg_hourly is not None and float(avg_hourly) < 25.0:
+    if prop_count >= 50 and avg_h is not None and avg_h < 25.0:
         modifier_score -= 10.0
 
     # -5 preferred location soft mismatch
@@ -536,15 +553,15 @@ def score_job(
     # Pricing hint
     pricing_hint = ""
     if job_type == "hourly":
-        if avg_hourly is not None and float(avg_hourly) < 15.0:
+        if avg_h is not None and avg_h < 15.0:
             pricing_hint = "Client pays avg <$15/hr; propose fixed Sprint ($599) instead of hourly"
-        elif hourly_max is not None and float(hourly_max) >= 45.0 and final_score >= 80.0:
-            pricing_hint = f"Bid ceiling ${hourly_max}/hr (score >=80) with fixed Sprint alternative"
+        elif hm is not None and hm >= 45.0 and final_score >= 80.0:
+            pricing_hint = f"Bid ceiling ${hm:.0f}/hr (score >=80) with fixed Sprint alternative"
         else:
             pricing_hint = "Bid sticker $65/hr with fixed Sprint alternative for <=10 hrs/week"
     else:
-        if budget_fixed is not None and float(budget_fixed) >= 1200:
-            pricing_hint = f"Propose 3-milestone Implementation (Phase 1 ${min(float(budget_fixed), 3500):.0f})"
+        if bf is not None and bf >= 1200:
+            pricing_hint = f"Propose 3-milestone Implementation (Phase 1 ${min(bf, 3500.0):.0f})"
         else:
             pricing_hint = "Propose fixed Setup Sprint ($299/$599/$1,200) or Audit ($750)"
 

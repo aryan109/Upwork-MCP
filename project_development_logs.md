@@ -234,6 +234,21 @@
 - **Action**: Updated `aryan_implementation/ARYAN_IMPLEMENTATION_PLAN.xml` tasks `P4-T05` (Dry-run day 1), `P4-T06` (Dry-run day 2 & rubric calibration), `P4-T07` (Proposal drafting & review queue), and `P4-T09` (Evening rebake engine) to `status="done"`.
 - **Readiness Verification**: Completed review of Phase P1 Storefront and Profile Overhaul requirements (`03_PROFILE_AND_STOREFRONT.md`) to guide Aryan on exact profile updates needed to maximize conversion when clients review his profile.
 
+## [2026-10-06 09:05 IST] Live Upwork MCP Transport Integration & Hourly Runner Operational Verification
+- **Implemented Changes**:
+  - **Live Upwork MCP Streamable HTTP Client (`aryan_implementation/engine/mcp_client.py`)**:
+    - Implemented live HTTP transport directly targeting `https://mcp.upwork.com/mcp` using OAuth credentials from `%USERPROFILE%\.gemini\antigravity\mcp_oauth_tokens.json`.
+    - Added automatic JSON-RPC initialization handshake to obtain `mcp-session-id` and session cookies.
+    - Configured automatic injection of Aryan's authenticated `org_uid: "1243443370794516481"` across all tool invocations.
+  - **Robust Numeric Parsing & Currency Sanitization (`hunt.py` & `vet.py`)**:
+    - Added `parse_number()` utility to safely convert formatted currency strings (e.g. `"$208,587.12"`), budget dicts (`{"amount": ...}`), and hourly ceilings without `ValueError` or `AttributeError`.
+    - Cleaned up scoring modifiers, disqualifiers D6/D7, and pricing hints to use parsed numeric values across all edge-case payloads.
+  - **Operational Verification**:
+    - Verified Windows Task Scheduler task `AryanUpworkHourlyHunter` is active and scheduled every hour.
+    - Executed live run of `run_hourly_hunt.bat`: successfully queried Upwork live marketplace, vetted 10 jobs against D1–D11 rules, recorded market signals, and generated `daily_report.md`.
+    - All 36 pytest test suites passing 100% green.
+
+
 
 
 

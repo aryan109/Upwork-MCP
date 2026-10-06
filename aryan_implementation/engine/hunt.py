@@ -166,14 +166,26 @@ class JobHunter:
                 continue
 
             # Low budget check
-            budget = job_summary.get("budget_fixed") or job_summary.get("budget", {}).get("amount")
-            hourly_max = job_summary.get("hourly_max") or job_summary.get("hourly_budget", {}).get("max")
-            if budget is not None and float(budget) < 100.0:
-                pre_filtered_count += 1
-                continue
-            if hourly_max is not None and float(hourly_max) < 25.0:
-                pre_filtered_count += 1
-                continue
+            raw_b = job_summary.get("budget_fixed") or job_summary.get("budget")
+            budget = raw_b.get("amount") if isinstance(raw_b, dict) else raw_b
+
+            raw_h = job_summary.get("hourly_max") or job_summary.get("hourly_budget")
+            hourly_max = raw_h.get("max") if isinstance(raw_h, dict) else raw_h
+
+            if budget is not None:
+                try:
+                    if float(budget) < 100.0:
+                        pre_filtered_count += 1
+                        continue
+                except (ValueError, TypeError):
+                    pass
+            if hourly_max is not None:
+                try:
+                    if float(hourly_max) < 25.0:
+                        pre_filtered_count += 1
+                        continue
+                except (ValueError, TypeError):
+                    pass
 
             # Excluded terms
             excluded = ["cold email", "deliverability", "gohighlevel", "clay", "apollo", "smartlead", "instantly"]
