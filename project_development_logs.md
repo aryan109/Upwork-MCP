@@ -373,7 +373,31 @@
     - Updated startup Telegram notification to reflect 15-minute rapid discovery.
 - **Testing & Verification**:
   - Validated service worker initialization and interval sleep behavior.
-  - All 43 pytest unit tests passing 100% green.
+## [2026-10-06 20:12 IST] 24/7 Railway Cloud Service Live & Autonomous Deployment
+- **User Request**:
+  - Fully manage and deploy the 24/7 autonomous pipeline onto Railway so Aryan does not need to run anything on their local PC.
+- **Actions Taken**:
+  - **Railway CLI Direct Orchestration**:
+    - Leveraged the pre-installed Railway CLI (`5.63.3`) combined with project credentials (`RAILWAY_PROJECT_ID: b197eb1c-796a-47e2-aa92-a49ac00ab566`, `RAILWAY_TOKEN`).
+    - Configured service `upwork-engine` in environment `production` (`7b03e4ad-2c8a-4325-b699-0085b1355009`).
+  - **Environment Variables Injected to Railway**:
+    - `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `NOTION_API_KEY`, `UPWORK_ENGINE_DIR: /app/state`.
+    - `UPWORK_ACCESS_TOKEN`: Injected live Upwork OAuth token for MCP queries.
+    - `HUNTER_INTERVAL_SECONDS: 900` (15-minute rapid discovery loop).
+  - **Dependency Hardening**:
+    - Added `jsonschema>=4.0.0` to `requirements.txt`.
+    - Patched `mcp_client.py` to resolve `UPWORK_ACCESS_TOKEN` directly from environment variables in cloud environments.
+  - **Deployment Execution**:
+    - Dispatched `railway up --service upwork-engine -e production -p b197eb1c-796a-47e2-aa92-a49ac00ab566 -d -y`.
+    - Deployment `7975ff63-c2e1-4eb6-87b6-9828a54d9979` built via Nixpacks and deployed successfully.
+  - **Live Runtime Verification**:
+    - Status: `SUCCESS` (Container healthy).
+    - HTTP health check server online on port 8080 answering `/health`.
+    - Telegram Bot listener active on main thread handling 1-click approvals and `/status`, `/queue`, `/hunt`.
+    - 15-minute background hunter thread running discovery cycles autonomously.
+    - Cloud startup notification dispatched to Aryan's Telegram bot `@Argus_Trinetra_bot`.
+- **Verification**:
+  - Pipeline verified live in the cloud. Local terminal no longer required.
 
 
 

@@ -97,11 +97,12 @@ class UpworkMCPClient:
         from pathlib import Path
 
         # Resolve access token
-        access_token = self.auth_token
+        access_token = self.auth_token or os.environ.get("UPWORK_ACCESS_TOKEN")
         if not access_token:
             for potential_path in [
                 Path(os.environ.get("USERPROFILE", "")) / ".gemini" / "antigravity" / "mcp_oauth_tokens.json",
                 Path(os.environ.get("USERPROFILE", "")) / ".gemini" / "antigravity-ide" / "mcp_oauth_tokens.json",
+                Path(os.environ.get("HOME", "")) / ".gemini" / "antigravity" / "mcp_oauth_tokens.json",
             ]:
                 if potential_path.exists():
                     try:
@@ -115,7 +116,7 @@ class UpworkMCPClient:
                         pass
 
         if not access_token:
-            raise RuntimeError("Live Upwork MCP requires valid OAuth token in mcp_oauth_tokens.json")
+            raise RuntimeError("Live Upwork MCP requires valid OAuth token in UPWORK_ACCESS_TOKEN env var or mcp_oauth_tokens.json")
 
         headers = {
             "Authorization": f"Bearer {access_token}",
