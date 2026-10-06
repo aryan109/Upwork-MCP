@@ -359,6 +359,22 @@
   - **Verification**:
     - All 43 pytest unit tests passing (100% green).
 
+## [2026-10-06 19:24 IST] 15-Minute High-Velocity Hunter Cycle Upgrade & Feasibility Analysis
+- **User Request**:
+  - Evaluate feasibility of shortening the background hunter cycle from 60 minutes to 15 minutes to gain a major competitive edge and enable near-instant proposal dispatch on fresh postings.
+- **Feasibility Assessment**:
+  - **Upwork MCP Rate Limit Verification**: Upwork limits sustained queries to ~12 requests/minute with continuous refilling and no daily caps. A single discovery pass performs 4–7 requests (1 smart search, 2 keyword searches, ~2–4 detail fetches). Running every 15 minutes consumes ~0.3–0.5 requests/minute (<5% of rate limit threshold).
+  - **Railway Cost & Compute**: `service.py` is an idle resident container in RAM. Waking every 15 minutes vs 60 minutes uses negligible CPU delta and zero additional container charges.
+  - **Connect Safety**: Discovering, vetting, and staging costs 0 Connects. Rule NN1 human confirmation gate and daily submit caps strictly protect Connects balance.
+  - **Notification Filtering**: Strict D1–D11 filters and minimum score cutoff (70 pts) ensure Telegram alerts trigger only for genuine high-fit opportunities (~1–3 actionable alerts/day).
+- **Implemented Changes**:
+  - **Parameterized Interval in `service.py`**:
+    - Upgraded `hourly_hunter_worker()` to use `HUNTER_INTERVAL_SECONDS` (default: 900 seconds / 15 minutes).
+    - Updated startup Telegram notification to reflect 15-minute rapid discovery.
+- **Testing & Verification**:
+  - Validated service worker initialization and interval sleep behavior.
+  - All 43 pytest unit tests passing 100% green.
+
 
 
 

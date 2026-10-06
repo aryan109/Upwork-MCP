@@ -70,25 +70,29 @@ def start_http_server(port: int):
 
 
 def hourly_hunter_worker(state_mgr: StateManager, mcp_client: UpworkMCPClient):
-    """Background worker executing discovery every 60 minutes."""
-    logger.info("Hourly Hunter background thread started.")
+    """Background worker executing discovery loop (default: every 15 minutes)."""
+    interval_secs = int(os.environ.get("HUNTER_INTERVAL_SECONDS", 900))
+    interval_mins = interval_secs // 60
+    logger.info(f"Hunter background loop started: scheduled every {interval_mins} mins ({interval_secs}s).")
     # Short initial sleep to allow bot initialization
     time.sleep(10)
     while True:
         try:
-            logger.info("Starting scheduled hourly hunt pass...")
+            logger.info("Starting scheduled high-velocity hunt pass...")
             summary = run_single_pass(state_mgr, mcp_client)
             staged = summary.get("staged_total", 0)
-            logger.info(f"Hourly hunt finished: {staged} staged for review.")
+            logger.info(f"Hunt pass finished: {staged} staged for review.")
         except Exception as e:
-            logger.error(f"Error in hourly hunter pass: {e}")
+            logger.error(f"Error in hunter pass: {e}")
 
-        # Sleep 60 minutes
-        time.sleep(3600)
+        # Sleep interval (default: 15 minutes / 900 seconds)
+        time.sleep(interval_secs)
 
 
 def main():
     port = int(os.environ.get("PORT", 8080))
+    interval_secs = int(os.environ.get("HUNTER_INTERVAL_SECONDS", 900))
+    interval_mins = interval_secs // 60
 
     # Initialize state
     state_mgr = StateManager(STATE_DIR)
@@ -99,9 +103,9 @@ def main():
     if token and chat_id:
         send_telegram_message(
             "🚀 <b>Upwork 24/7 Cloud Service Online!</b>\n\n"
-            "• 🔄 Hourly background discovery is active\n"
-            "• 🎯 Interactive 1-click proposal approvals enabled\n"
-            "• 📊 Automated daily reports & Notion sync active\n\n"
+            f"• ⚡ <b>{interval_mins}-Minute Rapid Discovery:</b> Active (competitive edge)\n"
+            "• 🎯 <b>Interactive 1-Click Approvals:</b> Enabled\n"
+            "• 📊 <b>Daily Intelligence & Notion Sync:</b> Active\n\n"
             "<i>Send /status or /queue anytime to interact with the engine.</i>",
             parse_mode="HTML",
         )
