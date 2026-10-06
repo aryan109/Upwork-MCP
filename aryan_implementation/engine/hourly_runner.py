@@ -14,10 +14,12 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from .config import STATE_DIR, PROJECT_ROOT
+from .daily_report import DailyReportEngine
 from .draft import ProposalDrafter
 from .hunt import JobHunter
 from .market_intel import MarketIntelEngine
 from .mcp_client import UpworkMCPClient
+from .notifier import notify_proposal_ready
 from .state_manager import StateManager
 from .vet import check_disqualifiers, score_job
 
@@ -116,12 +118,26 @@ def run_single_pass(
                     f"🎯 [APPLY] Staged proposal for '{job.get('title')}' "
                     f"(Score: {score_res['score']}) in review queue."
                 )
+                # Dispatch explicit desktop notification to Aryan!
+                notify_proposal_ready(job.get("title", "High-Fit Job"), score_res["score"], jid)
 
         vetted_count += 1
 
     # Save state
     state_mgr.save_jobs(jobs)
     intel_eng.generate_digest()
+
+    # Once-a-day daily comprehensive report compilation
+    today_str = now_utc.strftime("%Y-%m-%d")
+    if state.get("last_daily_report_date") != today_str:
+        try:
+            report_eng = DailyReportEngine(state_mgr.state_dir)
+            report_eng.generate_daily_report(today_str)
+            state["last_daily_report_date"] = today_str
+            state_mgr.save_state(state)
+            logger.info(f"Daily intelligence and improvement report compiled for {today_str}.")
+        except Exception as e:
+            logger.warning(f"Failed to auto-generate daily report: {e}")
 
     summary = {
         "run_id": run_id,

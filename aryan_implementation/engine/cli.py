@@ -21,6 +21,7 @@ from .review_submit import ReviewSubmitManager
 from .rebake import RebakeEngine
 from .campaign_editor import CampaignEditor
 from .market_intel import MarketIntelEngine
+from .daily_report import DailyReportEngine
 
 
 def main() -> None:
@@ -92,6 +93,10 @@ def main() -> None:
     p_intel = subparsers.add_parser("intel", help="View or update Market Intelligence & Demand signals")
     p_intel.add_argument("--job-id", type=str, default=None, help="Catalog specific job into intelligence base")
     p_intel.add_argument("--notes", type=str, default="", help="Optional notes on the job")
+
+    # report
+    p_rep = subparsers.add_parser("report", help="Generate or view 4-part Daily Intelligence & Improvement Report")
+    p_rep.add_argument("--date", type=str, default=None, help="Target date YYYY-MM-DD")
 
     args = parser.parse_args()
 
@@ -341,6 +346,12 @@ def main() -> None:
         else:
             digest = intel_eng.generate_digest()
             print(digest)
+
+    elif args.command == "report":
+        rep_eng = DailyReportEngine(state_mgr.state_dir)
+        res = rep_eng.generate_daily_report(date_str=args.date)
+        print(res["content"])
+        print(f"\nReport saved to: {res['report_path']}")
 
     else:
         parser.print_help()

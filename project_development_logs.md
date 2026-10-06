@@ -202,13 +202,34 @@
     - Added unit tests in `aryan_implementation/tests/test_vet_rubric.py` for D11.
     - All 34 tests passing with zero failures.
 
-## [2026-10-06 08:12 IST] Windows Task Scheduler Registration & Verification
-- **Action**: Executed `register_hourly_task.ps1` via PowerShell to register `AryanUpworkHourlyHunter` in Windows Task Scheduler.
-- **Verification**:
-  - Task registered in `Ready` state with hourly trigger (repeats indefinitely every 1 hour).
-  - Executed on-demand test run via `Start-ScheduledTask -TaskName 'AryanUpworkHourlyHunter'`.
-  - Confirmed exit code `0` (Success). Output appended to `%USERPROFILE%\upwork_engine\hourly_runner.log`.
-  - Next automated run confirmed scheduled for `09:09:54 AM IST`.
+## [2026-10-06 08:31 IST] Explicit Desktop Notifications & Daily 4-Part Continuous Improvement Engine
+- **User Request**:
+  1. Trigger an explicit notification whenever Aryan's action is required (proposals ready for review, client messages, low connects).
+  2. Generate a daily 4-part report covering: what happened, what the trend is, what things to focus on, and how to improve continuously.
+- **Implemented Changes**:
+  - **Desktop Notification Engine (`aryan_implementation/engine/notifier.py` & `notify.ps1`)**:
+    - Built native Windows 10/11 Toast Notification integration with fallback to `System.Windows.Forms.NotifyIcon` balloon tooltips and system audio cues.
+    - Explicit notification triggers:
+      - `notify_proposal_ready`: Alert when a high-scoring proposal is drafted and waiting in review queue.
+      - `notify_client_message_or_invite`: Alert for incoming client messages or interview requests.
+      - `notify_low_connects`: Alert when Connects balance drops below safety threshold.
+      - `notify_daily_report_ready`: Alert when daily report has been compiled.
+    - Integrated with `hourly_runner.py` to notify immediately upon staging any high-fit proposal.
+  - **Daily Comprehensive Report Engine (`aryan_implementation/engine/daily_report.py`)**:
+    - Created `DailyReportEngine` compiling 4 structured sections:
+      1. **What's Happened**: 24h discovery volume, proposals drafted, submitted, disqualified leads breakdown, and Connects saved by D11.
+      2. **What the Trend Is**: Emerging tech stack demand matrix (`Cursor`, `Lovable`, `Supabase`, `pgvector`, `OpenAI`, `RAG`, `Evals`), market velocity, top hourly rates.
+      3. **What You Need to Focus On**: Upwork profile tags to activate, daily LinkedIn/Twitter content hooks with 3-point talking outline, and portfolio proof assets to build (e.g. 3-min Loom demo of an eval runner).
+      4. **How We Can Improve**: Speed-to-discovery tracking, campaign query calibration, Connects optimization, and proposal pricing structure recommendations.
+    - Writes live report to `daily_report.md` in workspace root and stores daily archives in `%USERPROFILE%\upwork_engine\reports\daily_report_YYYY-MM-DD.md`.
+    - Integrated into `cli.py` under `python -m aryan_implementation.engine.cli report`.
+    - Integrated automatic once-per-day execution into `hourly_runner.py`.
+  - **Campaign Calibration**:
+    - Updated `rag-knowledge` campaign queries in `campaigns.json` with high-demand marketplace terms: `Lovable Cursor prototype`, `AI eval evaluation pipeline`, `Supabase pgvector AI assistant`.
+  - **Testing**:
+    - Created `aryan_implementation/tests/test_daily_report.py` testing notification dispatch and full 4-part daily report compilation.
+    - All 36 tests pass (100% green).
+
 
 
 
