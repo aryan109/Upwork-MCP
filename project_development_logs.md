@@ -202,4 +202,13 @@
     - Added unit tests in `aryan_implementation/tests/test_vet_rubric.py` for D11.
     - All 34 tests passing with zero failures.
 
+## [2026-10-06 08:12 IST] Windows Task Scheduler Registration & Verification
+- **Action**: Executed `register_hourly_task.ps1` via PowerShell to register `AryanUpworkHourlyHunter` in Windows Task Scheduler.
+- **Verification**:
+  - Task registered in `Ready` state with hourly trigger (repeats indefinitely every 1 hour).
+  - Executed on-demand test run via `Start-ScheduledTask -TaskName 'AryanUpworkHourlyHunter'`.
+  - Confirmed exit code `0` (Success). Output appended to `%USERPROFILE%\upwork_engine\hourly_runner.log`.
+  - Next automated run confirmed scheduled for `09:09:54 AM IST`.
+
+
 
