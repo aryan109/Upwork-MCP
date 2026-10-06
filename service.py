@@ -85,6 +85,26 @@ def hourly_hunter_worker(state_mgr: StateManager, mcp_client: UpworkMCPClient):
         except Exception as e:
             logger.error(f"Error in hunter pass: {e}", exc_info=True)
 
+        # Autonomous Monthly Strategy Check (runs once every 30 days)
+        try:
+            state = state_mgr.load_state()
+            last_m_str = state.get("last_monthly_strategy_date")
+            now_dt = datetime.now(timezone.utc)
+            should_run_monthly = False
+            if not last_m_str:
+                should_run_monthly = True
+            else:
+                last_m_dt = datetime.strptime(last_m_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+                if (now_dt - last_m_dt).days >= 30:
+                    should_run_monthly = True
+
+            if should_run_monthly:
+                from aryan_implementation.engine.monthly_strategy_engine import MonthlyStrategyEngine
+                m_eng = MonthlyStrategyEngine(state_mgr.state_dir)
+                m_eng.run_monthly_pass()
+        except Exception as m_err:
+            logger.debug(f"Monthly strategy runner check note: {m_err}")
+
         # Sleep interval (default: 15 minutes / 900 seconds)
         time.sleep(interval_secs)
 

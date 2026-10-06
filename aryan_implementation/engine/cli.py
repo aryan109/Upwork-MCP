@@ -125,9 +125,10 @@ def main() -> None:
     # bot
     subparsers.add_parser("bot", help="Run interactive Telegram 1-click approval bot listener")
 
-    # serve
-    p_srv = subparsers.add_parser("serve", help="Run 24/7 background worker (HTTP healthcheck + bot + hourly hunter)")
-    p_srv.add_argument("--port", type=int, default=8080, help="Port for HTTP health checks (default: 8080)")
+    # monthly
+    p_mon = subparsers.add_parser("monthly", help="Run 30-day market trend analysis and calibrate proposal rules")
+    p_mon.add_argument("--run", action="store_true", help="Execute calibration and update proposal guide")
+    p_mon.add_argument("--days", type=int, default=30, help="Lookback window in days (default: 30)")
 
     args = parser.parse_args()
 
@@ -476,6 +477,21 @@ def main() -> None:
         except KeyboardInterrupt:
             print("\nBot listener stopped.")
             listener.stop()
+
+    elif args.command == "monthly":
+        from .monthly_strategy_engine import MonthlyStrategyEngine
+        m_eng = MonthlyStrategyEngine(state_mgr.state_dir)
+        if args.run:
+            res = m_eng.run_monthly_pass()
+            print("\n=== MONTHLY STRATEGY CALIBRATION COMPLETE ===")
+            print(f"Status: {res.get('status')}")
+            print(f"Market Summary: {res.get('strategy', {}).get('market_summary')}")
+            print(f"Proof Priority: {res.get('strategy', {}).get('recommended_proof_focus')}")
+            print(f"Key Risk Warning: {res.get('strategy', {}).get('recommended_risk_focus')}")
+            print(f"Rules Markdown Updated: {res.get('markdown_updated')}\n")
+        else:
+            trends = m_eng.analyze_30day_market_trends(days=args.days)
+            print(json.dumps(trends, indent=2))
 
     elif args.command == "serve":
         try:

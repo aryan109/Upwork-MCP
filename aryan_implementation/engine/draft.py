@@ -257,6 +257,44 @@ class ProposalDrafter:
             "checks": checks,
         }
 
+    @staticmethod
+    def load_system_prompt_from_guide() -> str:
+        """Dynamically load master system prompt from the markdown proposal guide."""
+        guide_paths = [
+            PROJECT_ROOT / "UPWORK_PROPOSAL_CRAFTING_GUIDE.md",
+            PROJECT_ROOT / "aryan_implementation" / "skills" / "upwork-proposal-crafting-skill" / "SKILL.md",
+        ]
+        for p in guide_paths:
+            if p.exists():
+                try:
+                    text = p.read_text(encoding="utf-8")
+                    if "## 5. Master System Prompt Template" in text:
+                        part = text.split("## 5. Master System Prompt Template", 1)[1]
+                        if "```text" in part:
+                            prompt_body = part.split("```text", 1)[1].split("```", 1)[0].strip()
+                            if len(prompt_body) > 100:
+                                return prompt_body
+                except Exception as e:
+                    logger.debug(f"Failed to read prompt guide from {p}: {e}")
+
+        # Safe fallback if guide file is unavailable
+        return (
+            "You are an expert proposal drafting AI for Aryan, a Top Rated Upwork consultant with a 100% Job Success Score.\n"
+            "Your objective is to draft a personalized, highly persuasive 4-part Upwork cover letter and concise answers to any client screening questions.\n\n"
+            "CRITICAL RULES:\n"
+            "1. Four concise paragraphs strictly:\n"
+            "   - Paragraph 1: Understanding & Desired Outcome (1-2 sentences establishing clear grasp of their goal).\n"
+            "   - Paragraph 2: Technical Approach (3 clear, concrete phases).\n"
+            "   - Paragraph 3: Verifiable Proof (Reference building a production agent system on an official MCP server with human approval gates, or production document pipelines).\n"
+            "   - Paragraph 4: Exactly one specific technical or operational risk warning + calm CTA (15-min scoping call).\n"
+            "2. Total word count of cover letter MUST be strictly between 130 and 190 words.\n"
+            "3. Plain, calm, direct style. NO self-congratulatory adjectives ('passionate', 'exceptional', 'expert developer').\n"
+            "4. NO exclamation marks. NO em-dashes ('--' or '—'); use commas or hyphens instead.\n"
+            "5. NO buzzwords or unverified claims ('8+ years', 'decade', 'enterprise-grade', 'guaranteed').\n"
+            "6. Sign off strictly with:\nAryan\n"
+            "7. Return JSON ONLY with keys: 'cover_letter' (string) and 'answers' (list of dicts with 'question' and 'answer')."
+        )
+
     def generate_with_groq_llm(
         self, job: Dict[str, Any], score_data: Dict[str, Any]
     ) -> Optional[Tuple[str, List[Dict[str, str]]]]:
@@ -274,22 +312,7 @@ class ProposalDrafter:
         description = job.get("description") or job.get("description_snippet", "")
         questions = job.get("screening_questions", [])
 
-        system_prompt = (
-            "You are an expert proposal drafting AI for Aryan, a Top Rated Upwork consultant with a 100% Job Success Score.\n"
-            "Your objective is to draft a personalized, highly persuasive 4-part Upwork cover letter and concise answers to any client screening questions.\n\n"
-            "CRITICAL RULES:\n"
-            "1. Four concise paragraphs strictly:\n"
-            "   - Paragraph 1: Understanding & Desired Outcome (1-2 sentences establishing clear grasp of their goal).\n"
-            "   - Paragraph 2: Technical Approach (3 clear, concrete phases).\n"
-            "   - Paragraph 3: Verifiable Proof (Reference building a production agent system on an official MCP server with human approval gates, or production document pipelines).\n"
-            "   - Paragraph 4: Exactly one specific technical or operational risk warning + calm CTA (15-min scoping call).\n"
-            "2. Total word count of cover letter MUST be strictly between 130 and 190 words.\n"
-            "3. Plain, calm, direct style. NO self-congratulatory adjectives ('passionate', 'exceptional', 'expert developer').\n"
-            "4. NO exclamation marks. NO em-dashes ('--' or '—'); use commas or hyphens instead.\n"
-            "5. NO buzzwords or unverified claims ('8+ years', 'decade', 'enterprise-grade', 'guaranteed').\n"
-            "6. Sign off strictly with:\nAryan\n"
-            "7. Return JSON ONLY with keys: 'cover_letter' (string) and 'answers' (list of dicts with 'question' and 'answer')."
-        )
+        system_prompt = self.load_system_prompt_from_guide()
 
         user_prompt = f"Job Title: {title}\nJob Description:\n{description[:2500]}\n"
         if questions:

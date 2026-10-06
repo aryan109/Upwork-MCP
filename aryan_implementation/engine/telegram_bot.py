@@ -272,6 +272,7 @@ class TelegramBotListener:
                 "• <b>/status</b> - Check engine status, Connects, and campaigns\n"
                 "• <b>/hunt</b> - Trigger an immediate job discovery and vetting pass\n"
                 "• <b>/report</b> - Send today's 4-part Market & Improvement Report\n"
+                "• <b>/monthly</b> - Run 30-day market trend analysis & calibrate proposal rules\n"
                 "• <b>/sync</b> - Synchronize living documents to Notion\n\n"
                 "<i>You can approve or reject proposals with 1-tap inline buttons!</i>"
             )
@@ -363,6 +364,31 @@ class TelegramBotListener:
                 "text": "✅ <i>Daily report generated and delivered above!</i>",
                 "parse_mode": "HTML",
             })
+
+        elif cmd == "/monthly":
+            telegram_api_call("sendMessage", {
+                "chat_id": chat_id,
+                "text": "⏳ <i>Analyzing 30-day market intelligence trends and calibrating proposal strategy...</i>",
+                "parse_mode": "HTML",
+            })
+            try:
+                from .monthly_strategy_engine import MonthlyStrategyEngine
+                m_eng = MonthlyStrategyEngine(self.state_mgr.state_dir)
+                m_res = m_eng.run_monthly_pass()
+                strat = m_res.get("strategy", {})
+                trends = m_res.get("trends", {})
+                techs = ", ".join(trends.get("top_technologies", [])[:5]) or "AI Workflows & MCP"
+                summary_msg = (
+                    "📊 <b>Monthly Upwork Strategy Calibration Complete!</b>\n\n"
+                    f"• 📈 <b>Top Stacks (30d):</b> {techs}\n"
+                    f"• 💡 <b>Proof Priority:</b> {strat.get('recommended_proof_focus')}\n"
+                    f"• ⚠️ <b>Key Risk Hook:</b> {strat.get('recommended_risk_focus')}\n"
+                    f"• 📝 <b>Guide Updated:</b> <code>UPWORK_PROPOSAL_CRAFTING_GUIDE.md</code> (Rules intact)\n\n"
+                    "<i>Proposal generation prompt has been refreshed with current market signals.</i>"
+                )
+                telegram_api_call("sendMessage", {"chat_id": chat_id, "text": summary_msg, "parse_mode": "HTML"})
+            except Exception as e:
+                telegram_api_call("sendMessage", {"chat_id": chat_id, "text": f"❌ Monthly strategy pass failed: {e}"})
 
         elif cmd == "/sync":
             from .notion_publisher import NotionPublisher

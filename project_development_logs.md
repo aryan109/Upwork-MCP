@@ -447,6 +447,33 @@
       - Dispatched interactive 1-click review notification to Telegram.
       - Synced Market Intelligence & Daily Report markdown to Notion pages.
 
-
-
+## [2026-10-07 04:20 IST] Proposal Crafting Skill & Autonomous Monthly Strategy Engine
+- **User Request & Requirements**:
+  - Research best ways to create high-converting Upwork proposals and persist them in a Markdown file as a model-agnostic skill/rulebook so prompt rules stay intact even if models change.
+  - Build a monthly engine that checks market trends, emerging technologies, client objections, and updates the Markdown rules file accordingly.
+- **Implemented Architecture & Changes**:
+  - **Proposal Crafting Skill (`UPWORK_PROPOSAL_CRAFTING_GUIDE.md` & `aryan_implementation/skills/upwork-proposal-crafting-skill/SKILL.md`)**:
+    - Created authoritative, model-agnostic guide grounded in 2026 Upwork conversion benchmarks:
+      1. *Preview Screen Optimization*: First 140–180 characters mirror client constraint immediately; zero generic greetings.
+      2. *14-Second Attention Economy*: Strict 130–190 word limit.
+      3. *4-Part Scaffolding*: Mirror Hook, 3-Phase Architecture, Verifiable Proof from Aryan's portfolio, Proactive Technical Risk + Low-friction 2-Question/Loom CTA.
+      4. *Anti-AI Linguistic Defense*: Strict prohibition of AI buzzwords ('delve', 'seamless', 'testament', 'robust', 'cutting-edge'), zero exclamation marks, zero em-dashes.
+      5. *Dynamic Master System Prompt Template*: Decoupled prompt located in Markdown for any LLM to ingest.
+  - **Dynamic Prompt Ingestion in `draft.py`**:
+    - Added `load_system_prompt_from_guide()` to `ProposalDrafter`: dynamically parses Section 5 of `UPWORK_PROPOSAL_CRAFTING_GUIDE.md`, allowing prompt rules to evolve without code changes.
+  - **Monthly Strategy Engine (`monthly_strategy_engine.py`)**:
+    - Aggregates 30-day market telemetry from `market_intelligence.json`: tech stack counts, fast-hire rates, average hourly ceilings, and common client pain points.
+    - Synthesizes market signals via Groq LLM to formulate tactical proposal adjustments.
+    - Safely updates Section 6 (`## 6. Dynamic Market Evolution Changelog`) in both Markdown files while strictly preserving invariants (130-190 words, no forbidden words, human confirmation gate).
+    - Syncs monthly intelligence to Notion and alerts Telegram.
+  - **Service & CLI Integration**:
+    - Added 30-day automated trigger check to `service.py` background hunter loop.
+    - Added `/monthly` command handler and help entry in `telegram_bot.py`.
+    - Added `monthly` subparser and command handler to `cli.py` (`python -m aryan_implementation.engine.cli monthly --run`).
+  - **Testing & Verification**:
+    - Authored unit test suite in `aryan_implementation/tests/test_monthly_strategy.py` testing prompt loading, trend analysis, safe markdown updating, and mock pass execution.
+    - All 47 pytest unit tests passing cleanly.
+    - Ran live test pass: successfully updated `UPWORK_PROPOSAL_CRAFTING_GUIDE.md` with current RAG and evaluation pipeline signals.
+  - **Cloud Deployment**:
+    - Deployed update `819602f1-78f2-4bc9-8a9d-34f6cb323168` to Railway; verified online and active on port 8080.
 
