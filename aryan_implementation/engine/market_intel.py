@@ -385,4 +385,11 @@ class MarketIntelEngine:
         except Exception:
             pass
 
+        # Sync with Notion
+        try:
+            from .notion_publisher import NotionPublisher
+            NotionPublisher().sync_market_intel(digest_content)
+        except Exception:
+            pass
+
         return digest_content

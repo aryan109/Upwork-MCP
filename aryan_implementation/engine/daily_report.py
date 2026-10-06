@@ -17,6 +17,7 @@ from typing import Any, Dict, List, Optional
 from .config import STATE_DIR, PROJECT_ROOT, ENGINE_DIR
 from .market_intel import MarketIntelEngine
 from .notifier import notify_daily_report_ready
+from .notion_publisher import NotionPublisher
 from .state_manager import StateManager
 
 logger = logging.getLogger("daily_report")
@@ -238,8 +239,17 @@ class DailyReportEngine:
         except Exception as e:
             logger.warning(f"Error writing daily report file: {e}")
 
-        # Trigger desktop notification
-        notify_daily_report_ready(target_date, len(staged_24h))
+        # Sync with Notion
+        try:
+            notion_pub = NotionPublisher()
+            notion_pub.sync_daily_report(report_md)
+            notion_pub.sync_master_hub()
+            logger.info("Daily report successfully synced to Notion.")
+        except Exception as e:
+            logger.debug(f"Notion sync note: {e}")
+
+        # Trigger desktop and Telegram notification
+        notify_daily_report_ready(target_date, len(staged_24h), report_text=report_md)
 
         return {
             "date": target_date,

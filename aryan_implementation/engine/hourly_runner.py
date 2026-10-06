@@ -118,8 +118,16 @@ def run_single_pass(
                     f"🎯 [APPLY] Staged proposal for '{job.get('title')}' "
                     f"(Score: {score_res['score']}) in review queue."
                 )
-                # Dispatch explicit desktop notification to Aryan!
-                notify_proposal_ready(job.get("title", "High-Fit Job"), score_res["score"], jid)
+                # Dispatch explicit notification to Aryan (Desktop + Telegram)
+                terms = draft.get("proposed_terms", {})
+                b_info = f"{terms.get('type', 'fixed')} (${terms.get('charge_rate', 'TBD')})"
+                notify_proposal_ready(
+                    job.get("title", "High-Fit Job"),
+                    score_res["score"],
+                    jid,
+                    budget_info=b_info,
+                    reasons=score_res.get("reasons", []),
+                )
 
         vetted_count += 1
 

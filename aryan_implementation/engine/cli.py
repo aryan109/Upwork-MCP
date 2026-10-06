@@ -22,6 +22,12 @@ from .rebake import RebakeEngine
 from .campaign_editor import CampaignEditor
 from .market_intel import MarketIntelEngine
 from .daily_report import DailyReportEngine
+from .telegram_notifier import (
+    send_telegram_message,
+    save_telegram_credentials,
+    get_telegram_credentials,
+)
+from .notion_publisher import NotionPublisher
 
 
 def main() -> None:
@@ -97,6 +103,18 @@ def main() -> None:
     # report
     p_rep = subparsers.add_parser("report", help="Generate or view 4-part Daily Intelligence & Improvement Report")
     p_rep.add_argument("--date", type=str, default=None, help="Target date YYYY-MM-DD")
+
+    # setup-telegram
+    p_tg_set = subparsers.add_parser("setup-telegram", help="Configure Telegram Bot credentials")
+    p_tg_set.add_argument("token", type=str, help="Telegram Bot Token from @BotFather")
+    p_tg_set.add_argument("chat_id", type=str, help="Telegram Chat ID from @userinfobot")
+
+    # test-telegram
+    p_tg_test = subparsers.add_parser("test-telegram", help="Send a test notification to Telegram")
+    p_tg_test.add_argument("--message", type=str, default="🚀 Test alert from Aryan Upwork Acquisition Pipeline.")
+
+    # sync-notion
+    subparsers.add_parser("sync-notion", help="Sync Daily Reports, Market Intel & Master Hub to Notion")
 
     args = parser.parse_args()
 
@@ -352,6 +370,38 @@ def main() -> None:
         res = rep_eng.generate_daily_report(date_str=args.date)
         print(res["content"])
         print(f"\nReport saved to: {res['report_path']}")
+
+    elif args.command == "setup-telegram":
+        save_telegram_credentials(args.token, args.chat_id)
+        print("✅ Telegram credentials saved successfully to .env and engine config.")
+        print(f"Token: {args.token[:8]}...{args.token[-4:]} | Chat ID: {args.chat_id}")
+        print("Run 'python -m aryan_implementation.engine.cli test-telegram' to verify delivery.")
+
+    elif args.command == "test-telegram":
+        token, chat_id = get_telegram_credentials()
+        if not token or not chat_id:
+            print("❌ Telegram credentials not found!")
+            print("Run 'python -m aryan_implementation.engine.cli setup-telegram <TOKEN> <CHAT_ID>' first,")
+            print("or set TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID in your .env file.")
+        else:
+            print(f"Sending test notification to Telegram chat {chat_id}...")
+            ok = send_telegram_message(f"🚀 <b>Upwork Pipeline Test Alert</b>\n\n{args.message}\n\n<i>Telegram notifications are online!</i>")
+            if ok:
+                print("✅ Telegram message dispatched successfully! Check your Telegram chat.")
+            else:
+                print("❌ Failed to send Telegram message. Check console logs and verify bot permissions.")
+
+    elif args.command == "sync-notion":
+        print("Syncing Daily Reports, Market Intel & Master Hub to Notion...")
+        pub = NotionPublisher()
+        res = pub.sync_all()
+        print("\n=== NOTION SYNC RESULTS ===")
+        for doc, ok in res.items():
+            status = "✅ Synced" if ok else "❌ Failed"
+            print(f"  {doc:15}: {status}")
+        print("\nHub URL: https://app.notion.com/p/Upwork-Acquisition-Market-Intelligence-OS-3f197b4f8610816e8ab0cf54ac7b3a3e")
+        print("Daily Reports URL: https://app.notion.com/p/Daily-Intelligence-Action-Reports-3f197b4f861081a1ac3ed59e9c8bf7d7")
+        print("Market Intel URL: https://app.notion.com/p/Market-Intelligence-Demand-Knowledge-Base-3f197b4f861081a7b919f430b7816837")
 
     else:
         parser.print_help()

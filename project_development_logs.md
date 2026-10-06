@@ -247,9 +247,39 @@
     - Verified Windows Task Scheduler task `AryanUpworkHourlyHunter` is active and scheduled every hour.
     - Executed live run of `run_hourly_hunt.bat`: successfully queried Upwork live marketplace, vetted 10 jobs against D1–D11 rules, recorded market signals, and generated `daily_report.md`.
     - All 36 pytest test suites passing 100% green.
-
-
-
+## [2026-10-06 09:20 IST] Telegram Multi-Channel Notifications & Notion Long-Term Document Publishing Engine
+- **User Request**:
+  1. Route all notifications and daily reports to Telegram.
+  2. Use Notion MCP / API to create and maintain living documents on Notion for readability and long-term intelligence archiving.
+- **Implemented Changes**:
+  - **Telegram Notification Engine (`aryan_implementation/engine/telegram_notifier.py`)**:
+    - Built Telegram Bot API integration using stdlib `urllib.request`.
+    - Supports automatic chunking (>4000 characters), HTML entity escaping, and fallback formatting.
+    - Automated credential resolution across environment variables, `PROJECT_ROOT/.env`, and `ENGINE_DIR/config.json`.
+    - Added dedicated dispatchers:
+      - `send_proposal_alert`: Rich card with direct Upwork link, match score, pricing terms, and CLI review instructions.
+      - `send_daily_report_alert`: 4-part summary card with pipeline stats, trending stacks, daily content hook, and direct Notion links.
+      - `send_client_alert`: Urgent priority notification for incoming client messages and interview requests.
+      - `send_connects_alert`: Early warning alert for low Connects balances.
+    - Added CLI subcommands: `python -m aryan_implementation.engine.cli setup-telegram <TOKEN> <CHAT_ID>` and `test-telegram`.
+  - **Notion Document Publishing & Archiving Engine (`aryan_implementation/engine/notion_publisher.py`)**:
+    - Connected directly to Aryan's authenticated Notion workspace using integration token from MCP configuration.
+    - Provisioned and connected live Notion structure:
+      - **Master Command Center Hub**: `Upwork Acquisition & Market Intelligence OS` (`3f197b4f8610816e8ab0cf54ac7b3a3e`)
+      - **Daily Reports Document**: `Daily Intelligence & Action Reports` (`3f197b4f861081a1ac3ed59e9c8bf7d7`)
+      - **Market Intelligence Document**: `Market Intelligence & Demand Knowledge Base` (`3f197b4f861081a7b919f430b7816837`)
+    - Implemented `PATCH /v1/pages/{id}/markdown` enhanced Markdown sync with child-page safety tags (`<page url="..."/>`).
+    - Integrated automatic synchronization into:
+      - `daily_report.py`: Automatically refreshes Notion Daily Report document and updates Master Hub timestamp whenever daily report compiles.
+      - `market_intel.py`: Automatically refreshes Notion Market Intelligence document whenever new demand signals are digested.
+      - `cli.py`: Added `python -m aryan_implementation.engine.cli sync-notion` for on-demand synchronization.
+  - **Notifier Engine Integration (`aryan_implementation/engine/notifier.py`)**:
+    - Upgraded `notify()`, `notify_proposal_ready()`, and `notify_daily_report_ready()` to dispatch both native Windows desktop alerts and rich Telegram notifications.
+  - **Hourly Hunter Integration (`aryan_implementation/engine/hourly_runner.py`)**:
+    - Enriched proposal staging notification to include pricing terms and match signal telemetry.
+  - **Testing**:
+    - Created `aryan_implementation/tests/test_telegram_and_notion.py` verifying credential fallback, message dispatch, alert formatters, Notion token resolution, and markdown sync.
+    - All 41 unit tests passing with zero failures.
 
 
 

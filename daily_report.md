@@ -1,5 +1,5 @@
 # Daily Upwork Intelligence & Action Report — 2026-10-06
-*Generated: 2026-10-06 03:35:00 UTC*
+*Generated: 2026-10-06 03:48:46 UTC*
 
 > **Executive Summary**: Hourly background hunter is active. Vetted postings are guarded by D1–D11 disqualifiers to protect Connects. High-velocity market demand centers around hardening Cursor/Lovable AI prototypes into production-grade RAG and MCP architectures.
 
@@ -8,13 +8,12 @@
 ## 1. What's Happened (Last 24 Hours)
 
 - **Connects Status**: **110** available (Monthly Budget: 250)
-- **Total Opportunities Processed**: **11** leads
+- **Total Opportunities Processed**: **1** leads
 - **Proposals Awaiting Your 1-Click Review**: **0**
 - **Proposals Submitted**: **0**
-- **Disqualified Leads Filtered**: **10**
+- **Disqualified Leads Filtered**: **1**
   - *Disqualification Breakdown*:
     - `D11`: 1 jobs
-    - `D6`: 9 jobs
 - ⚡ **Connects Saved by D11**: Successfully caught **1** already-filled jobs before proposal creation.
 
 ---
@@ -24,16 +23,10 @@
 ### Emerging Tech Stack Demand Matrix:
 | Tool / Framework | Mentions in Tracked Leads | Market Velocity |
 |---|---|---|
-| **OpenAI** | 1 | Strong |
-| **Cursor** | 1 | 🔥 High Velocity (<3h hire time) |
-| **Lovable** | 1 | 🔥 High Velocity (<3h hire time) |
-| **RAG** | 1 | 🔥 High Velocity (<3h hire time) |
-| **Evals** | 1 | 🔥 High Velocity (<3h hire time) |
-| **Supabase** | 1 | 🔥 High Velocity (<3h hire time) |
-| **Make.com** | 1 | Strong |
-| **React** | 1 | Strong |
+| **Claude** | 1 | Strong |
+| **MCP** | 1 | Strong |
 
-- **Average Top Hourly Rate**: **$80/hr** for fullstack AI / agent implementation roles.
+- **Average Top Hourly Rate**: **$65/hr** for fullstack AI / agent implementation roles.
 - **Fastest Hiring Niche**: Founders who built prototypes in **Cursor** or **Lovable** needing an engineer to add automated **evals** and fix document **hallucinations**.
 
 ---
