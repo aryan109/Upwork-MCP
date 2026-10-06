@@ -18,17 +18,20 @@ from aryan_implementation.engine.daily_report import DailyReportEngine
 from aryan_implementation.engine.state_manager import StateManager
 
 
+from unittest.mock import patch
+
+
 def test_notification_dispatch() -> None:
-    # Test that notification dispatches without error
-    res = notify_proposal_ready("Test AI Solutions Engineer", 92.5, "~01test")
-    # On Windows it invokes notify.ps1; on non-windows it falls back to stdout
-    assert isinstance(res, bool)
+    # Test that notification dispatches without error and does not spam Telegram in tests
+    with patch("aryan_implementation.engine.notifier.send_telegram_message", return_value=True):
+        res = notify_proposal_ready("Test AI Solutions Engineer", 92.5, "~01test")
+        assert isinstance(res, bool)
 
-    res_invite = notify_client_message_or_invite("Client Malta", "Can you hop on a scoping call?")
-    assert isinstance(res_invite, bool)
+        res_invite = notify_client_message_or_invite("Client Malta", "Can you hop on a scoping call?")
+        assert isinstance(res_invite, bool)
 
-    res_connects = notify_low_connects(15)
-    assert isinstance(res_connects, bool)
+        res_connects = notify_low_connects(15)
+        assert isinstance(res_connects, bool)
 
 
 def test_daily_report_generation(tmp_path: Path) -> None:

@@ -283,10 +283,23 @@ class TelegramBotListener:
             camps = self.state_mgr.load_campaigns()
             queue = self.review_mgr.get_review_queue()
 
-            connects = state.get("ledger", {}).get("available_connects", 110)
+            # Fetch live connects from Freelancer profile
+            connects = state.get("connects_balance", 118)
+            try:
+                bal_res = self.mcp.call_tool("get_profile", "connects_balance", {}, run_id="status_check")
+                if bal_res.get("ok"):
+                    bal_data = bal_res.get("data", {}).get("balance", {})
+                    if isinstance(bal_data, dict) and "connectsBalance" in bal_data:
+                        connects = int(bal_data["connectsBalance"])
+                        state["connects_balance"] = connects
+                        self.state_mgr.save_state(state)
+            except Exception as e:
+                logger.debug(f"Live connects query note: {e}")
+
             status_text = (
                 "⚡ <b>Upwork Pipeline Status</b>\n\n"
-                f"• <b>Available Connects:</b> {connects}\n"
+                "• <b>Target Account:</b> Aryan Pegwar (Freelancer / TALENT)\n"
+                f"• <b>Live Connects Balance:</b> <b>{connects} Connects</b>\n"
                 f"• <b>Pending Reviews:</b> {len(queue)}\n"
                 f"• <b>Total Tracked Jobs:</b> {len(jobs)}\n"
                 f"• <b>Active Campaigns:</b> {len(camps.get('campaigns', []))}\n"

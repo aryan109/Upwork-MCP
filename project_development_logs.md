@@ -396,8 +396,27 @@
     - Telegram Bot listener active on main thread handling 1-click approvals and `/status`, `/queue`, `/hunt`.
     - 15-minute background hunter thread running discovery cycles autonomously.
     - Cloud startup notification dispatched to Aryan's Telegram bot `@Argus_Trinetra_bot`.
-- **Verification**:
-  - Pipeline verified live in the cloud. Local terminal no longer required.
+## [2026-10-06 20:58 IST] Freelancer Account Verification, Test Isolation & Live Connects Query Upgrade
+- **User Clarification & Investigation**:
+  - User reported receiving a notification claiming "15 Connects" and a simulated Malta message, requesting verification that only their Freelancer profile (`TALENT`) is being used, bypassing Agency or Client profiles.
+  - Root Cause Analysis:
+    - **Spurious Alert Source**: The "15 Connects" and "Client Malta" alerts were mock test cases executed inside `test_daily_report.py` when `pytest` was run at 19:21 IST. Because Telegram credentials were live in `.env`, the unit test dispatched live test alerts to Telegram.
+    - **Account Hierarchy Verification**: Queried `list_accounts` on Upwork MCP:
+      1. Freelancer (`TALENT`): `Aryan Pegwar` (Org UID: `1243443370794516481`)
+      2. Agency (`FL_AGENCY`): `Revedor` (Org UID: `1437676052420120576`)
+      3. Client (`CLIENT`): `Revedor` (Org UID: `1629423285613748224`)
+    - The engine's MCP client explicitly pins `org_uid: "1243443370794516481"` (Aryan Pegwar / TALENT).
+    - Queried live `get_profile connects_balance` on Upwork for this Org UID:
+      - **Live Freelancer Connects Balance:** **118 Connects** (118 free + 30 rollover, perfectly healthy).
+- **Implemented Fixes**:
+  - **Unit Test Telegram Isolation**:
+    - Patched `test_daily_report.py` using `unittest.mock.patch` to mock `send_telegram_message`, ensuring local or CI test suites NEVER dispatch mock alerts to Aryan's phone.
+  - **Live Connects Telemetry in `/status`**:
+    - Updated `/status` command in `telegram_bot.py` to query live `get_profile connects_balance` directly from Upwork MCP for Aryan's `TALENT` account and display `Aryan Pegwar (Freelancer / TALENT)` explicitly.
+  - **State Update & Verification**:
+    - Synchronized `state.json` connects balance to 118.
+    - Deployed update `ac3c78d7-0724-42e9-9c24-771b268dd860` to Railway.
+    - All 43 pytest unit tests passing cleanly with zero test notifications emitted.
 
 
 
