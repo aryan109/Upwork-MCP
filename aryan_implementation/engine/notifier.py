@@ -93,6 +93,8 @@ def notify_proposal_ready(
     job_id: str,
     budget_info: str = "TBD",
     reasons: Optional[list] = None,
+    job_url: Optional[str] = None,
+    send_telegram: bool = True,
 ) -> bool:
     """Explicit alert when a proposal draft is staged and requires Aryan's 1-click review."""
     title = f"Action Required: Proposal Staged ({score:.1f} pts)"
@@ -102,10 +104,13 @@ def notify_proposal_ready(
     desktop_ok = notify(title, message, category="Proposal Review", priority="high", send_telegram=False)
     
     # Send specialized rich proposal Telegram card
-    try:
-        send_proposal_alert(job_title, score, job_id, budget_info=budget_info, reasons=reasons)
-    except Exception as e:
-        logger.debug(f"Telegram proposal alert note: {e}")
+    if send_telegram:
+        try:
+            send_proposal_alert(
+                job_title, score, job_id, budget_info=budget_info, reasons=reasons, job_url=job_url
+            )
+        except Exception as e:
+            logger.debug(f"Telegram proposal alert note: {e}")
 
     return desktop_ok
 

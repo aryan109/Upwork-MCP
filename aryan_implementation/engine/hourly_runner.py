@@ -106,7 +106,10 @@ def run_single_pass(
 
             # Always capture high scoring jobs into intelligence
             if score_res["score"] >= 60.0:
-                intel_eng.record_job(job, status_override="OPEN")
+                try:
+                    intel_eng.record_job(job, status_override="OPEN")
+                except Exception as intel_err:
+                    logger.warning(f"Market intel capture warning for {jid}: {intel_err}")
 
             # 3. Draft proposals for top-scoring APPLY jobs
             if score_res["decision"] == "APPLY":
@@ -114,19 +117,23 @@ def run_single_pass(
                 job["draft"] = draft
                 job["status"] = "drafted"
                 staged_proposals.append(job)
+                state_mgr.save_jobs(jobs)  # Persist immediately to prevent state loss
                 logger.info(
                     f"🎯 [APPLY] Staged proposal for '{job.get('title')}' "
                     f"(Score: {score_res['score']}) in review queue."
                 )
-                # Dispatch explicit notification to Aryan (Desktop + Telegram)
-                terms = draft.get("proposed_terms", {})
-                b_info = f"{terms.get('type', 'fixed')} (${terms.get('charge_rate', 'TBD')})"
+                # Dispatch explicit desktop notification + interactive Telegram card
+                terms = draft.get("proposed_terms", {}) or draft.get("terms", {})
+                b_info = f"{terms.get('type', 'fixed')} (${terms.get('charge_rate', terms.get('charged_amount', 'TBD'))})"
+                job_url = job.get("url") or job.get("job_url") or f"https://www.upwork.com/jobs/~{jid}"
                 notify_proposal_ready(
                     job.get("title", "High-Fit Job"),
                     score_res["score"],
                     jid,
                     budget_info=b_info,
                     reasons=score_res.get("reasons", []),
+                    job_url=job_url,
+                    send_telegram=False,  # send_interactive_proposal below sends the rich card with buttons
                 )
                 try:
                     from .telegram_bot import send_interactive_proposal
@@ -138,7 +145,10 @@ def run_single_pass(
 
     # Save state
     state_mgr.save_jobs(jobs)
-    intel_eng.generate_digest()
+    try:
+        intel_eng.generate_digest()
+    except Exception as e:
+        logger.warning(f"Digest generation warning: {e}")
 
     # Once-a-day daily comprehensive report compilation
     today_str = now_utc.strftime("%Y-%m-%d")

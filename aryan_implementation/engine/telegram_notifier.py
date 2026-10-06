@@ -276,15 +276,16 @@ def send_proposal_alert(
     job_id: str,
     budget_info: str = "TBD",
     reasons: Optional[list] = None,
+    job_url: Optional[str] = None,
 ) -> bool:
     """Dispatches Telegram alert when a proposal is drafted and ready for human confirmation."""
     clean_title = (job_title or "Untitled").replace("<", "&lt;").replace(">", "&gt;")
     reasons_str = ", ".join(reasons[:4]) if reasons else "high_match"
-    job_url = f"https://www.upwork.com/jobs/~{job_id}" if not job_id.startswith("http") else job_id
+    target_url = job_url or (job_id if job_id.startswith("http") else f"https://www.upwork.com/jobs/~{job_id.lstrip('~')}")
 
     text = (
         f"🎯 <b>Action Required: Upwork Proposal Staged for Review</b>\n\n"
-        f"<b>Title:</b> <a href=\"{job_url}\">{clean_title}</a>\n"
+        f"<b>Title:</b> <a href=\"{target_url}\">{clean_title}</a>\n"
         f"<b>Score:</b> <code>{score:.1f} / 100</code>\n"
         f"<b>Budget / Pricing:</b> {budget_info}\n"
         f"<b>Signals:</b> <i>{reasons_str}</i>\n\n"

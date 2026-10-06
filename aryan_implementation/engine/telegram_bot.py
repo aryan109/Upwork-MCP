@@ -78,7 +78,7 @@ def send_interactive_proposal(
     score = score_res.get("score", 0.0)
     reasons = ", ".join(score_res.get("reasons", [])[:4])
     terms = draft.get("terms") or draft.get("proposed_terms") or {}
-    job_url = f"https://www.upwork.com/jobs/~{jid}"
+    job_url = job.get("url") or job.get("job_url") or f"https://www.upwork.com/jobs/~{jid}"
 
     b_type = terms.get("type", job.get("type", "fixed"))
     b_rate = terms.get("charged_amount") or terms.get("charge_rate") or terms.get("hourly_bid") or "TBD"
@@ -142,7 +142,12 @@ class TelegramBotListener:
         action, jid = data.split(":", 1)
         full_jid = jid if jid.startswith("~") else f"~{jid}"
         jobs = self.state_mgr.load_jobs()
-        job = jobs.get(full_jid) or jobs.get(jid)
+        job = jobs.get(jid) or jobs.get(full_jid)
+        if not job:
+            for k, v in jobs.items():
+                if k.lstrip("~") == jid.lstrip("~") or v.get("id") == jid or v.get("job_id") == jid:
+                    job = v
+                    break
 
         if not job:
             telegram_api_call("answerCallbackQuery", {

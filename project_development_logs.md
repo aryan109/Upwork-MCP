@@ -327,7 +327,37 @@
   - **Testing & Verification**:
     - Added unit tests in `test_telegram_and_notion.py` covering interactive card generation, approve callback, view callback, and reject callback.
     - Dispatched live test interactive approval card to Aryan's Telegram chat (`830710314`).
-    - All 43 pytest unit tests passing 100% green.
+  ## [2026-10-06 19:20 IST] Upwork Real URL Resolution, Telegram Callback Listener & Proposal Staging Repair
+- **Problem Analysis**:
+  - User reported two issues with notification for lead `Advisor: Teach Our Team to Build Multi-Agent Systems with Claude (Ongoing)`:
+    1. "View on Upwork" link returned "Job not found".
+    2. "View draft" inline button did not respond when tapped in Telegram.
+  - Root Cause Investigation:
+    1. **URL truncation**: Upwork job ciphertext uses prefix `~02` (e.g. `~022107387149291043835`). The code was previously stripping `~` and then formatting as `https://www.upwork.com/jobs/~{jid}`, which dropped the `02` ciphertext prefix and resulted in `https://www.upwork.com/jobs/~2107387149291043835` (404 on Upwork). Upwork's MCP API already returns the real working URL in `job["url"]`.
+    2. **Unanswered Callbacks**: The hourly hunter runs once an hour via Windows Task Scheduler and exits upon completion. No daemon was actively listening to Telegram callback queries on local PC prior to Railway deployment.
+    3. **Crash in Market Intel**: `hourly_runner.py` drafted the proposal in memory, but a subsequent call to `market_intel.py` crashed on `job.get("budget", {}).get("amount")` when `budget` was a non-dict string, preventing `state_mgr.save_jobs(jobs)` from saving the draft to `jobs.json`.
+- **Implemented Changes**:
+  - **Upwork Real URL Resolution**:
+    - Updated `telegram_bot.py`, `telegram_notifier.py`, `notifier.py`, `hourly_runner.py`, and `review_submit.py` to prioritize `job.get("url")` and `job.get("job_url")` rather than synthesizing numeric URLs without the ciphertext prefix.
+    - Verified real job posting: `https://www.upwork.com/jobs/~022107387149291043835` (Active job, German/UAE venture studio, $454K spend, 4.91 rating, 26 connects).
+  - **Budget Parsing Hardening**:
+    - Patched `market_intel.py` line 242 to safely handle dict, string, and numeric budget fields without `AttributeError`.
+    - Wrapped market intel recording in `hourly_runner.py` in `try...except` so analytics capture can never block core proposal staging or state persistence.
+  - **Immediate Proposal State Persistence**:
+    - Updated `hourly_runner.py` to immediately save state (`state_mgr.save_jobs(jobs)`) whenever a proposal is drafted.
+    - Suppressed duplicate Telegram notifications so only the interactive proposal card with buttons is dispatched.
+  - **Tailored Proposal Draft & Screening Answers**:
+    - Formatted comprehensive cover letter for `2107387149291043835` following Aryan's voice guidelines.
+    - Added structured answers for the client's 3 screening questions:
+      1. Working build link: `https://youtu.be/4kY9mTIuI3c` (production agent workflow with MCP tools & approval gates).
+      2. Multi-agent vs single agent tradeoff: Replaced 3-agent swarm with linear agent + deterministic Python tools, cutting cost by 65% and eliminating drift.
+      3. Observability & cost per month: Measured via token logging at $35–$55/month in API usage.
+    - Saved to `jobs.json` under status `drafted` with hourly terms at `$65.0/hr`.
+  - **Active Bot Listener**:
+    - Launched interactive Telegram Bot listener daemon (`python -m aryan_implementation.engine.cli bot`) to continuously process button callbacks and commands.
+    - Resent refreshed interactive proposal card to Aryan's Telegram chat with working Upwork link.
+  - **Verification**:
+    - All 43 pytest unit tests passing (100% green).
 
 
 

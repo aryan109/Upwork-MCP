@@ -239,7 +239,7 @@ class MarketIntelEngine:
                 "type": job.get("type", "hourly"),
                 "hourly_min": job.get("budget_hourly_min") or job.get("hourly_min"),
                 "hourly_max": job.get("budget_hourly_max") or job.get("hourly_max"),
-                "fixed_amount": job.get("budget_fixed") or job.get("budget", {}).get("amount"),
+                "fixed_amount": job.get("budget_fixed") or (job.get("budget", {}).get("amount") if isinstance(job.get("budget"), dict) else job.get("budget")),
             },
             "client": {
                 "country": client.get("country", "Unknown"),

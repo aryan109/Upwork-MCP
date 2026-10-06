@@ -36,7 +36,7 @@ class ReviewSubmitManager:
         """Format a single review item for human inspection."""
         jid = job.get("job_id", "")
         title = job.get("title", "")
-        url = job.get("url", f"https://www.upwork.com/jobs/{jid}")
+        url = job.get("url") or job.get("job_url") or f"https://www.upwork.com/jobs/~{jid.lstrip('~')}"
         score = job.get("score", 0)
         reasons = ", ".join(job.get("reasons", [])[:4])
         draft = job.get("draft", {})
