@@ -14,12 +14,16 @@ from .state_manager import StateManager
 logger = logging.getLogger("upwork_engine")
 
 
+from .ai_client_learner import ClientLearningEngine
+
+
 class ReviewSubmitManager:
     """Manages proposal review queues and human-confirmed submissions."""
 
     def __init__(self, mcp_client: UpworkMCPClient, state_mgr: StateManager):
         self.mcp = mcp_client
         self.state_mgr = state_mgr
+        self.learner = ClientLearningEngine(state_mgr.state_dir)
 
     def get_review_queue(self) -> List[Dict[str, Any]]:
         """Return all jobs currently awaiting human review."""
@@ -176,6 +180,12 @@ class ReviewSubmitManager:
         state["connects_spent_month"] = state.get("connects_spent_month", 0) + connects_spent
         self.state_mgr.save_state(state)
 
+        # Record positive client pattern in continuous learner
+        try:
+            self.learner.record_approval(job)
+        except Exception as e:
+            logger.debug(f"Learner approval note: {e}")
+
         return {
             "ok": True,
             "proposal_id": proposal_id,
@@ -197,6 +207,13 @@ class ReviewSubmitManager:
             "reject_reason": reason,
         }
         self.state_mgr.save_jobs(jobs)
+
+        # Record negative client pattern in continuous learner
+        try:
+            self.learner.record_rejection(job, reason=reason)
+        except Exception as e:
+            logger.debug(f"Learner rejection note: {e}")
+
         return {"ok": True, "job_id": job_id, "status": "rejected_by_aryan"}
 
     def reject_proposal(self, job_id: str, reason: str = "Rejected") -> Dict[str, Any]:

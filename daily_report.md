@@ -1,5 +1,5 @@
 # Daily Upwork Intelligence & Action Report — 2026-10-06
-*Generated: 2026-10-06 22:47:57 UTC*
+*Generated: 2026-10-06 22:59:54 UTC*
 
 > **Executive Summary**: Hourly background hunter is active. Vetted postings are guarded by D1–D11 disqualifiers to protect Connects. High-velocity market demand centers around hardening Cursor/Lovable AI prototypes into production-grade RAG and MCP architectures.
 

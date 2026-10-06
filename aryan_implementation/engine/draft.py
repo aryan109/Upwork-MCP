@@ -373,14 +373,89 @@ class ProposalDrafter:
 
         return None
 
+    def generate_with_gemini_llm(
+        self, job: Dict[str, Any], score_data: Dict[str, Any]
+    ) -> Optional[Tuple[str, List[Dict[str, str]]]]:
+        """Call Google Studio Gemini API to synthesize personalized cover letter and screening answers."""
+        google_key = os.environ.get("GOOGLE_STUDIO_API_KEY")
+        if not google_key:
+            from .telegram_notifier import load_env_file
+            env = load_env_file(PROJECT_ROOT / ".env")
+            google_key = env.get("GOOGLE_STUDIO_API_KEY")
+
+        if not google_key:
+            return None
+
+        title = job.get("title", "Project")
+        description = job.get("description") or job.get("description_snippet", "")
+        questions = job.get("screening_questions", [])
+        ai_analysis = job.get("ai_analysis") or {}
+
+        system_prompt = self.load_system_prompt_from_guide()
+        user_prompt = f"Job Title: {title}\nJob Description:\n{description[:3000]}\n"
+        if ai_analysis.get("key_winning_hook"):
+            user_prompt += f"\nRecommended Technical Winning Angle:\n{ai_analysis['key_winning_hook']}\n"
+        if questions:
+            user_prompt += f"\nScreening Questions to answer:\n" + "\n".join(f"- {q}" for q in questions)
+
+        gemini_models = ["models/gemini-3.5-flash-lite", "models/gemini-3.5-flash", "models/gemini-3.8-flash"]
+        for g_model in gemini_models:
+            url = f"https://generativelanguage.googleapis.com/v1beta/{g_model}:generateContent?key={google_key}"
+            payload = {
+                "systemInstruction": {"parts": [{"text": system_prompt}]},
+                "contents": [{"parts": [{"text": user_prompt}]}],
+                "generationConfig": {"responseMimeType": "application/json", "temperature": 0.2},
+            }
+            req = urllib.request.Request(
+                url,
+                data=json.dumps(payload).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            try:
+                with urllib.request.urlopen(req, timeout=15) as resp:
+                    res_json = json.loads(resp.read().decode("utf-8"))
+                    text_out = res_json["candidates"][0]["content"]["parts"][0]["text"]
+                    parsed = json.loads(text_out)
+                    cl = parsed.get("cover_letter", "").strip()
+                    cl = cl.replace("—", "-").replace("–", "-").replace("!", ".")
+                    if not cl.endswith("Aryan"):
+                        cl = f"{cl}\n\nAryan"
+
+                    ans_raw = parsed.get("answers", [])
+                    answers: List[Dict[str, str]] = []
+                    if isinstance(ans_raw, list):
+                        for a in ans_raw:
+                            if isinstance(a, dict) and "question" in a and "answer" in a:
+                                answers.append({"question": str(a["question"]), "answer": str(a["answer"])})
+                    elif isinstance(ans_raw, dict):
+                        for q_k, a_v in ans_raw.items():
+                            answers.append({"question": str(q_k), "answer": str(a_v)})
+
+                    if cl:
+                        logger.info(f"Successfully generated proposal via Gemini ({g_model})")
+                        return cl, answers
+            except Exception as e:
+                logger.warning(f"Gemini generation attempt with {g_model} failed: {e}")
+                continue
+
+        return None
+
     def generate_full_draft(self, job: Dict[str, Any], score_data: Dict[str, Any]) -> Dict[str, Any]:
         """Produce a complete draft package ready for review."""
         terms = self.determine_proposed_terms(job, score_data)
 
-        # 1. Attempt Groq LLM synthesis
+        # 1. Attempt Gemini or Groq LLM synthesis
         llm_res = None
+        gen_type = "heuristic_fallback"
         try:
-            llm_res = self.generate_with_groq_llm(job, score_data)
+            llm_res = self.generate_with_gemini_llm(job, score_data)
+            if llm_res:
+                gen_type = "gemini_llm"
+            else:
+                llm_res = self.generate_with_groq_llm(job, score_data)
+                if llm_res:
+                    gen_type = "groq_llm"
         except Exception as e:
             logger.warning(f"LLM drafting exception: {e}")
 
@@ -394,7 +469,7 @@ class ProposalDrafter:
                     "terms": terms,
                     "self_check": self_check,
                     "status": "drafted",
-                    "generator": "groq_llm",
+                    "generator": gen_type,
                 }
 
         # 2. Deterministic heuristic fallback

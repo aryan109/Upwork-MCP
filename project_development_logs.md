@@ -477,3 +477,39 @@
   - **Cloud Deployment**:
     - Deployed update `819602f1-78f2-4bc9-8a9d-34f6cb323168` to Railway; verified online and active on port 8080.
 
+## [2026-10-07 04:35 IST] AI Job Vetting & Continuous Client Learning Engine (Google Studio Gemini + Groq)
+- **User Request & Requirements**:
+  - Implement AI at the job analysis level to deeply evaluate whether a candidate lead is a true high-fit win vs a bad client / low-margin trap.
+  - Implement a continuously learning and improving system based on market trends and human decisions (approvals/rejections in Telegram/CLI) so no effort or Connects are wasted on bad clients.
+  - Integrate user-provided `GOOGLE_STUDIO_API_KEY` to leverage Google AI Studio Gemini models where they perform best.
+- **Implemented Architecture & Changes**:
+  - **Continuous Client Learning Engine (`ai_client_learner.py`)**:
+    - Built `ClientLearningEngine` storing adaptive patterns in `client_learnings.json`:
+      * `negative_patterns`: Tracks toxic keywords, bad client reasons, and disqualified client IDs/hashes.
+      * `positive_patterns`: Tracks approved client profiles, preferred technology keywords, and win counts.
+      * Automatically compiles a dynamic learning instruction block (`get_learning_context()`) injected into all future AI vetting prompts.
+  - **AI Job Analyzer (`ai_job_analyzer.py`)**:
+    - Implemented multi-tier AI vetting engine:
+      1. Primary: Google Studio Gemini API (`models/gemini-3.5-flash-lite`, `models/gemini-3.5-flash`, `models/gemini-3.8-flash`) with structured JSON schema (`fit_score`, `decision`, `client_risk_level`, `toxic_client_flags`, `scope_archetype`, `fit_reasoning`, `key_winning_hook`). Lightning 0.86s response latency.
+      2. Secondary: Groq LLM fallback (`openai/gpt-oss-120b`, `llama-3.3-70b-versatile`).
+      3. Tertiary: Heuristic rubric fallback for zero-downtime offline operation.
+    - Intercepts bad clients with realistic criteria: checks for unpaid work requests, impossible scope vs budget ratios, abusive/demanding language, and unverified $0-spend accounts.
+  - **Feedback Loop Integration (`review_submit.py`)**:
+    - Wired `ClientLearningEngine` into human review actions:
+      * `reject_draft()` automatically records the rejection reason and client profile to bad client store.
+      * `confirm_submission()` records client profile and project attributes to winning patterns store.
+  - **Hourly Runner Integration (`hourly_runner.py`)**:
+    - Integrated `AIJobAnalyzer` into `run_single_pass()`.
+    - Automatically audits candidate jobs passing heuristic filters.
+    - If AI returns `SKIP` or `client_risk_level` is `CRITICAL`/`HIGH`, suppresses proposal generation, marks job as `ai_rejected`, and saves Connects/time.
+    - Injects `key_winning_hook` directly into proposal drafter for confirmed opportunities.
+  - **Proposal Synthesis Upgrade (`draft.py`)**:
+    - Added `generate_with_gemini_llm()` to `ProposalDrafter` alongside Groq, leveraging Gemini 3.5 Flash for nuanced technical proposals with strict 130–190 word limits.
+  - **Testing & Verification**:
+    - Authored unit test suite in `aryan_implementation/tests/test_ai_job_analyzer.py` verifying learner updates, heuristic fallback, and mocked Gemini responses.
+    - Executed full test suite: all 50 pytest tests passed in 18.97s.
+  - **Cloud Synchronization & Deployment**:
+    - Injected `GOOGLE_STUDIO_API_KEY` into Railway production container environment variables via Railway CLI.
+    - Deployed codebase updates to Railway: builds `0725f9d4-1007-4c94-a303-81ae16279df9` and `996a3fdf-e945-46ee-bec9-ec7a8e13d182` built and deployed successfully (`SUCCESS`).
+    - Service online on port 8080 answering `/health` with live 15-minute autonomous runner and Telegram bot listener.
+

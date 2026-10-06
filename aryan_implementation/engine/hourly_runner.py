@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from .ai_job_analyzer import AIJobAnalyzer
 from .config import STATE_DIR, PROJECT_ROOT
 from .daily_report import DailyReportEngine
 from .draft import ProposalDrafter
@@ -51,6 +52,7 @@ def run_single_pass(
     hunter = JobHunter(mcp_client, state_mgr)
     intel_eng = MarketIntelEngine(state_mgr.state_dir)
     drafter = ProposalDrafter()
+    ai_analyzer = AIJobAnalyzer(state_mgr.state_dir)
 
     # 1. Discover newly posted jobs
     hunt_res = hunter.run_hunt(
@@ -111,35 +113,48 @@ def run_single_pass(
                 except Exception as intel_err:
                     logger.warning(f"Market intel capture warning for {jid}: {intel_err}")
 
-            # 3. Draft proposals for top-scoring APPLY jobs
+            # 3. Deep AI Vetting for candidate APPLY jobs
             if score_res["decision"] == "APPLY":
-                draft = drafter.generate_full_draft(job, score_res)
-                job["draft"] = draft
-                job["status"] = "drafted"
-                staged_proposals.append(job)
-                state_mgr.save_jobs(jobs)  # Persist immediately to prevent state loss
-                logger.info(
-                    f"🎯 [APPLY] Staged proposal for '{job.get('title')}' "
-                    f"(Score: {score_res['score']}) in review queue."
-                )
-                # Dispatch explicit desktop notification + interactive Telegram card
-                terms = draft.get("proposed_terms", {}) or draft.get("terms", {})
-                b_info = f"{terms.get('type', 'fixed')} (${terms.get('charge_rate', terms.get('charged_amount', 'TBD'))})"
-                job_url = job.get("url") or job.get("job_url") or f"https://www.upwork.com/jobs/~{jid}"
-                notify_proposal_ready(
-                    job.get("title", "High-Fit Job"),
-                    score_res["score"],
-                    jid,
-                    budget_info=b_info,
-                    reasons=score_res.get("reasons", []),
-                    job_url=job_url,
-                    send_telegram=False,  # send_interactive_proposal below sends the rich card with buttons
-                )
-                try:
-                    from .telegram_bot import send_interactive_proposal
-                    send_interactive_proposal(job, score_res, draft)
-                except Exception as e:
-                    logger.debug(f"Interactive proposal card note: {e}")
+                ai_eval = ai_analyzer.analyze_job_fit(job, score_res)
+                job["ai_analysis"] = ai_eval
+
+                if ai_eval.get("decision") == "SKIP" or ai_eval.get("client_risk_level") in ("HIGH", "CRITICAL"):
+                    job["status"] = "ai_rejected"
+                    job["decision"] = "SKIP"
+                    job["reasons"] = ai_eval.get("toxic_client_flags", ["AI detected bad client / toxic flags"])
+                    skipped_count += 1
+                    logger.info(
+                        f"🛑 [AI VETTING] Bad client intercepted: '{job.get('title')}' "
+                        f"(Risk: {ai_eval.get('client_risk_level')}) - {ai_eval.get('fit_reasoning')}"
+                    )
+                else:
+                    draft = drafter.generate_full_draft(job, score_res)
+                    job["draft"] = draft
+                    job["status"] = "drafted"
+                    staged_proposals.append(job)
+                    state_mgr.save_jobs(jobs)  # Persist immediately to prevent state loss
+                    logger.info(
+                        f"🎯 [APPLY] Staged proposal for '{job.get('title')}' "
+                        f"(Score: {score_res['score']}, AI Fit: {ai_eval.get('fit_score')}) in review queue."
+                    )
+                    # Dispatch explicit desktop notification + interactive Telegram card
+                    terms = draft.get("proposed_terms", {}) or draft.get("terms", {})
+                    b_info = f"{terms.get('type', 'fixed')} (${terms.get('charge_rate', terms.get('charged_amount', 'TBD'))})"
+                    job_url = job.get("url") or job.get("job_url") or f"https://www.upwork.com/jobs/~{jid}"
+                    notify_proposal_ready(
+                        job.get("title", "High-Fit Job"),
+                        score_res["score"],
+                        jid,
+                        budget_info=b_info,
+                        reasons=score_res.get("reasons", []),
+                        job_url=job_url,
+                        send_telegram=False,  # send_interactive_proposal below sends the rich card with buttons
+                    )
+                    try:
+                        from .telegram_bot import send_interactive_proposal
+                        send_interactive_proposal(job, score_res, draft)
+                    except Exception as e:
+                        logger.debug(f"Interactive proposal card note: {e}")
 
         vetted_count += 1
 

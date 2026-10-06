@@ -115,6 +115,9 @@ RULES:
 
 > *This section is maintained automatically by the Monthly Strategy Engine.*
 
+- **[2026-10-06] Monthly Strategy Calibration**: - Adjusted strategy to prioritize high‑impact proof points (case studies, ROI metrics) due to low opportunity volume.
+- Added emphasis on risk mitigation language around scope and timelines.
+- Updated keyword list to reflect evergreen technical terms that still attract client attention despite market slowdown. Trending stacks: `full‑stack development, API integration, CI/CD pipeline, cloud migration, performance optimization`. Core proof priority: *'A detailed case study showcasing end‑to‑end delivery of a full‑stack web application with measurable ROI.'*. Risk anchor: *'Explicitly address scope‑creep mitigation and timeline adherence by outlining a phased milestone plan.'*.
 - **[2026-10-06] Monthly Strategy Calibration**: - Adjusted proposal template to front‑load ROI‑focused case studies.
 - Added explicit scope‑control language to mitigate change‑order surprises.
 - Integrated top‑trend keywords (AI, serverless, React, CI/CD) into opening paragraphs. Trending stacks: `AI‑powered automation, serverless architecture, React, CI/CD pipelines, cloud‑native`. Core proof priority: *'Include a concise case study showing quantifiable ROI (e.g., % increase in conversion or cost savings) from a similar AI or cloud‑native project.'*. Risk anchor: *'Highlight the risk of scope creep due to vague requirements and propose a clear milestone‑based change‑order process.'*.
