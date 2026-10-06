@@ -208,8 +208,9 @@ class MarketIntelEngine:
         tags = generate_engagement_tags(tech_stack, archetype)
 
         # Check hiring activity
-        activity = job.get("activityStat", {}).get("jobActivity", {}) or job.get("activity", {})
-        contract_terms = job.get("contractTerms") or {}
+        act_stat = job.get("activityStat") if isinstance(job.get("activityStat"), dict) else {}
+        activity = act_stat.get("jobActivity") if isinstance(act_stat.get("jobActivity"), dict) else (job.get("activity") if isinstance(job.get("activity"), dict) else {})
+        contract_terms = job.get("contractTerms") if isinstance(job.get("contractTerms"), dict) else {}
         persons_to_hire = int(job.get("persons_to_hire") or contract_terms.get("personsToHire") or 1)
         total_hired = int(activity.get("totalHired") or job.get("total_hired") or 0)
 
@@ -224,7 +225,7 @@ class MarketIntelEngine:
             hired_fast=is_filled,
         )
 
-        client = job.get("client_record") or job.get("client", {})
+        client = job.get("client_record") if isinstance(job.get("client_record"), dict) else (job.get("client") if isinstance(job.get("client"), dict) else {})
 
         record = {
             "job_id": jid,

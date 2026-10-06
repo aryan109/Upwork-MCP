@@ -5,8 +5,18 @@ and performs the 12-point self-check per 07_PROPOSAL_SYSTEM.md.
 """
 from __future__ import annotations
 
+import json
+import logging
+import os
 import re
+import urllib.error
+import urllib.request
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+
+from .config import PROJECT_ROOT
+
+logger = logging.getLogger("proposal_drafter")
 
 FORBIDDEN_PHRASES = [
     r"8\+?\s*years",
@@ -118,8 +128,10 @@ class ProposalDrafter:
         score = float(score_data.get("score", 70.0))
 
         if job_type == "hourly":
-            hourly_max = job.get("hourly_max") or job.get("hourly_budget", {}).get("max")
-            avg_paid = job.get("client_record", {}).get("avg_hourly_paid")
+            h_budget = job.get("hourly_budget") if isinstance(job.get("hourly_budget"), dict) else {}
+            hourly_max = job.get("hourly_max") or h_budget.get("max") or (job.get("hourly_budget") if not isinstance(job.get("hourly_budget"), dict) else None)
+            c_rec = job.get("client_record") if isinstance(job.get("client_record"), dict) else {}
+            avg_paid = c_rec.get("avg_hourly_paid")
             if avg_paid and float(avg_paid) < 15.0:
                 terms = {
                     "type": "fixed_alternative",
@@ -140,7 +152,8 @@ class ProposalDrafter:
                     "note": "Standard profile sticker rate ($65/hr)",
                 }
         else:
-            budget = job.get("budget_fixed") or job.get("budget", {}).get("amount")
+            b_val = job.get("budget")
+            budget = job.get("budget_fixed") or (b_val.get("amount") if isinstance(b_val, dict) else b_val)
             if budget and float(budget) >= 1200:
                 terms = {
                     "type": "fixed",
@@ -244,12 +257,127 @@ class ProposalDrafter:
             "checks": checks,
         }
 
+    def generate_with_groq_llm(
+        self, job: Dict[str, Any], score_data: Dict[str, Any]
+    ) -> Optional[Tuple[str, List[Dict[str, str]]]]:
+        """Call Groq LLM API to synthesize personalized cover letter and screening answers."""
+        groq_key = os.environ.get("GROQ_API_KEY")
+        if not groq_key:
+            from .telegram_notifier import load_env_file
+            env = load_env_file(PROJECT_ROOT / ".env")
+            groq_key = env.get("GROQ_API_KEY")
+
+        if not groq_key:
+            return None
+
+        title = job.get("title", "Project")
+        description = job.get("description") or job.get("description_snippet", "")
+        questions = job.get("screening_questions", [])
+
+        system_prompt = (
+            "You are an expert proposal drafting AI for Aryan, a Top Rated Upwork consultant with a 100% Job Success Score.\n"
+            "Your objective is to draft a personalized, highly persuasive 4-part Upwork cover letter and concise answers to any client screening questions.\n\n"
+            "CRITICAL RULES:\n"
+            "1. Four concise paragraphs strictly:\n"
+            "   - Paragraph 1: Understanding & Desired Outcome (1-2 sentences establishing clear grasp of their goal).\n"
+            "   - Paragraph 2: Technical Approach (3 clear, concrete phases).\n"
+            "   - Paragraph 3: Verifiable Proof (Reference building a production agent system on an official MCP server with human approval gates, or production document pipelines).\n"
+            "   - Paragraph 4: Exactly one specific technical or operational risk warning + calm CTA (15-min scoping call).\n"
+            "2. Total word count of cover letter MUST be strictly between 130 and 190 words.\n"
+            "3. Plain, calm, direct style. NO self-congratulatory adjectives ('passionate', 'exceptional', 'expert developer').\n"
+            "4. NO exclamation marks. NO em-dashes ('--' or '—'); use commas or hyphens instead.\n"
+            "5. NO buzzwords or unverified claims ('8+ years', 'decade', 'enterprise-grade', 'guaranteed').\n"
+            "6. Sign off strictly with:\nAryan\n"
+            "7. Return JSON ONLY with keys: 'cover_letter' (string) and 'answers' (list of dicts with 'question' and 'answer')."
+        )
+
+        user_prompt = f"Job Title: {title}\nJob Description:\n{description[:2500]}\n"
+        if questions:
+            user_prompt += f"\nScreening Questions to answer:\n" + "\n".join(f"- {q}" for q in questions)
+
+        models = [
+            os.environ.get("GROQ_MODEL", "openai/gpt-oss-120b"),
+            "llama-3.3-70b-versatile",
+            "openai/gpt-oss-20b",
+        ]
+        for model in models:
+            payload = {
+                "model": model,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                "temperature": 0.2,
+                "response_format": {"type": "json_object"},
+            }
+            req = urllib.request.Request(
+                "https://api.groq.com/openai/v1/chat/completions",
+                data=json.dumps(payload).encode("utf-8"),
+                headers={
+                    "Authorization": f"Bearer {groq_key}",
+                    "Content-Type": "application/json",
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+                },
+                method="POST",
+            )
+            try:
+                with urllib.request.urlopen(req, timeout=15) as resp:
+                    res_data = json.loads(resp.read().decode("utf-8"))
+                    content = res_data["choices"][0]["message"]["content"]
+                    parsed = json.loads(content)
+                    cl = parsed.get("cover_letter", "").strip()
+                    # Sanitize em-dashes and exclamations
+                    cl = cl.replace("—", "-").replace("–", "-").replace("!", ".")
+                    if not cl.endswith("Aryan"):
+                        cl = f"{cl}\n\nAryan"
+
+                    ans_raw = parsed.get("answers", [])
+                    answers: List[Dict[str, str]] = []
+                    if isinstance(ans_raw, list):
+                        for a in ans_raw:
+                            if isinstance(a, dict) and "question" in a and "answer" in a:
+                                answers.append({"question": str(a["question"]), "answer": str(a["answer"])})
+                    elif isinstance(ans_raw, dict):
+                        for q_k, a_v in ans_raw.items():
+                            answers.append({"question": str(q_k), "answer": str(a_v)})
+
+                    if cl:
+                        logger.info(f"Successfully generated proposal via Groq LLM ({model})")
+                        return cl, answers
+            except Exception as e:
+                logger.warning(f"Groq generation attempt with {model} failed: {e}")
+                continue
+
+        return None
+
     def generate_full_draft(self, job: Dict[str, Any], score_data: Dict[str, Any]) -> Dict[str, Any]:
         """Produce a complete draft package ready for review."""
+        terms = self.determine_proposed_terms(job, score_data)
+
+        # 1. Attempt Groq LLM synthesis
+        llm_res = None
+        try:
+            llm_res = self.generate_with_groq_llm(job, score_data)
+        except Exception as e:
+            logger.warning(f"LLM drafting exception: {e}")
+
+        if llm_res:
+            cover_letter, answers = llm_res
+            self_check = self.self_check_draft(cover_letter, answers, terms)
+            if self_check["passed"]:
+                return {
+                    "cover_letter": cover_letter,
+                    "answers": answers,
+                    "terms": terms,
+                    "self_check": self_check,
+                    "status": "drafted",
+                    "generator": "groq_llm",
+                }
+
+        # 2. Deterministic heuristic fallback
         cover_letter = self.build_cover_letter(job, score_data)
         questions = job.get("screening_questions", [])
         answers = self.answer_screening_questions(questions, job)
-        terms = self.determine_proposed_terms(job, score_data)
         self_check = self.self_check_draft(cover_letter, answers, terms)
 
         return {
@@ -258,4 +386,5 @@ class ProposalDrafter:
             "terms": terms,
             "self_check": self_check,
             "status": "drafted" if self_check["passed"] else "needs_edit",
+            "generator": "heuristic_fallback",
         }

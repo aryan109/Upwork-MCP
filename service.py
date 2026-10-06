@@ -80,10 +80,10 @@ def hourly_hunter_worker(state_mgr: StateManager, mcp_client: UpworkMCPClient):
         try:
             logger.info("Starting scheduled high-velocity hunt pass...")
             summary = run_single_pass(state_mgr, mcp_client)
-            staged = summary.get("staged_total", 0)
+            staged = (summary.get("staged_proposals", summary.get("staged_total", 0))) if isinstance(summary, dict) else 0
             logger.info(f"Hunt pass finished: {staged} staged for review.")
         except Exception as e:
-            logger.error(f"Error in hunter pass: {e}")
+            logger.error(f"Error in hunter pass: {e}", exc_info=True)
 
         # Sleep interval (default: 15 minutes / 900 seconds)
         time.sleep(interval_secs)

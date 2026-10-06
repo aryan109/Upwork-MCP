@@ -418,6 +418,35 @@
     - Deployed update `ac3c78d7-0724-42e9-9c24-771b268dd860` to Railway.
     - All 43 pytest unit tests passing cleanly with zero test notifications emitted.
 
+## [2026-10-07 04:10 IST] Groq LLM Proposal Synthesis, Railway Cloud Sync & Production Hardening
+- **User Request & Requirements**:
+  - Integrate high-parameter LLM (Groq) for dynamic proposal drafting in `draft.py`.
+  - Ensure Railway 24/7 autonomous runner is fully updated with the LLM keys, running every 15 minutes with 1-click Telegram approvals and Notion market intelligence sync.
+- **Implemented Architecture & Changes**:
+  - **Groq LLM Synthesis in `draft.py`**:
+    - Added `generate_with_groq_llm()` to `ProposalDrafter` with model fallback list: `openai/gpt-oss-120b` (120B parameter model), `llama-3.3-70b-versatile`, and `openai/gpt-oss-20b`.
+    - Enforced 4-part structure (Understanding, Architecture, Verifiable Proof, Risk + Low-friction CTA), signed "Aryan".
+    - Sanitized punctuation and validated against 12-point `self_check_draft()`.
+    - Preserved deterministic heuristic fallback (`heuristic_fallback`) if LLM is offline or rate-limited.
+  - **Railway Environment Configuration**:
+    - Injected `GROQ_API_KEY` into Railway `upwork-engine` service environment variables via Railway CLI.
+  - **Defensive Type Hardening**:
+    - Resolved `AttributeError: 'str' object has no attribute 'get'` across `draft.py`, `vet.py`, and `market_intel.py` by safely checking `isinstance(..., dict)` for Upwork API fields (`client_record`, `activityStat`, `contractTerms`, `hourly_budget`, `budget`).
+    - Added `exc_info=True` in `service.py` background hunter loop for full traceback observability.
+  - **Testing & Verification**:
+    - Ran pytest test suite: all 43 tests passed in 21s.
+  - **Live Railway Deployment & Verification**:
+    - Deployed update `7eb6a232-a94c-4728-a439-37e887b909dd` to Railway production.
+    - Status: `SUCCESS` (Container healthy on port 8080).
+    - Monitored live container run:
+      - Rapid 15-minute discovery executed: 20 candidates inspected, 13 new details fetched.
+      - Groq LLM (`openai/gpt-oss-120b`) successfully synthesized proposal for:
+        *Title*: "Full-Stack SaaS App Next.js + Python (Django) with Claude-Powered Support Chatbot"
+        *Score*: 72.7 pts (APPLY).
+      - Proposal staged in review queue with human-approval gate preserved.
+      - Dispatched interactive 1-click review notification to Telegram.
+      - Synced Market Intelligence & Daily Report markdown to Notion pages.
+
 
 
 

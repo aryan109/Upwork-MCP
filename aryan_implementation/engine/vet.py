@@ -123,9 +123,10 @@ def check_disqualifiers(
             return True, "D5", f"Staffing/commission pattern: {pattern}"
 
     # D6: Unverified payment AND $0 spend AND 0 hires
-    client = job.get("client_record") or job.get("client")
-    activity = job.get("activityStat", {}).get("jobActivity", {}) or job.get("activity", {})
-    if client is not None:
+    client = job.get("client_record") if isinstance(job.get("client_record"), dict) else (job.get("client") if isinstance(job.get("client"), dict) else {})
+    act_stat = job.get("activityStat") if isinstance(job.get("activityStat"), dict) else {}
+    activity = act_stat.get("jobActivity") if isinstance(act_stat.get("jobActivity"), dict) else (job.get("activity") if isinstance(job.get("activity"), dict) else {})
+    if client:
         verified = client.get("payment_verified", False)
         total_spent = parse_number(client.get("total_spent"), 0.0) or 0.0
         total_hired = int(activity.get("totalHired", 0) or 0)
@@ -208,8 +209,9 @@ def score_job(
     """
     title = str(job.get("title", "")).lower()
     desc = str(job.get("description", "")).lower()
-    client = job.get("client_record") or job.get("client", {})
-    activity = job.get("activityStat", {}).get("jobActivity", {}) or job.get("activity", {})
+    client = job.get("client_record") if isinstance(job.get("client_record"), dict) else (job.get("client") if isinstance(job.get("client"), dict) else {})
+    act_stat = job.get("activityStat") if isinstance(job.get("activityStat"), dict) else {}
+    activity = act_stat.get("jobActivity") if isinstance(act_stat.get("jobActivity"), dict) else (job.get("activity") if isinstance(job.get("activity"), dict) else {})
 
     reasons: List[str] = []
     breakdown: Dict[str, float] = {}
