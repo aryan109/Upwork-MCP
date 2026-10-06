@@ -540,7 +540,7 @@
           <rollback>None.</rollback>
           <estimated_hours>4</estimated_hours>
         </task>
-        <task id="P4-T05" status="todo" day="4" owner="agent" priority="high">
+        <task id="P4-T05" status="done" day="4" owner="agent" priority="high">
           <title>Engine dry-run day 1 (discover + score, no drafts)</title>
           <description>Run all 7 campaigns; output SKIP/REVIEW/APPLY lists; Aryan eyeballs 20 in the worksheet.</description>
           <prerequisites>P4-T04</prerequisites>
@@ -551,7 +551,7 @@
           <rollback>None.</rollback>
           <estimated_hours>2</estimated_hours>
         </task>
-        <task id="P4-T06" status="todo" day="5" owner="agent" priority="high">
+        <task id="P4-T06" status="done" day="5" owner="agent" priority="high">
           <title>Engine dry-run day 2; rubric adjustments to scoring_version 1.1</title>
           <description>Adjust from Aryan's disagreements via upwork-campaign-editor.</description>
           <prerequisites>P4-T05</prerequisites>
@@ -562,7 +562,7 @@
           <rollback>Revert to scoring 1.0.</rollback>
           <estimated_hours>2</estimated_hours>
         </task>
-        <task id="P4-T07" status="todo" day="8" owner="agent" priority="critical">
+        <task id="P4-T07" status="done" day="8" owner="agent" priority="critical">
           <title>Engine drafting ON (max 3 drafts/day in week 2); first review queue 19:00 IST</title>
           <description>Combined pass with drafting; Aryan approves/edits/rejects with reasons.</description>
           <prerequisites>P4-T06 P2-T01</prerequisites>
@@ -584,7 +584,7 @@
           <rollback>Withdraw within 24 h if a mistake.</rollback>
           <estimated_hours>1</estimated_hours>
         </task>
-        <task id="P4-T09" status="todo" day="9" owner="both" priority="high">
+        <task id="P4-T09" status="done" day="9" owner="both" priority="high">
           <title>3 proposals; evening rebake live for the first time</title>
           <description>Run evening_rebake.md; outcomes fields populated.</description>
           <prerequisites>P4-T08</prerequisites>
