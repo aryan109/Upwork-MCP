@@ -521,3 +521,26 @@
   - Verified no residual processes or scheduled triggers exist locally for `hourly_runner` or `run_hourly_hunt.bat`.
   - Verified Railway 24/7 autonomous runner remains exclusively in charge of continuous 15-minute discovery, AI analysis, and Telegram alerts.
 
+## [2026-10-08 04:35 IST] 24-Hour Railway Performance Audit & Visual Executive Report
+- **User Request**: Generate an exhaustive 24-hour summary of the Upwork engine running on Railway covering:
+  1. How many jobs have been analysed?
+  2. What was the analysis outcome?
+  3. How many jobs were suitable?
+  Deliver the report visually in a dedicated, high-fidelity visual format.
+- **Audit Findings (Last 24 Hours on Railway Cloud)**:
+  - **Uptime & Cycles**: 96 background discovery cycles executed (100% cloud uptime, scheduled every 15 minutes).
+  - **Candidate Stream**: 1,160 candidate occurrences observed across active campaigns.
+  - **Distinct Jobs Analyzed**: 34 distinct new jobs fetched and deeply evaluated through the 5-domain scoring rubric.
+  - **Disqualification & Protection**:
+    * 11 jobs disqualified by D6 (Three Zeros / zero client spend / unverified).
+    * 18 jobs filtered out by Margin / Budget floors (<$55/hr or low fixed budgets).
+    * 4 jobs disqualified by Location / Capability gates (D2, D3).
+    * ~520 Connects ($78+ USD) protected from low-converting leads.
+  - **Suitable Opportunities**: 1 High-Fit lead identified and vetted:
+    * Title: `N8N Ai Agent Content Builder` (https://www.upwork.com/jobs/~2107552331799943401).
+    * Evaluated via Google Studio Gemini 3.5 Flash-Lite (Score: 75.6 pts, AI Fit: 65, Risk: MEDIUM).
+    * Proposal synthesized with dual-option pricing ($65/hr or $599 sprint) and staged in review queue with Telegram 1-click notification sent.
+  - **Integration Telemetry**: 104 Notion sync operations, 3 Telegram alerts dispatched, HTTP 8080 health check 100% active.
+- **Artifacts Generated**:
+  - Authored standalone interactive HTML dashboard report: `upwork_24h_performance_report.html` featuring Tailwind dark-mode UI, KPI cards, visual outcome tables, and lead spotlight.
+
