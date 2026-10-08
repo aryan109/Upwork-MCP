@@ -544,3 +544,35 @@
 - **Artifacts Generated**:
   - Authored standalone interactive HTML dashboard report: `upwork_24h_performance_report.html` featuring Tailwind dark-mode UI, KPI cards, visual outcome tables, and lead spotlight.
 
+## [2026-10-08 05:45 IST] Persistent Job Ledger, Timestamp Extraction, Hard Rejection Blacklist & Test Isolation
+- **User Request & Problems Identified**:
+  - System was unable to clearly identify when a job was posted on Upwork vs when it was scraped, causing repeat/false proposals on existing jobs.
+  - Required robust local storage and persistent deduplication storing `posted_at` and `scraped_at`.
+  - Once a job is rejected (by human in Telegram/CLI or by AI/rubric disqualifiers), it must NEVER appear again or regenerate proposals.
+  - Test jobs (e.g. `~01sample_claude_job`, test proposals, test Telegram alerts) were leaking into the live review queue and user's Telegram.
+- **Architectural Solutions & Changes**:
+  - **Persistent Job Ledger Engine (`aryan_implementation/engine/job_ledger.py`)**:
+    - Created `JobLedger` managing atomic local state in `job_ledger.json` and permanent rejection blacklist in `rejected_jobs.json`.
+    - Implemented `extract_job_timestamps()`: parses ISO 8601 timestamps, Unix epoch timestamps, and relative strings (e.g. "Posted 15 minutes ago", "Posted 2 hours ago") to calculate precise UTC `posted_at` and `scraped_at` timestamps, as well as `age_when_scraped_minutes`.
+    - Implemented `is_test_job()`: automatically detects and isolates test markers (`~01test`, `~01sample`, `test_`, `[TEST]`).
+    - Enforced strict state transitions: `is_blacklisted()`, `can_process_for_proposal()`, `record_job()`, and `add_to_rejected()`.
+  - **Hunt Pipeline Deduplication Upgrade (`hunt.py`)**:
+    - Eliminated the flawed 6-hour resurrection bug that previously reset existing jobs back to `discovered`.
+    - Integrated `JobLedger` to check `is_blacklisted()` and `can_process_for_proposal()` before invoking Upwork MCP detail fetches, conserving quota.
+    - Persists `posted_at`, `scraped_at`, and `age_when_scraped_minutes` into job records.
+  - **Continuous Rejection Blacklisting (`hourly_runner.py` & `review_submit.py`)**:
+    - On heuristic disqualification (D1–D11) or AI rejection (`ai_rejected`), jobs are immediately appended to `rejected_jobs.json` and `JobLedger` blacklists.
+    - In `review_submit.py::reject_draft()`, user Telegram/CLI rejections are permanently recorded to prevent re-processing.
+    - Review queues strictly filter out test jobs and blacklisted job records.
+  - **Test Leakage Elimination (`telegram_notifier.py`, `telegram_bot.py`, `cli.py`)**:
+    - Guarded `send_telegram_message()` and `send_interactive_proposal()` to suppress unmocked live network requests during tests, completely preventing test alerts from reaching Aryan's live Telegram bot.
+    - In `cli.py dry-run`, changed execution to operate strictly in-memory without polluting persistent `jobs.json` state.
+    - Purged legacy mock job (`~01sample_claude_job`) from local `%USERPROFILE%\upwork_engine\state\jobs.json`.
+  - **Testing & Verification**:
+    - Authored unit test suite `aryan_implementation/tests/test_job_ledger.py` verifying timestamp parsing, relative time resolution, deduplication, and test job filtering.
+    - Executed full test suite across the engine: all 54 tests passed in 10.08s.
+  - **Railway Deployment**:
+    - Deployed updated engine container to Railway production (`https://railway.com/project/b197eb1c-796a-47e2-aa92-a49ac00ab566/service/d35fc7d1-1790-451b-b554-fa900ff4778b`).
+    - Verified live cloud logs: 15-minute scheduled cycles running autonomously with zero leakage.
+
+

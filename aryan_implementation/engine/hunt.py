@@ -12,6 +12,7 @@ from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 from .config import MAX_SEARCHES_PER_PASS, MAX_DETAIL_FETCHES_PER_PASS, PAYLOADS_DIR
+from .job_ledger import JobLedger, extract_job_timestamps, is_test_job
 from .mcp_client import UpworkMCPClient
 from .state_manager import StateManager
 from .vet import CAPABILITY_DISQUALIFIERS
@@ -25,6 +26,7 @@ class JobHunter:
     def __init__(self, mcp_client: UpworkMCPClient, state_mgr: StateManager):
         self.mcp = mcp_client
         self.state_mgr = state_mgr
+        self.ledger = JobLedger(self.state_mgr.state_dir)
 
     def run_hunt(
         self,
@@ -92,7 +94,14 @@ class JobHunter:
                     jobs_found = data.get("jobs", [])
                     for j in jobs_found:
                         jid = j.get("job_id") or j.get("id")
-                        if jid and jid not in discovered_candidates:
+                        if not jid:
+                            continue
+                        jtitle = j.get("title", "")
+                        if is_test_job(jid, jtitle):
+                            continue
+                        if self.ledger.is_blacklisted(jid):
+                            continue
+                        if jid not in discovered_candidates:
                             j["matched_campaign"] = camp_id
                             discovered_candidates[jid] = j
 
@@ -108,7 +117,14 @@ class JobHunter:
                         jobs_found = res.get("data", {}).get("jobs", [])
                         for j in jobs_found:
                             jid = j.get("job_id") or j.get("id")
-                            if jid and jid not in discovered_candidates:
+                            if not jid:
+                                continue
+                            jtitle = j.get("title", "")
+                            if is_test_job(jid, jtitle):
+                                continue
+                            if self.ledger.is_blacklisted(jid):
+                                continue
+                            if jid not in discovered_candidates:
                                 j["matched_campaign"] = camp_id
                                 discovered_candidates[jid] = j
 
@@ -127,7 +143,14 @@ class JobHunter:
                     jobs_found = res.get("data", {}).get("jobs", [])
                     for j in jobs_found:
                         jid = j.get("job_id") or j.get("id")
-                        if jid and jid not in discovered_candidates:
+                        if not jid:
+                            continue
+                        jtitle = j.get("title", "")
+                        if is_test_job(jid, jtitle):
+                            continue
+                        if self.ledger.is_blacklisted(jid):
+                            continue
+                        if jid not in discovered_candidates:
                             j["matched_campaign"] = camp_id
                             discovered_candidates[jid] = j
 
@@ -138,20 +161,17 @@ class JobHunter:
         pre_filtered_count = 0
 
         for jid, job_summary in discovered_candidates.items():
+            # Permanent ledger check: skip if blacklisted, already drafted, or already submitted
+            if not self.ledger.can_process_for_proposal(jid):
+                pre_filtered_count += 1
+                continue
+
             if jid in existing_jobs:
                 existing = existing_jobs[jid]
-                # Check if eligible for refresh
                 status = existing.get("status")
-                last_checked = existing.get("last_checked_at")
-                if status in ("discovered", "scored") and last_checked:
-                    try:
-                        last_dt = datetime.fromisoformat(last_checked.replace("Z", "+00:00"))
-                        if now_utc - last_dt > timedelta(hours=6):
-                            survivors.append((jid, job_summary))
-                            refreshed_count += 1
-                            continue
-                    except Exception:
-                        pass
+                # Never re-fetch or re-draft proposals for existing jobs
+                if status in ("drafted", "in_review", "submitted", "rejected_by_aryan", "rejected", "ai_rejected", "skipped", "discovered", "scored"):
+                    continue
                 continue
 
             # Cheap list-level pre-filter
@@ -209,10 +229,19 @@ class JobHunter:
                 # Merge summary and detail
                 merged = {**summary, **detail_data}
                 merged["job_id"] = jid
-                merged["first_seen_at"] = merged.get("first_seen_at") or now_utc.isoformat()
+
+                # Extract and persist accurate Upwork timestamps
+                posted_at, scraped_at, age_mins = extract_job_timestamps(merged)
+                merged["posted_at"] = posted_at
+                merged["scraped_at"] = scraped_at
+                merged["first_seen_at"] = merged.get("first_seen_at") or scraped_at
                 merged["last_checked_at"] = now_utc.isoformat()
+                merged["age_when_scraped_minutes"] = age_mins
                 merged["status"] = "discovered"
                 merged["campaign"] = summary.get("matched_campaign", "claude-implementation")
+
+                # Record into master ledger
+                self.ledger.record_job(merged, status="discovered")
 
                 # Save raw payload to payloads dir
                 try:

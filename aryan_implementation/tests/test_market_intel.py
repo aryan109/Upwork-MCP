@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 import pytest
+from unittest.mock import patch, MagicMock
 
 from aryan_implementation.engine.market_intel import (
     MarketIntelEngine,
@@ -121,7 +122,9 @@ def test_hourly_runner_pass(tmp_path: Path) -> None:
     state_mgr.save_jobs(jobs)
 
     mcp = UpworkMCPClient(mock_mode=True)
-    summary = run_single_pass(state_mgr, mcp, max_searches=1, max_details=1)
+    with patch("aryan_implementation.engine.hourly_runner.DailyReportEngine") as mock_rep:
+        mock_rep.return_value.generate_daily_report.return_value = {"content": "mock"}
+        summary = run_single_pass(state_mgr, mcp, max_searches=1, max_details=1)
 
     assert summary["already_filled_caught"] == 1
     # Check that job status was set to skipped with D11

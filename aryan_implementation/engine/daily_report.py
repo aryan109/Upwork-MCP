@@ -48,10 +48,14 @@ class DailyReportEngine:
         camps_data = self.state_mgr.load_campaigns()
         intel = self.intel_eng.load_intelligence()
 
-        # -------------------------------------------------------------
-        # Part 1: What's Happened (Last 24 Hours Metrics)
-        # -------------------------------------------------------------
-        one_day_ago = now_utc - timedelta(hours=24)
+        if date_str:
+            try:
+                ref_dt = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc) + timedelta(days=1)
+            except Exception:
+                ref_dt = now_utc
+        else:
+            ref_dt = now_utc
+        one_day_ago = ref_dt - timedelta(hours=24)
         
         discovered_24h: List[Dict[str, Any]] = []
         applied_24h: List[Dict[str, Any]] = []
@@ -66,7 +70,7 @@ class DailyReportEngine:
             if first_seen:
                 try:
                     dt = datetime.fromisoformat(first_seen.replace("Z", "+00:00"))
-                    in_window = dt >= one_day_ago
+                    in_window = (one_day_ago <= dt <= ref_dt)
                 except Exception:
                     pass
 

@@ -302,14 +302,10 @@ def main() -> None:
             print("Kill switch DEACTIVATED. Normal operation resumed.")
 
     elif args.command == "dry-run":
-        print("Executing end-to-end dry run test...")
-        # 1. Init
-        state_mgr.init_state_directory()
-        # 2. Mock job injection
-        jobs = state_mgr.load_jobs()
+        print("Executing in-memory dry run test (zero production state pollution)...")
         sample_job = {
             "job_id": "~01sample_claude_job",
-            "title": "Claude AI Automation & MCP Integration Expert",
+            "title": "[TEST] Claude AI Automation & MCP Integration Expert",
             "description": "Looking for an expert to automate customer intake via Claude Code and custom MCP tools. Long-term workflow.",
             "type": "fixed",
             "budget_fixed": 1200,
@@ -331,10 +327,8 @@ def main() -> None:
             "status": "discovered",
             "campaign": "claude-implementation",
         }
-        jobs[sample_job["job_id"]] = sample_job
-        state_mgr.save_jobs(jobs)
 
-        # 3. Vet
+        # 1. Vet in-memory
         score_res = score_job(sample_job)
         sample_job["status"] = "scored"
         sample_job["decision"] = score_res["decision"]
@@ -343,22 +337,18 @@ def main() -> None:
         sample_job["reasons"] = score_res["reasons"]
         sample_job["rung_suggested"] = score_res["rung_suggested"]
         sample_job["pricing_hint"] = score_res["pricing_hint"]
-        jobs[sample_job["job_id"]] = sample_job
-        state_mgr.save_jobs(jobs)
 
-        # 4. Draft
+        # 2. Draft in-memory
         drafter = ProposalDrafter()
         draft_res = drafter.generate_full_draft(sample_job, score_res)
         sample_job["draft"] = draft_res
         sample_job["status"] = draft_res["status"]
-        jobs[sample_job["job_id"]] = sample_job
-        state_mgr.save_jobs(jobs)
 
-        print("\n=== DRY RUN RESULTS ===")
+        print("\n=== DRY RUN RESULTS (In-Memory Only) ===")
         print(f"Sample Job Score: {sample_job['score']} ({sample_job['decision']})")
         print(f"Self-Check Passed: {draft_res['self_check']['passed']}")
         print(f"Cover Letter Word Count: {draft_res['self_check']['word_count']}")
-        print("Draft Status: Ready for human review")
+        print("Draft Status: Verified successfully (State untouched)")
 
     elif args.command == "intel":
         intel_eng = MarketIntelEngine(state_mgr.state_dir)

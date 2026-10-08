@@ -2,7 +2,7 @@
 name: upwork-proposal-crafting-skill
 description: Authoritative, model-agnostic guidelines and system prompt for generating high-converting Upwork proposals in 2026. Enforces the 14-second attention budget, first-line preview optimization, verifiable proof matching, proactive risk identification, and anti-AI linguistic filters.
 version: "1.0.0"
-last_updated: "2026-10-06"
+last_updated: "2026-10-08"
 ---
 
 # 🎯 Upwork Proposal Crafting Skill: High-Conversion Engine (2026 Edition)
@@ -115,6 +115,15 @@ RULES:
 
 > *This section is maintained automatically by the Monthly Strategy Engine.*
 
+- **[2026-10-08] Monthly Strategy Calibration**: - Adjusted proposal template to foreground ROI case studies.
+- Added explicit risk mitigation clause for scope creep.
+- Integrated top‑trend keywords into opening paragraph. Trending stacks: `scalable architecture, API integration, cloud migration, CI/CD pipelines, data security`. Core proof priority: *'Include concrete ROI case studies that showcase cost‑efficient automation or productivity gains for similar budget ranges.'*. Risk anchor: *'Highlight the risk of scope creep caused by ambiguous requirements and propose a clear change‑order process.'*.
+- **[2026-10-08] Monthly Strategy Calibration**: - Adjusted proposal template to front‑load ROI‑focused case studies.
+- Added explicit scope‑control language in risk paragraph.
+- Integrated top‑tier cloud and JavaScript keywords to align with client searches. Trending stacks: `React, Node.js, AWS, REST API, CI/CD`. Core proof priority: *'A concise, data‑driven case study showcasing measurable ROI for a similar client in the target niche.'*. Risk anchor: *'Potential scope creep due to ambiguous requirements; stress the need for clear milestones and change‑order procedures.'*.
+- **[2026-10-08] Monthly Strategy Calibration**: - Adjusted proposal template to foreground ROI‑focused case studies.
+- Added explicit scope‑control language to mitigate client‑side risk.
+- Updated keyword list to reflect high‑signal technologies despite limited market data. Trending stacks: `React, Node.js, AWS, Docker, CI/CD`. Core proof priority: *'Showcase a recent end‑to‑end project that delivered measurable ROI, emphasizing screenshots, metrics, and client testimonials.'*. Risk anchor: *'Highlight the risk of scope creep due to ambiguous requirements and propose a clear change‑order process.'*.
 - **[2026-10-06] Monthly Strategy Calibration**: - Adjusted strategy to prioritize high‑impact proof points (case studies, ROI metrics) due to low opportunity volume.
 - Added emphasis on risk mitigation language around scope and timelines.
 - Updated keyword list to reflect evergreen technical terms that still attract client attention despite market slowdown. Trending stacks: `full‑stack development, API integration, CI/CD pipeline, cloud migration, performance optimization`. Core proof priority: *'A detailed case study showcasing end‑to‑end delivery of a full‑stack web application with measurable ROI.'*. Risk anchor: *'Explicitly address scope‑creep mitigation and timeline adherence by outlining a phased milestone plan.'*.

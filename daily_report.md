@@ -1,5 +1,5 @@
 # Daily Upwork Intelligence & Action Report — 2026-10-06
-*Generated: 2026-10-06 22:59:54 UTC*
+*Generated: 2026-10-08 00:12:31 UTC*
 
 > **Executive Summary**: Hourly background hunter is active. Vetted postings are guarded by D1–D11 disqualifiers to protect Connects. High-velocity market demand centers around hardening Cursor/Lovable AI prototypes into production-grade RAG and MCP architectures.
 
@@ -8,13 +8,17 @@
 ## 1. What's Happened (Last 24 Hours)
 
 - **Connects Status**: **110** available (Monthly Budget: 250)
-- **Total Opportunities Processed**: **1** leads
-- **Proposals Awaiting Your 1-Click Review**: **0**
+- **Total Opportunities Processed**: **2** leads
+- **Proposals Awaiting Your 1-Click Review**: **1**
 - **Proposals Submitted**: **0**
 - **Disqualified Leads Filtered**: **1**
   - *Disqualification Breakdown*:
     - `D11`: 1 jobs
 - ⚡ **Connects Saved by D11**: Successfully caught **1** already-filled jobs before proposal creation.
+
+### 🎯 Staged Proposals Pending Action:
+- **[Claude MCP Server Developer](https://www.upwork.com/jobs/~sample_job_2)** — Score: `95.0` | Rate: `Propose 3-milestone implementation`
+  - *Review Command*: `python -m aryan_implementation.engine.cli submit --job-id sample_job_2 --confirm`
 
 ---
 
@@ -23,8 +27,6 @@
 ### Emerging Tech Stack Demand Matrix:
 | Tool / Framework | Mentions in Tracked Leads | Market Velocity |
 |---|---|---|
-| **Claude** | 1 | Strong |
-| **MCP** | 1 | Strong |
 
 - **Average Top Hourly Rate**: **$65/hr** for fullstack AI / agent implementation roles.
 - **Fastest Hiring Niche**: Founders who built prototypes in **Cursor** or **Lovable** needing an engineer to add automated **evals** and fix document **hallucinations**.

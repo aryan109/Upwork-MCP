@@ -15,6 +15,7 @@ logger = logging.getLogger("upwork_engine")
 
 
 from .ai_client_learner import ClientLearningEngine
+from .job_ledger import JobLedger, is_test_job
 
 
 class ReviewSubmitManager:
@@ -24,12 +25,18 @@ class ReviewSubmitManager:
         self.mcp = mcp_client
         self.state_mgr = state_mgr
         self.learner = ClientLearningEngine(state_mgr.state_dir)
+        self.ledger = JobLedger(state_mgr.state_dir)
 
     def get_review_queue(self) -> List[Dict[str, Any]]:
         """Return all jobs currently awaiting human review."""
         jobs = self.state_mgr.load_jobs()
         queue = []
         for jid, job in jobs.items():
+            jtitle = job.get("title", "")
+            if is_test_job(jid, jtitle):
+                continue
+            if self.ledger.is_blacklisted(jid):
+                continue
             if job.get("status") in ("drafted", "in_review", "preview_ready"):
                 queue.append(job)
         # Sort by score descending
@@ -186,6 +193,12 @@ class ReviewSubmitManager:
         except Exception as e:
             logger.debug(f"Learner approval note: {e}")
 
+        # Update ledger
+        try:
+            self.ledger.record_job(job, status="submitted", decision="APPLY")
+        except Exception as e:
+            logger.debug(f"Ledger record approval note: {e}")
+
         return {
             "ok": True,
             "proposal_id": proposal_id,
@@ -207,6 +220,13 @@ class ReviewSubmitManager:
             "reject_reason": reason,
         }
         self.state_mgr.save_jobs(jobs)
+
+        # Permanently blacklist job in JobLedger so it NEVER reappears
+        try:
+            self.ledger.record_job(job, status="rejected_by_aryan", decision="SKIP", rejection_reason=reason)
+            self.ledger.add_to_rejected(job_id, reason=reason, title=job.get("title", ""))
+        except Exception as e:
+            logger.warning(f"Ledger blacklist rejection note: {e}")
 
         # Record negative client pattern in continuous learner
         try:

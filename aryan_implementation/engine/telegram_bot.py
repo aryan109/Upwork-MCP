@@ -68,6 +68,16 @@ def send_interactive_proposal(
     Send an interactive proposal card to Telegram with Inline Keyboard Buttons
     allowing 1-click Approval, Viewing Cover Letter, or Rejection.
     """
+    # Suppress live Telegram calls during unit tests, test jobs or mock runs
+    if os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("UPWORK_TEST_MODE") == "1":
+        logger.debug("Suppressing live interactive proposal card during test/mock execution.")
+        return True
+
+    from .job_ledger import is_test_job
+    if is_test_job(job.get("job_id", ""), job.get("title", "")):
+        logger.info(f"Blocking interactive Telegram alert for test job {job.get('job_id')}")
+        return False
+
     _, default_chat_id = get_telegram_credentials()
     target_chat = chat_id or default_chat_id
     if not target_chat:

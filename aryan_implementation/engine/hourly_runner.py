@@ -18,6 +18,7 @@ from .config import STATE_DIR, PROJECT_ROOT
 from .daily_report import DailyReportEngine
 from .draft import ProposalDrafter
 from .hunt import JobHunter
+from .job_ledger import JobLedger, is_test_job
 from .market_intel import MarketIntelEngine
 from .mcp_client import UpworkMCPClient
 from .notifier import notify_proposal_ready
@@ -68,6 +69,7 @@ def run_single_pass(
 
     # 2. Vet all newly discovered or refreshed jobs
     jobs = state_mgr.load_jobs()
+    ledger = JobLedger(state_mgr.state_dir)
     discovered_ids = [
         jid for jid, j in jobs.items()
         if j.get("status") == "discovered"
@@ -80,6 +82,19 @@ def run_single_pass(
 
     for jid in discovered_ids:
         job = jobs[jid]
+        jtitle = job.get("title", "")
+
+        # Block any test jobs from vetting or alerts
+        if is_test_job(jid, jtitle):
+            logger.debug(f"Skipping test job {jid} in hourly runner")
+            job["status"] = "skipped"
+            continue
+
+        # If already blacklisted/rejected in ledger, immediately skip
+        if ledger.is_blacklisted(jid):
+            job["status"] = "skipped"
+            continue
+
         is_disq, d_id, d_reason = check_disqualifiers(job)
 
         if is_disq:
@@ -88,6 +103,10 @@ def run_single_pass(
             job["disqualifiers"] = [d_id]
             job["reasons"] = [d_reason]
             job["score"] = 0.0
+
+            # Permanently record rejection into ledger blacklist
+            ledger.record_job(job, status="skipped", decision="SKIP", score=0.0, rejection_reason=f"{d_id}: {d_reason}")
+            ledger.add_to_rejected(jid, reason=f"{d_id}: {d_reason}", title=jtitle)
 
             if d_id == "D11":
                 filled_caught.append(job)
@@ -123,6 +142,12 @@ def run_single_pass(
                     job["decision"] = "SKIP"
                     job["reasons"] = ai_eval.get("toxic_client_flags", ["AI detected bad client / toxic flags"])
                     skipped_count += 1
+
+                    # Record AI rejection into ledger blacklist
+                    rejection_reason = f"AI rejected ({ai_eval.get('client_risk_level')} risk): {ai_eval.get('fit_reasoning')}"
+                    ledger.record_job(job, status="ai_rejected", decision="SKIP", score=score_res["score"], rejection_reason=rejection_reason)
+                    ledger.add_to_rejected(jid, reason=rejection_reason, title=jtitle)
+
                     logger.info(
                         f"🛑 [AI VETTING] Bad client intercepted: '{job.get('title')}' "
                         f"(Risk: {ai_eval.get('client_risk_level')}) - {ai_eval.get('fit_reasoning')}"
@@ -132,6 +157,9 @@ def run_single_pass(
                     job["draft"] = draft
                     job["status"] = "drafted"
                     staged_proposals.append(job)
+
+                    # Record drafted status into ledger
+                    ledger.record_job(job, status="drafted", decision="APPLY", score=score_res["score"])
                     state_mgr.save_jobs(jobs)  # Persist immediately to prevent state loss
                     logger.info(
                         f"🎯 [APPLY] Staged proposal for '{job.get('title')}' "
