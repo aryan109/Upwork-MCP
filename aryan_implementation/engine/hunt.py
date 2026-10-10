@@ -34,8 +34,11 @@ class JobHunter:
         max_searches: int = MAX_SEARCHES_PER_PASS,
         max_details: int = MAX_DETAIL_FETCHES_PER_PASS,
         include_best_match: bool = False,
+        time_budget_s: Optional[float] = None,
     ) -> Dict[str, Any]:
-        """Execute a full discovery pass across active campaigns."""
+        """Execute a full discovery pass across active campaigns with time budget enforcement."""
+        import time
+        t_start = time.time()
         state = self.state_mgr.load_state()
         campaigns_data = self.state_mgr.load_campaigns()
         campaigns = campaigns_data.get("campaigns", [])
@@ -58,6 +61,9 @@ class JobHunter:
         from_date_iso = from_dt.strftime("%Y-%m-%dT%H:%M:%SZ")
 
         searches_used = 0
+        searches_ok = 0
+        searches_failed = 0
+        error_classes: List[str] = []
         discovered_candidates: Dict[str, Dict[str, Any]] = {}
         mismatches_observed: List[str] = []
 
@@ -65,8 +71,14 @@ class JobHunter:
         active_campaigns = [c for c in campaigns if c.get("active", True)]
         active_campaigns.sort(key=lambda x: x.get("priority", 999))
 
+        def _budget_exhausted() -> bool:
+            if time_budget_s and (time.time() - t_start) >= (0.8 * time_budget_s):
+                logger.info("Time budget reached 80%; stopping discovery searches early.")
+                return True
+            return False
+
         for camp in active_campaigns:
-            if searches_used >= max_searches:
+            if searches_used >= max_searches or _budget_exhausted():
                 break
 
             camp_id = camp.get("id", "default")
@@ -75,7 +87,7 @@ class JobHunter:
 
             # A. smart_search most_recent
             for q in queries:
-                if searches_used >= max_searches:
+                if searches_used >= max_searches or _budget_exhausted():
                     break
                 params = {
                     "mode": "most_recent",
@@ -87,6 +99,7 @@ class JobHunter:
                 searches_used += 1
 
                 if res.get("ok"):
+                    searches_ok += 1
                     data = res.get("data", {})
                     ignored = data.get("filters_ignored", [])
                     if ignored:
@@ -104,16 +117,21 @@ class JobHunter:
                         if jid not in discovered_candidates:
                             j["matched_campaign"] = camp_id
                             discovered_candidates[jid] = j
+                else:
+                    searches_failed += 1
+                    if res.get("error_class"):
+                        error_classes.append(res["error_class"])
 
             # B. Optional best_match (morning pass)
             if include_best_match:
                 for q in queries[:2]:
-                    if searches_used >= max_searches:
+                    if searches_used >= max_searches or _budget_exhausted():
                         break
                     params = {"mode": "best_match", "query": q}
                     res = self.mcp.call_tool("find_jobs", "smart_search", params, run_id=run_id, campaign=camp_id, state=state)
                     searches_used += 1
                     if res.get("ok"):
+                        searches_ok += 1
                         jobs_found = res.get("data", {}).get("jobs", [])
                         for j in jobs_found:
                             jid = j.get("job_id") or j.get("id")
@@ -127,10 +145,14 @@ class JobHunter:
                             if jid not in discovered_candidates:
                                 j["matched_campaign"] = camp_id
                                 discovered_candidates[jid] = j
+                    else:
+                        searches_failed += 1
+                        if res.get("error_class"):
+                            error_classes.append(res["error_class"])
 
             # C. title_filters with search
             for tf in title_filters:
-                if searches_used >= max_searches:
+                if searches_used >= max_searches or _budget_exhausted():
                     break
                 params = {
                     "title": tf,
@@ -140,6 +162,7 @@ class JobHunter:
                 res = self.mcp.call_tool("find_jobs", "search", params, run_id=run_id, campaign=camp_id, state=state)
                 searches_used += 1
                 if res.get("ok"):
+                    searches_ok += 1
                     jobs_found = res.get("data", {}).get("jobs", [])
                     for j in jobs_found:
                         jid = j.get("job_id") or j.get("id")
@@ -153,6 +176,10 @@ class JobHunter:
                         if jid not in discovered_candidates:
                             j["matched_campaign"] = camp_id
                             discovered_candidates[jid] = j
+                else:
+                    searches_failed += 1
+                    if res.get("error_class"):
+                        error_classes.append(res["error_class"])
 
         # 2. Dedup & Pre-filtering
         survivors: List[Tuple[str, Dict[str, Any]]] = []
@@ -261,9 +288,18 @@ class JobHunter:
         state["runs_today"] = state.get("runs_today", 0) + 1
         self.state_mgr.save_state(state)
 
+        auth_ok = (not getattr(self.mcp, "auth_failed", False)) and ("auth" not in error_classes)
+        healthy = auth_ok and (searches_ok > 0)
+
         return {
             "run_id": run_id,
             "searches_used": searches_used,
+            "searches_ok": searches_ok,
+            "searches_failed": searches_failed,
+            "auth_ok": auth_ok,
+            "healthy": healthy,
+            "error_classes": list(set(error_classes)),
+            "duration_s": round(time.time() - t_start, 2),
             "candidates_found": len(discovered_candidates),
             "new": new_count,
             "refreshed": refreshed_count,

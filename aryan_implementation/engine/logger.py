@@ -216,6 +216,11 @@ def execute_with_audit(
                     "detail": str(e)[:200],
                     "resolved": False,
                 })
+                if len(incidents) > 50:
+                    state["incidents"] = incidents[-50:]
+
+            if err_class in ("auth", "rate_limit"):
+                logger.warning(f"[{err_class.upper()}] MCP execution error in {step_name} (attempt {attempt}): {e}")
 
             if err_class == "auth":
                 # Auth failures must immediately fail and halt the pipeline

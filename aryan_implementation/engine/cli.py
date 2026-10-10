@@ -130,6 +130,23 @@ def main() -> None:
     p_mon.add_argument("--run", action="store_true", help="Execute calibration and update proposal guide")
     p_mon.add_argument("--days", type=int, default=30, help="Lookback window in days (default: 30)")
 
+    # tick
+    p_tick = subparsers.add_parser("tick", help="Execute unified engine tick across Railway, Vercel, or Local")
+    p_tick.add_argument("--tier", type=str, default=None, help="Execution tier (railway, vercel, local)")
+    p_tick.add_argument("--budget", type=float, default=None, help="Time budget in seconds")
+
+    # backup-cloud
+    p_bk = subparsers.add_parser("backup-cloud", help="Run local cloud backup (Rule #3)")
+    p_bk.add_argument("--now", action="store_true", help="Force immediate backup regardless of interval")
+    p_bk.add_argument("--provider", type=str, default=None, help="Specific provider to back up")
+
+    # backup-status
+    subparsers.add_parser("backup-status", help="Show manifest and status of local cloud backups")
+
+    # upwork-login
+    p_up_login = subparsers.add_parser("upwork-login", help="Refresh or re-seed Upwork OAuth tokens")
+    p_up_login.add_argument("--force-refresh", action="store_true", help="Force token refresh")
+
     args = parser.parse_args()
 
     state_mgr = StateManager(args.state_dir)
@@ -482,6 +499,53 @@ def main() -> None:
         else:
             trends = m_eng.analyze_30day_market_trends(days=args.days)
             print(json.dumps(trends, indent=2))
+
+    elif args.command == "tick":
+        from .tick import run_tick
+        summary = run_tick(tier=args.tier, time_budget_s=args.budget)
+        print("\n=== UNIFIED TICK EXECUTION SUMMARY ===")
+        print(json.dumps(summary, indent=2, default=str))
+
+    elif args.command == "backup-cloud":
+        from .cloud_backup import run_backup, backup_due
+        if not args.now and not backup_due():
+            print("Backup is not due yet (less than 6 hours since last run). Use --now to force.")
+        else:
+            print("Starting local cloud backup...")
+            res = run_backup()
+            print("\n=== CLOUD BACKUP RESULTS ===")
+            for prov, r in res.items():
+                status = "✅ OK" if r.get("ok") else f"❌ Error: {r.get('error')}"
+                print(f"  {prov:15}: {status}")
+
+    elif args.command == "backup-status":
+        from .cloud_backup import load_manifest, MANIFEST_PATH
+        manifest = load_manifest()
+        print("=== LOCAL CLOUD BACKUP STATUS ===")
+        print(f"Manifest Path: {MANIFEST_PATH}")
+        print(f"Last Run: {manifest.get('last_run_at', 'Never')}")
+        print("Provider Results:")
+        for prov, r in manifest.get("results", {}).items():
+            status = "✅ OK" if r.get("ok") else "❌ Failed"
+            print(f"  - {prov:15}: {status} ({r.get('records', 0)} records)")
+
+    elif args.command == "upwork-login":
+        from .upwork_oauth import UpworkOAuthManager
+        mgr = UpworkOAuthManager()
+        data = mgr.load_token_data()
+        if args.force_refresh or not data.get("access_token"):
+            print("Refreshing Upwork OAuth token chain...")
+            res = mgr.refresh(force=True)
+            if res.get("ok"):
+                print("✅ Token refresh succeeded!")
+                print(f"Expiry: {res['token_data'].get('expiry')}")
+            else:
+                print(f"❌ Token refresh failed: {res.get('error')}")
+        else:
+            print("Upwork OAuth token data present:")
+            print(f"Expiry: {data.get('expiry')}")
+            print(f"Updated at: {data.get('updated_at')}")
+            print("Use --force-refresh to rotate tokens immediately.")
 
     elif args.command == "serve":
         try:

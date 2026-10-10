@@ -21,11 +21,18 @@ class UpworkMCPClient:
         endpoint_url: str = "https://mcp.upwork.com/mcp",
         auth_token: Optional[str] = None,
         mock_mode: bool = False,
+        oauth_manager: Optional[Any] = None,
+        lease_held: bool = False,
     ):
         self.endpoint_url = endpoint_url
         self.auth_token = auth_token
         self.mock_mode = mock_mode
+        self.oauth_manager = oauth_manager
+        self.lease_held = lease_held
+        self.auth_failed = False
         self._mock_data: Dict[str, Any] = {}
+        self._mcp_session_id: Optional[str] = None
+        self._mcp_cookie: Optional[str] = None
 
     def set_mock_data(self, key: str, data: Any) -> None:
         """Register mock responses for testing and dry-run simulation."""
@@ -94,93 +101,108 @@ class UpworkMCPClient:
     def _call_remote_mcp(self, tool: str, params: Dict[str, Any]) -> Any:
         import os
         import urllib.request
+        import urllib.error
         from pathlib import Path
+        from .upwork_oauth import get_oauth_manager
+
+        mgr = self.oauth_manager or get_oauth_manager()
 
         # Resolve access token
-        access_token = self.auth_token or os.environ.get("UPWORK_ACCESS_TOKEN")
+        access_token = self.auth_token
         if not access_token:
-            for potential_path in [
-                Path(os.environ.get("USERPROFILE", "")) / ".gemini" / "antigravity" / "mcp_oauth_tokens.json",
-                Path(os.environ.get("USERPROFILE", "")) / ".gemini" / "antigravity-ide" / "mcp_oauth_tokens.json",
-                Path(os.environ.get("HOME", "")) / ".gemini" / "antigravity" / "mcp_oauth_tokens.json",
-            ]:
-                if potential_path.exists():
-                    try:
-                        with open(potential_path, "r", encoding="utf-8") as tf:
-                            td = json.load(tf)
-                            upwork_tok = td.get("https://mcp.upwork.com/mcp", {}).get("token", {})
-                            access_token = upwork_tok.get("access_token")
-                            if access_token:
-                                break
-                    except Exception:
-                        pass
+            access_token = mgr.get_valid_access_token(lease_held=self.lease_held)
 
         if not access_token:
-            raise RuntimeError("Live Upwork MCP requires valid OAuth token in UPWORK_ACCESS_TOKEN env var or mcp_oauth_tokens.json")
+            self.auth_failed = True
+            raise RuntimeError("Live Upwork MCP requires valid OAuth token in UPWORK_ACCESS_TOKEN env var, secrets, or mcp_oauth_tokens.json")
 
-        headers = {
-            "Authorization": f"Bearer {access_token}",
-            "Content-Type": "application/json",
-            "Accept": "application/json, text/event-stream",
-            "User-Agent": "Antigravity/1.0 (Windows)",
-        }
+        def _execute_http(token_val: str) -> Any:
+            headers = {
+                "Authorization": f"Bearer {token_val}",
+                "Content-Type": "application/json",
+                "Accept": "application/json, text/event-stream",
+                "User-Agent": "Antigravity/1.0 (Windows)",
+            }
 
-        # Initialize session if not cached
-        if not getattr(self, "_mcp_session_id", None):
-            init_body = json.dumps({
+            # Initialize session if not cached
+            if not getattr(self, "_mcp_session_id", None):
+                init_body = json.dumps({
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "method": "initialize",
+                    "params": {
+                        "protocolVersion": "2024-11-05",
+                        "capabilities": {},
+                        "clientInfo": {"name": "aryan-upwork-engine", "version": "1.0"},
+                    },
+                }).encode("utf-8")
+                init_req = urllib.request.Request(self.endpoint_url, data=init_body, headers=headers, method="POST")
+                with urllib.request.urlopen(init_req, timeout=15) as r:
+                    self._mcp_session_id = r.headers.get("mcp-session-id")
+                    self._mcp_cookie = r.headers.get("set-cookie")
+
+            headers["mcp-session-id"] = self._mcp_session_id
+            if getattr(self, "_mcp_cookie", None):
+                headers["Cookie"] = self._mcp_cookie
+
+            # Prepare tool call
+            full_tool_name = f"upwork__{tool}" if not tool.startswith("upwork__") else tool
+            action = params.get("action", "")
+            inner_params = {k: v for k, v in params.items() if k != "action"}
+
+            arguments: Dict[str, Any] = {
+                "org_uid": "1243443370794516481",
+            }
+            if action:
+                arguments["action"] = action
+            if inner_params:
+                arguments["params"] = inner_params
+
+            call_body = json.dumps({
                 "jsonrpc": "2.0",
-                "id": 1,
-                "method": "initialize",
+                "id": 2,
+                "method": "tools/call",
                 "params": {
-                    "protocolVersion": "2024-11-05",
-                    "capabilities": {},
-                    "clientInfo": {"name": "aryan-upwork-engine", "version": "1.0"},
+                    "name": full_tool_name,
+                    "arguments": arguments,
                 },
             }).encode("utf-8")
-            init_req = urllib.request.Request(self.endpoint_url, data=init_body, headers=headers, method="POST")
-            with urllib.request.urlopen(init_req, timeout=15) as r:
-                self._mcp_session_id = r.headers.get("mcp-session-id")
-                self._mcp_cookie = r.headers.get("set-cookie")
 
-        headers["mcp-session-id"] = self._mcp_session_id
-        if getattr(self, "_mcp_cookie", None):
-            headers["Cookie"] = self._mcp_cookie
+            call_req = urllib.request.Request(self.endpoint_url, data=call_body, headers=headers, method="POST")
+            with urllib.request.urlopen(call_req, timeout=20) as r:
+                res_json = json.loads(r.read().decode("utf-8"))
+                content = res_json.get("result", {}).get("content", [])
+                if content and "text" in content[0]:
+                    text = content[0]["text"]
+                    try:
+                        return json.loads(text)
+                    except Exception:
+                        return text
+                return res_json.get("result", {})
 
-        # Prepare tool call
-        full_tool_name = f"upwork__{tool}" if not tool.startswith("upwork__") else tool
-        action = params.get("action", "")
-        # Remove action from inner params copy to avoid duplicate
-        inner_params = {k: v for k, v in params.items() if k != "action"}
+        try:
+            return _execute_http(access_token)
+        except urllib.error.HTTPError as err:
+            if 400 <= err.code < 500:
+                self._mcp_session_id = None
+                self._mcp_cookie = None
 
-        arguments: Dict[str, Any] = {
-            "org_uid": "1243443370794516481",
-        }
-        if action:
-            arguments["action"] = action
-        if inner_params:
-            arguments["params"] = inner_params
+            if err.code == 401:
+                logger.warning("Upwork MCP returned 401 Unauthorized. Attempting token refresh...")
+                if self.lease_held:
+                    ref_res = mgr.refresh()
+                    if ref_res.get("ok"):
+                        fresh_token = ref_res["token_data"]["access_token"]
+                        self.auth_token = fresh_token
+                        try:
+                            return _execute_http(fresh_token)
+                        except Exception as retry_err:
+                            self.auth_failed = True
+                            raise retry_err
 
-        call_body = json.dumps({
-            "jsonrpc": "2.0",
-            "id": 2,
-            "method": "tools/call",
-            "params": {
-                "name": full_tool_name,
-                "arguments": arguments,
-            },
-        }).encode("utf-8")
-
-        call_req = urllib.request.Request(self.endpoint_url, data=call_body, headers=headers, method="POST")
-        with urllib.request.urlopen(call_req, timeout=20) as r:
-            res_json = json.loads(r.read().decode("utf-8"))
-            content = res_json.get("result", {}).get("content", [])
-            if content and "text" in content[0]:
-                text = content[0]["text"]
-                try:
-                    return json.loads(text)
-                except Exception:
-                    return text
-            return res_json.get("result", {})
+                self.auth_failed = True
+                raise RuntimeError(f"Upwork MCP authentication failure (401 Unauthorized): {err}")
+            raise
 
     def call_tool(
         self,

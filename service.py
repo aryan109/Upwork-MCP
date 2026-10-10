@@ -63,13 +63,41 @@ class HealthCheckHandler(http.server.BaseHTTPRequestHandler):
 
         # 1. Railway Health Check
         if path in ("/health",):
-            self.send_response(200)
+            reasons = []
+            now_utc = datetime.now(timezone.utc)
+            try:
+                state_mgr = StateManager(STATE_DIR)
+                state = state_mgr.load_state()
+
+                if state.get("kill_switch"):
+                    reasons.append("kill_switch_active")
+
+                last_success = state.get("last_success_at")
+                if last_success:
+                    try:
+                        succ_dt = datetime.fromisoformat(last_success.replace("Z", "+00:00"))
+                        if (now_utc - succ_dt).total_seconds() > 2 * 3600:
+                            reasons.append("hunter_silent: last successful pass > 2h old")
+                    except Exception:
+                        pass
+                else:
+                    reasons.append("hunter_silent: no successful pass recorded")
+
+                last_pass = state.get("last_pass_record", {})
+                if last_pass and not last_pass.get("auth_ok", True):
+                    reasons.append("auth_failed: OAuth rejected")
+            except Exception as e:
+                reasons.append(f"state_read_error: {e}")
+
+            status_code = 503 if reasons else 200
+            self.send_response(status_code)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
             status = {
-                "status": "healthy",
+                "status": "unhealthy" if reasons else "healthy",
                 "service": "Aryan Upwork Autonomous Pipeline",
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "reasons": reasons,
+                "timestamp": now_utc.isoformat(),
             }
             self.wfile.write(json.dumps(status).encode("utf-8"))
             return
@@ -141,28 +169,50 @@ class HealthCheckHandler(http.server.BaseHTTPRequestHandler):
         return
 
 
+LAST_TICK_COMPLETED_AT = time.time()
+
+
 def start_http_server(port: int):
     server = http.server.HTTPServer(("0.0.0.0", port), HealthCheckHandler)
     logger.info(f"Health check & Web Report HTTP server listening on port {port}")
     server.serve_forever()
 
 
+def supervisor_worker(interval_secs: int):
+    """Supervisor thread: exits process if a tick has not completed in 2x interval to trigger ALWAYS restart."""
+    global LAST_TICK_COMPLETED_AT
+    logger.info("Supervisor watchdog thread started.")
+    time.sleep(60)  # Startup grace period
+    while True:
+        elapsed = time.time() - LAST_TICK_COMPLETED_AT
+        max_allowed = (2 * interval_secs) + 120
+        if elapsed > max_allowed:
+            logger.critical(
+                f"FATAL: Hunter tick stalled! No tick completed in {elapsed:.0f}s (threshold: {max_allowed}s). "
+                f"Triggering immediate process termination (os._exit(1)) to allow Railway ALWAYS restart policy to revive container."
+            )
+            os._exit(1)
+        time.sleep(15)
+
 
 def hourly_hunter_worker(state_mgr: StateManager, mcp_client: UpworkMCPClient):
-    """Background worker executing discovery loop (default: every 15 minutes)."""
+    """Background worker executing discovery loop via unified tick (default: every 15 minutes)."""
+    global LAST_TICK_COMPLETED_AT
+    from aryan_implementation.engine.tick import run_tick
+
     interval_secs = int(os.environ.get("HUNTER_INTERVAL_SECONDS", 900))
     interval_mins = interval_secs // 60
     logger.info(f"Hunter background loop started: scheduled every {interval_mins} mins ({interval_secs}s).")
-    # Short initial sleep to allow bot initialization
-    time.sleep(10)
+    time.sleep(5)
     while True:
         try:
-            logger.info("Starting scheduled high-velocity hunt pass...")
-            summary = run_single_pass(state_mgr, mcp_client)
-            staged = (summary.get("staged_proposals", summary.get("staged_total", 0))) if isinstance(summary, dict) else 0
-            logger.info(f"Hunt pass finished: {staged} staged for review.")
+            logger.info("Starting scheduled high-velocity tick on Railway tier...")
+            tick_res = run_tick(tier="railway")
+            LAST_TICK_COMPLETED_AT = time.time()
+            staged = (tick_res.get("pass_summary", {}).get("staged_proposals", 0)) if isinstance(tick_res, dict) else 0
+            logger.info(f"Tick completed: role={tick_res.get('role', 'hunter')} healthy={tick_res.get('healthy')} staged={staged}")
         except Exception as e:
-            logger.error(f"Error in hunter pass: {e}", exc_info=True)
+            logger.error(f"Error in tick pass: {e}", exc_info=True)
 
         # Autonomous Monthly Strategy Check (runs once every 30 days)
         try:
@@ -198,14 +248,20 @@ def main():
     state_mgr.init_state_directory(force=False)
     mcp_client = UpworkMCPClient(mock_mode=False)
 
+    from aryan_implementation.engine.tier import get_commit_sha
+    commit_sha = get_commit_sha()
+    pub_domain = os.environ.get("PUBLIC_DASHBOARD_URL", "https://upwork-engine-production-16dc.up.railway.app")
+
     token, chat_id = get_telegram_credentials()
     if token and chat_id:
         send_telegram_message(
-            "🚀 <b>Upwork 24/7 Cloud Service Online!</b>\n\n"
-            f"• ⚡ <b>{interval_mins}-Minute Rapid Discovery:</b> Active (competitive edge)\n"
-            "• 🎯 <b>Interactive 1-Click Approvals:</b> Enabled\n"
-            "• 📊 <b>Daily Intelligence & Notion Sync:</b> Active\n\n"
-            "<i>Send /status or /queue anytime to interact with the engine.</i>",
+            f"🚀 <b>Upwork 24/7 Cloud Service Online!</b>\n\n"
+            f"• 🏷️ <b>Tier:</b> <code>railway</code> (commit <code>{commit_sha}</code>)\n"
+            f"• ⚡ <b>Interval:</b> {interval_mins} mins (autonomous tick)\n"
+            f"• 🌐 <b>Dashboard:</b> {pub_domain}\n"
+            f"• 🎯 <b>Interactive 1-Click Approvals:</b> Enabled\n"
+            f"• 📊 <b>Daily Intelligence & Notion Sync:</b> Active\n\n"
+            f"<i>Send /status or /queue anytime to interact with the engine.</i>",
             parse_mode="HTML",
         )
 
@@ -213,7 +269,11 @@ def main():
     http_thread = threading.Thread(target=start_http_server, args=(port,), daemon=True)
     http_thread.start()
 
-    # 2. Start Hourly Hunter in daemon thread
+    # 2. Start Supervisor watchdog in daemon thread
+    supervisor_thread = threading.Thread(target=supervisor_worker, args=(interval_secs,), daemon=True)
+    supervisor_thread.start()
+
+    # 3. Start Hourly Hunter in daemon thread
     hunter_thread = threading.Thread(
         target=hourly_hunter_worker,
         args=(state_mgr, mcp_client),
@@ -221,7 +281,7 @@ def main():
     )
     hunter_thread.start()
 
-    # 3. Run Telegram Bot Listener on main thread
+    # 4. Run Telegram Bot Listener on main thread
     bot = TelegramBotListener(mcp_client, state_mgr)
     logger.info("Starting Telegram Bot listener on main thread...")
     try:

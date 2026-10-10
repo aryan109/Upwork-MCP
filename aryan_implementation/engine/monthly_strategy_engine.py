@@ -29,12 +29,13 @@ logger = logging.getLogger("monthly_strategy_engine")
 class MonthlyStrategyEngine:
     """Orchestrates monthly market research, trend analysis, and proposal rule evolution."""
 
-    def __init__(self, state_dir: Optional[Path] = None):
+    def __init__(self, state_dir: Optional[Path] = None, write_to_repo: Optional[bool] = None):
         self.state_dir = state_dir or STATE_DIR
         self.state_mgr = StateManager(self.state_dir)
         self.intel_eng = MarketIntelEngine(self.state_dir)
         self.skill_file = PROJECT_ROOT / "aryan_implementation" / "skills" / "upwork-proposal-crafting-skill" / "SKILL.md"
         self.guide_file = PROJECT_ROOT / "UPWORK_PROPOSAL_CRAFTING_GUIDE.md"
+        self.write_to_repo = (not os.environ.get("UPWORK_TEST_MODE")) if write_to_repo is None else write_to_repo
 
     def analyze_30day_market_trends(self, days: int = 30) -> Dict[str, Any]:
         """Aggregate and analyze market signals cataloged over the past 30 days."""
@@ -255,7 +256,7 @@ class MonthlyStrategyEngine:
         strategy = self.synthesize_strategy_with_llm(trends)
 
         # Update Markdown skill and guide files
-        updated = self.update_proposal_rules_markdown(strategy)
+        updated = self.update_proposal_rules_markdown(strategy) if self.write_to_repo else True
 
         # Persist date in engine state
         state = self.state_mgr.load_state()

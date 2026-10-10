@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -31,12 +32,13 @@ logger = logging.getLogger("daily_report")
 class DailyReportEngine:
     """Generates comprehensive daily reports for human review and continuous pipeline improvement."""
 
-    def __init__(self, state_dir: Optional[Path] = None):
+    def __init__(self, state_dir: Optional[Path] = None, write_to_repo: Optional[bool] = None):
         self.state_dir = state_dir or STATE_DIR
         self.state_mgr = StateManager(self.state_dir)
         self.intel_eng = MarketIntelEngine(self.state_dir)
         self.reports_dir = (self.state_dir.parent / "reports") if self.state_dir else (ENGINE_DIR / "reports")
         self.workspace_report = PROJECT_ROOT / "daily_report.md"
+        self.write_to_repo = (not os.environ.get("UPWORK_TEST_MODE")) if write_to_repo is None else write_to_repo
 
     def generate_daily_report(self, date_str: Optional[str] = None) -> Dict[str, Any]:
         """
@@ -207,8 +209,9 @@ class DailyReportEngine:
 
         # Write Markdown & HTML reports to workspace and archive
         try:
-            with open(self.workspace_report, "w", encoding="utf-8") as f:
-                f.write(report_md)
+            if self.write_to_repo:
+                with open(self.workspace_report, "w", encoding="utf-8") as f:
+                    f.write(report_md)
             with open(archive_path, "w", encoding="utf-8") as f:
                 f.write(report_md)
             with open(html_archive_path, "w", encoding="utf-8") as f:

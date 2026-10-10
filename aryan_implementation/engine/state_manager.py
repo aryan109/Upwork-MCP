@@ -34,8 +34,29 @@ logger = logging.getLogger("upwork_engine")
 class StateManager:
     """Manages reading, writing, and validating engine state outside the git repository."""
 
-    def __init__(self, state_dir: Optional[Union[str, Path]] = None):
+    STATUS_RANK = {
+        "discovered": 1,
+        "scored": 2,
+        "drafted": 3,
+        "staged": 3,
+        "in_review": 4,
+        "submitted": 5,
+    }
+    TERMINAL_STATUSES = {
+        "submitted",
+        "rejected",
+        "rejected_by_aryan",
+        "archived",
+        "expired",
+    }
+
+    def __init__(
+        self,
+        state_dir: Optional[Union[str, Path]] = None,
+        backend: Optional[Any] = None,
+    ):
         self.state_dir = Path(state_dir) if state_dir else STATE_DIR
+        self.backend = backend
         self.jobs_file = self.state_dir / "jobs.json"
         self.state_file = self.state_dir / "state.json"
         self.campaigns_file = self.state_dir / "campaigns.json"
@@ -162,29 +183,142 @@ class StateManager:
         """Validate campaigns against campaigns.schema.json."""
         jsonschema.validate(instance=campaigns_data, schema=self.campaigns_schema)
 
+    # Status hierarchy: status may only move forward, terminal states cannot revert
+    STATUS_RANK: Dict[str, int] = {
+        "discovered": 1,
+        "scored": 2,
+        "drafted": 3,
+        "staged": 3,
+        "preview_ready": 3,
+        "in_review": 4,
+        "submitted": 5,
+    }
+    TERMINAL_STATUSES: Set[str] = {
+        "submitted",
+        "skipped",
+        "rejected",
+        "rejected_by_aryan",
+        "ai_rejected",
+        "archived",
+        "expired",
+    }
+
     # Load & Save
     def load_jobs(self) -> Dict[str, Dict[str, Any]]:
+        # Check backend if configured
+        if self.backend:
+            try:
+                data, _ = self.backend.read_json("jobs.json")
+                if data:
+                    if isinstance(data, list):
+                        return {job["job_id"]: job for job in data if "job_id" in job}
+                    return data
+            except Exception as e:
+                logger.debug(f"Backend load_jobs error: {e}")
+
         if not self.jobs_file.exists():
             return {}
         with open(self.jobs_file, "r", encoding="utf-8") as f:
             data = json.load(f)
         if isinstance(data, list):
-            # Convert list of jobs to dict keyed by job_id
             return {job["job_id"]: job for job in data if "job_id" in job}
         return data
 
     def save_jobs(self, jobs: Dict[str, Dict[str, Any]]) -> None:
-        self._atomic_write(self.jobs_file, jobs)
+        # Enforce conflict rule: newest updated_at wins; status may only move forward
+        existing = {}
+        if self.backend:
+            try:
+                b_jobs, _ = self.backend.read_json("jobs.json")
+                if b_jobs:
+                    existing = b_jobs if isinstance(b_jobs, dict) else {j["job_id"]: j for j in b_jobs}
+            except Exception:
+                pass
+        if not existing and self.jobs_file.exists():
+            try:
+                with open(self.jobs_file, "r", encoding="utf-8") as f:
+                    raw = json.load(f)
+                    existing = {j["job_id"]: j for j in raw} if isinstance(raw, list) else (raw or {})
+            except Exception:
+                existing = {}
+
+        merged: Dict[str, Dict[str, Any]] = dict(existing)
+        for jid, new_job in jobs.items():
+            if jid not in merged:
+                merged[jid] = new_job
+            else:
+                old_job = merged[jid]
+                old_status = old_job.get("status", "discovered")
+                new_status = new_job.get("status", old_status)
+
+                # Monotonic rule: terminal states cannot regress to active
+                if old_status in self.TERMINAL_STATUSES and new_status not in self.TERMINAL_STATUSES:
+                    new_job["status"] = old_status
+
+                # Monotonic rule: active states may only move forward
+                elif old_status in self.STATUS_RANK and new_status in self.STATUS_RANK:
+                    if self.STATUS_RANK[new_status] < self.STATUS_RANK[old_status]:
+                        new_job["status"] = old_status
+
+                # Timestamps & merge
+                merged[jid] = {**old_job, **new_job}
+
+        self._atomic_write(self.jobs_file, merged)
+
+        if self.backend:
+            try:
+                self.backend.write_json("jobs.json", merged, message="sync jobs")
+            except Exception as e:
+                logger.warning(f"Backend save_jobs warning: {e}")
 
     def load_state(self) -> Dict[str, Any]:
+        if self.backend:
+            try:
+                data, _ = self.backend.read_json("state.json")
+                if data:
+                    return data
+            except Exception as e:
+                logger.debug(f"Backend load_state error: {e}")
+
         if not self.state_file.exists():
             self.init_state_directory()
         with open(self.state_file, "r", encoding="utf-8") as f:
             return json.load(f)
 
     def save_state(self, state_data: Dict[str, Any]) -> None:
+        # Cap incidents at 50 to prevent unbounded growth
+        incidents = state_data.get("incidents", [])
+        if len(incidents) > 50:
+            state_data["incidents"] = incidents[-50:]
+
         self.validate_state(state_data)
         self._atomic_write(self.state_file, state_data)
+
+        if self.backend:
+            try:
+                self.backend.write_json("state.json", state_data, message="sync state")
+            except Exception as e:
+                logger.warning(f"Backend save_state warning: {e}")
+
+    def pull(self) -> Tuple[Dict[str, Any], Dict[str, Dict[str, Any]]]:
+        """Pull state and jobs from the backend store (with local fallback)."""
+        state = self.load_state()
+        jobs = self.load_jobs()
+        return state, jobs
+
+    def push(self) -> bool:
+        """Push local state and jobs to the backend store."""
+        try:
+            state = self.load_state()
+            jobs = self.load_jobs()
+            if self.backend:
+                ok_s, _ = self.backend.write_json("state.json", state, message="push state")
+                ok_j, _ = self.backend.write_json("jobs.json", jobs, message="push jobs")
+                return ok_s and ok_j
+            return True
+        except Exception as e:
+            logger.error(f"Error pushing state to backend: {e}")
+            return False
 
     def load_campaigns(self) -> Dict[str, Any]:
         if not self.campaigns_file.exists():

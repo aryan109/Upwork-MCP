@@ -6,6 +6,7 @@ from high-signal jobs (both open and rapidly-filled jobs).
 from __future__ import annotations
 
 import json
+import os
 import re
 from datetime import datetime, timezone
 from pathlib import Path
@@ -160,11 +161,12 @@ def generate_content_angles(
 class MarketIntelEngine:
     """Manages the Upwork Market Intelligence & Content Knowledge Base."""
 
-    def __init__(self, state_dir: Optional[Path] = None):
+    def __init__(self, state_dir: Optional[Path] = None, write_to_repo: Optional[bool] = None):
         self.state_dir = state_dir or STATE_DIR
         self.intel_file = self.state_dir / "market_intelligence.json"
         self.digest_file = self.state_dir / "market_intelligence_digest.md"
         self.workspace_digest = PROJECT_ROOT / "market_intelligence_digest.md"
+        self.write_to_repo = (not os.environ.get("UPWORK_TEST_MODE")) if write_to_repo is None else write_to_repo
 
     def load_intelligence(self) -> Dict[str, Any]:
         """Load stored market intelligence records."""
@@ -381,8 +383,9 @@ class MarketIntelEngine:
             self.digest_file.parent.mkdir(parents=True, exist_ok=True)
             with open(self.digest_file, "w", encoding="utf-8") as f:
                 f.write(digest_content)
-            with open(self.workspace_digest, "w", encoding="utf-8") as f:
-                f.write(digest_content)
+            if self.write_to_repo:
+                with open(self.workspace_digest, "w", encoding="utf-8") as f:
+                    f.write(digest_content)
         except Exception:
             pass
 

@@ -638,5 +638,78 @@
     - Added unit test validation in `test_daily_report.py` covering strict date isolation, downtime warnings, and backlog segregation.
     - Verified full test suite across the engine: all 55 tests passed with zero regressions.
 
+## [2026-10-10 07:55 IST] — Step 0 Execution: Upwork OAuth Refresh & Railway Sight Restoration
+- **Context & Action**:
+  - Implemented Step 0 of `RESILIENCE_ANALYSIS_AND_PLAN.md` to restore sight to the engine.
+  - Verified local Upwork OAuth tokens refreshed and active for `Aryan Pegwar` via read-only `list_accounts` call.
+  - Upserted `UPWORK_ACCESS_TOKEN` in Railway production service `upwork-engine` via GraphQL `variableUpsert`.
+  - Triggered `serviceInstanceRedeploy` on Railway production environment (`7b03e4ad-2c8a-4325-b699-0085b1355009`).
+  - Monitored build initiation (`10b776f4-b93b-46ec-b3b1-3a197e82d0ee`) restoring live discovery capabilities.
+
+## [2026-10-10 08:10 IST] — Phase 1: Shared GitHub State Store, Distributed Leases & Unified Tick Entrypoint
+- **Context & Architecture**:
+  - Implemented the three-tier resilience architecture specified in `RESILIENCE_ANALYSIS_AND_PLAN.md` (Part B & Phase 1).
+  - Created private repository `https://github.com/aryan109/upwork-engine-state` via `scripts/github_store_init.py` with fine-grained directory layout: `heartbeats/`, `passes/`, `jobs/`, `secrets/`, `documents/`, `logs/`, `payloads/`.
+  - Built `aryan_implementation/engine/state_backend.py` defining abstract `StateBackend` with:
+    - `FileBackend`: Offline, local development, and isolated test mock storage.
+    - `GitHubBackend`: Production distributed storage using plain `urllib` (no external SDKs) communicating with GitHub Contents and Git Blob APIs, featuring 3x Compare-and-Swap (CAS) optimistic locking retries.
+  - Built `aryan_implementation/engine/tier.py` defining tier hierarchy: Railway (Priority 1), Vercel (Priority 2), Local PC (Priority 3), capabilities matrix (`hunt`, `daily_report`, `cloud_backup`, etc.), and Git commit SHA resolution.
+  - Built `aryan_implementation/engine/lease.py` managing 20-minute distributed CAS leases in `lease.json`, preventing split-brain hunter execution, and implementing priority yield logic (secondary tiers automatically yield when higher priority tiers emit healthy heartbeats).
+  - Built `aryan_implementation/engine/watchdog.py` checking invariant conditions W1–W10 (`hunter_silent`, `auth_failed`, `tier_missing`, `kill_switch_active`, `empty_streak`, `store_unreachable`, `version_skew`, `token_stale`, `telegram_inbound_broken`, `backup_stale`).
+  - Built `aryan_implementation/engine/alerts.py` providing deduplicated alert dispatch with cooldown windows, resolution notifications, Telegram formatting, Windows desktop toasts, and healthchecks.io dead man's switch heartbeats.
+  - Built `aryan_implementation/engine/tick.py` providing the single unified entrypoint `run_tick(tier, time_budget_s)` across all three tiers implementing the 12-step lifecycle.
+  - Created `scripts/migrate_state_to_store.py` migrating 39 tracked jobs, state, and rejected jobs from local disk into the shared GitHub store.
+  - Injected `STATE_REPO=aryan109/upwork-engine-state` and `STATE_REPO_TOKEN` into Railway production environment and local `.env`.
+
+## [2026-10-10 08:20 IST] — Phase 2: Local Cloud Backup Engine & Development Rule #3 Implementation
+- **Context & Architecture**:
+  - Implemented Part E of `RESILIENCE_ANALYSIS_AND_PLAN.md`, enforcing **Development Rule #3: Local Custody of Cloud Data**.
+  - Built `aryan_implementation/engine/cloud_backup.py` with abstract `BackupProvider` and provider implementations:
+    - `GitHubStoreProvider`: Clones/pulls full state history, jobs, passes, and documents via git clone.
+    - `RailwayProvider`: Snapshots service configuration, variable names (redacted), and pulls deployment runtime logs via GraphQL API.
+    - `VercelProvider`: Snapshots project configuration, environment variable names, and deployment metadata via Vercel REST API.
+    - Manifest tracking in `cloud_backup/manifest.json` recording cursor, run timestamps, and audit log entries.
+  - Integrated backup execution into local tier tick (`backup_due()` triggers once at startup, then every 6 hours).
+  - Added CLI commands in `aryan_implementation/engine/cli.py`:
+    - `python -m aryan_implementation.engine.cli backup-cloud [--now] [--provider <name>]`
+    - `python -m aryan_implementation.engine.cli backup-status`
+    - `python -m aryan_implementation.engine.cli tick [--tier <tier>] [--budget <seconds>]`
+    - `python -m aryan_implementation.engine.cli upwork-login`
+  - Executed live backup verification (`backup-cloud --now`): verified local custody of state clone, Railway configuration, and Vercel settings under `%USERPROFILE%\upwork_engine\cloud_backup\`.
+
+## [2026-10-10 08:30 IST] — Phase 3 & 4: Vercel Serverless Tier Endpoints & Telegram Inbound Resilience
+- **Context & Architecture**:
+  - Built Vercel serverless functions in `api/`:
+    - `api/health.py`: HTTP GET `/api/health` returning tier status, commit SHA, and UTC timestamp.
+    - `api/tick.py`: HTTP POST/GET `/api/tick` with `X-Tick-Secret` authentication header (and `?secret=` query fallback), running `run_tick(tier="vercel", time_budget_s=45.0)`.
+    - `api/report.py`: HTTP GET `/api/report` (with `/report` and `/daily-report` rewrites) serving dynamic HTML Daily Report Dashboard or JSON metrics (`?format=json`) directly from the shared GitHub store.
+    - `api/telegram.py`: HTTP POST `/api/telegram` serverless webhook endpoint with `X-Telegram-Bot-Api-Secret-Token` validation, processing inline button callback queries (`approve`, `view`, `reject`) and slash commands.
+  - Created `vercel.json` configuring function duration (`maxDuration: 60`, `memory: 1024`) and URL rewrites (`/health`, `/tick`, `/report`, `/daily-report`, `/telegram`).
+  - Implemented Telegram inbound resilience (Phase 4):
+    - Added `inbound_mode` check to `TelegramBotListener.poll_updates()`: skips polling when mode is `webhook` or assigned to another tier, preventing split-brain collisions.
+    - Added HTTP 409 Conflict catching on Telegram polling: logs warning and raises alert `W9 telegram_inbound_broken`.
+    - Added module-level `process_telegram_update()` in `telegram_bot.py` shared between webhook and long-poller.
+    - Hardened `send_interactive_proposal`: added CAS check for `job.get("alerted_at")` and stamped `alerted_at` timestamp in state upon sending, preventing duplicate proposal cards across tiers and restarts.
+
+## [2026-10-10 08:45 IST] — Phase 5: Chaos Drills, Operational Runbook & 100% Test Suite Verification
+- **Context & Architecture**:
+  - Authored `RUNBOOK.md` covering daily operations, health check verification, distributed lease management, Upwork OAuth recovery, Telegram inbound switching, and disaster recovery.
+  - Authored `scripts/drills.md` specifying step-by-step chaos engineering tests (Drills 1–8: corrupted token, Railway outage, rapid redeploys, concurrent ticks, store unreachable, emergency kill switch, Telegram network block, and offline PC catch-up).
+  - Authored `scripts/register_local_tier.ps1` registering Windows Scheduled Task (`AryanUpworkLocalTier`) to execute `python -m aryan_implementation.engine.tick --tier local` at logon, on unlock, and every 15 minutes with a 10-minute timeout.
+  - Created `aryan_implementation/tests/test_resilience.py` with 10 unit tests:
+    - Tier priorities and capabilities verification.
+    - Distributed lease acquisition, expiry handling, and priority yield.
+    - Watchdog invariant evaluation (W1–W10).
+    - Deduplicated alerts and resolution dispatch.
+    - Monotonic state status progression and 50-incident capping.
+    - Telegram interactive proposal card idempotency (`alerted_at` check).
+    - Telegram bot update processing.
+    - Cloud backup manifest and provider execution.
+    - Vercel API health handler.
+    - Vercel API tick authentication and time budgeting.
+  - Ran the complete test suite: **all 65 tests passed in 11.83s** (100% pass rate).
+
+
+
 
 

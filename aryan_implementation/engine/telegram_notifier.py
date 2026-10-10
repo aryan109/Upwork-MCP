@@ -206,7 +206,8 @@ def send_telegram_message(
     Splits long messages automatically to comply with Telegram's 4096 character limit.
     """
     # Suppress live unmocked Telegram calls during unit tests or mock runs
-    if (os.environ.get("PYTEST_CURRENT_TEST") and not hasattr(urllib.request.urlopen, "mock_calls")) or os.environ.get("UPWORK_TEST_MODE") == "1":
+    is_mocked = hasattr(urllib.request.urlopen, "mock_calls") or "unittest.mock" in str(type(urllib.request.urlopen))
+    if not is_mocked and (os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("UPWORK_TEST_MODE") == "1"):
         logger.debug("Suppressing live Telegram notification during test/mock execution.")
         return True
 

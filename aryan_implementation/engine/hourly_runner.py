@@ -38,6 +38,7 @@ def run_single_pass(
     mcp_client: UpworkMCPClient,
     max_searches: int = 15,
     max_details: int = 20,
+    time_budget_s: Optional[float] = None,
 ) -> Dict[str, Any]:
     """Execute a single hourly hunt, vet, intel capture, and staging pass."""
     now_utc = datetime.now(timezone.utc)
@@ -47,7 +48,12 @@ def run_single_pass(
     state = state_mgr.load_state()
     if state.get("kill_switch", False):
         logger.warning("Emergency kill switch is active. Aborting hourly hunt pass.")
-        return {"status": "aborted", "reason": "kill_switch_active"}
+        try:
+            from .alerts import AlertManager
+            AlertManager().raise_alert("W4", "Emergency kill switch is active. Hunter stopped.", severity="CRITICAL")
+        except Exception:
+            pass
+        return {"status": "aborted", "reason": "kill_switch_active", "healthy": False}
 
     jobs = state_mgr.load_jobs()
     hunter = JobHunter(mcp_client, state_mgr)
@@ -61,6 +67,7 @@ def run_single_pass(
         max_searches=max_searches,
         max_details=max_details,
         include_best_match=False,
+        time_budget_s=time_budget_s,
     )
     logger.info(
         f"Discovery completed: {hunt_res['candidates_found']} candidates found, "
@@ -193,16 +200,66 @@ def run_single_pass(
                     )
                     try:
                         from .telegram_bot import send_interactive_proposal
-                        send_interactive_proposal(job, score_res, draft)
+                        send_interactive_proposal(job, score_res, draft, state_mgr=state_mgr)
                     except Exception as e:
                         logger.debug(f"Interactive proposal card note: {e}")
 
         vetted_count += 1
 
+    # Heartbeat & Proof-of-work evaluation
+    is_healthy = hunt_res.get("healthy", False)
+    auth_ok = hunt_res.get("auth_ok", True)
+    candidates_found = hunt_res.get("candidates_found", 0)
+
+    try:
+        from .alerts import AlertManager, dead_man_ping
+        alert_mgr = AlertManager()
+
+        if not auth_ok:
+            alert_mgr.raise_alert(
+                "W2",
+                "Upwork OAuth authentication failed during discovery pass.",
+                severity="CRITICAL",
+                fix="Run 'python -m aryan_implementation.engine.cli upwork-login'",
+            )
+        else:
+            alert_mgr.resolve_alert("W2", "Upwork OAuth authentication valid")
+
+        if is_healthy:
+            state["last_success_at"] = now_utc.isoformat()
+            dead_man_ping()
+
+            if candidates_found == 0:
+                streak = state.get("empty_streak", 0) + 1
+                state["empty_streak"] = streak
+                if streak >= 6:
+                    alert_mgr.raise_alert(
+                        "W5",
+                        f"Empty candidate streak: {streak} consecutive healthy passes returned 0 jobs.",
+                        severity="WARNING",
+                    )
+            else:
+                state["empty_streak"] = 0
+                alert_mgr.resolve_alert("W5", "Candidates discovered again")
+
+    except Exception as e:
+        logger.warning(f"Alert / health evaluation note: {e}")
+
     # Save state
     state["last_hunt_pass_at"] = now_utc.isoformat()
     state["last_hunt_date"] = now_utc.strftime("%Y-%m-%d")
     state["last_hunt_run_id"] = run_id
+    state["last_pass_record"] = {
+        "auth_ok": auth_ok,
+        "searches_ok": hunt_res.get("searches_ok", 0),
+        "searches_failed": hunt_res.get("searches_failed", 0),
+        "candidates": candidates_found,
+        "new": hunt_res.get("new", 0),
+        "staged": len(staged_proposals),
+        "error_classes": hunt_res.get("error_classes", []),
+        "duration_s": hunt_res.get("duration_s", 0),
+        "healthy": is_healthy,
+    }
     state_mgr.save_state(state)
     state_mgr.save_jobs(jobs)
     try:
@@ -231,6 +288,8 @@ def run_single_pass(
         "staged_proposals": len(staged_proposals),
         "staged_titles": [p.get("title") for p in staged_proposals],
         "skipped_other": skipped_count,
+        "auth_ok": auth_ok,
+        "healthy": is_healthy,
     }
 
     logger.info(

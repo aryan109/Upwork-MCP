@@ -63,20 +63,27 @@ def send_interactive_proposal(
     score_res: Dict[str, Any],
     draft: Dict[str, Any],
     chat_id: Optional[str] = None,
+    state_mgr: Optional[StateManager] = None,
 ) -> bool:
     """
     Send an interactive proposal card to Telegram with Inline Keyboard Buttons
     allowing 1-click Approval, Viewing Cover Letter, or Rejection.
+    Guarantees idempotence via alerted_at timestamp check.
     """
-    # Suppress live Telegram calls during unit tests, test jobs or mock runs
-    if os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("UPWORK_TEST_MODE") == "1":
+    # Suppress live unmocked Telegram calls during unit tests, test jobs or mock runs
+    is_mocked = hasattr(urllib.request.urlopen, "mock_calls") or "unittest.mock" in str(type(urllib.request.urlopen)) or "unittest.mock" in str(type(telegram_api_call))
+    if not is_mocked and (os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("UPWORK_TEST_MODE") == "1"):
         logger.debug("Suppressing live interactive proposal card during test/mock execution.")
         return True
 
     from .job_ledger import is_test_job
     if is_test_job(job.get("job_id", ""), job.get("title", "")):
         logger.info(f"Blocking interactive Telegram alert for test job {job.get('job_id')}")
-        return False
+        return True
+
+    if job.get("alerted_at"):
+        logger.info(f"Job {job.get('job_id')} already alerted at {job.get('alerted_at')}; skipping duplicate card.")
+        return True
 
     _, default_chat_id = get_telegram_credentials()
     target_chat = chat_id or default_chat_id
@@ -124,7 +131,17 @@ def send_interactive_proposal(
         "reply_markup": reply_markup,
         "disable_web_page_preview": True,
     })
-    return bool(res and res.get("ok"))
+
+    if bool(res and res.get("ok")):
+        now_iso = datetime.now(timezone.utc).isoformat()
+        job["alerted_at"] = now_iso
+        if state_mgr:
+            try:
+                state_mgr.save_jobs({job.get("job_id", ""): job})
+            except Exception as e:
+                logger.warning(f"Failed to persist alerted_at for job {job.get('job_id')}: {e}")
+        return True
+    return False
 
 
 class TelegramBotListener:
@@ -420,8 +437,32 @@ class TelegramBotListener:
             )
             telegram_api_call("sendMessage", {"chat_id": chat_id, "text": sync_msg, "parse_mode": "HTML"})
 
+    def process_update(self, update: Dict[str, Any]) -> Dict[str, Any]:
+        """Process a single Telegram update (callback query or message)."""
+        if "callback_query" in update:
+            self.handle_callback_query(update["callback_query"])
+            return {"type": "callback_query", "handled": True}
+        elif "message" in update:
+            self.handle_message(update["message"])
+            return {"type": "message", "handled": True}
+        return {"type": "unknown", "handled": False}
+
     def poll_updates(self, timeout: int = 10) -> None:
         """Single poll pass for Telegram updates."""
+        try:
+            state = self.state_mgr.load_state()
+            inbound_mode = state.get("inbound_mode", "polling:railway")
+            from .tier import current_tier
+            this_tier = current_tier().lower()
+            if inbound_mode == "webhook":
+                logger.debug("Inbound mode is 'webhook'; skipping polling to prevent conflicts.")
+                return
+            if inbound_mode.startswith("polling:") and inbound_mode != f"polling:{this_tier}" and inbound_mode != "polling":
+                logger.debug(f"Inbound mode is {inbound_mode}; current tier is {this_tier}; skipping polling.")
+                return
+        except Exception:
+            pass
+
         token, _ = get_telegram_credentials()
         if not token:
             return
@@ -435,10 +476,18 @@ class TelegramBotListener:
                     return
                 for update in data.get("result", []):
                     self.last_update_id = max(self.last_update_id, update.get("update_id", 0))
-                    if "callback_query" in update:
-                        self.handle_callback_query(update["callback_query"])
-                    elif "message" in update:
-                        self.handle_message(update["message"])
+                    self.process_update(update)
+        except urllib.error.HTTPError as e:
+            if e.code == 409:
+                logger.warning("Telegram polling returned 409 Conflict: webhook or another poller active.")
+                try:
+                    from .alerts import AlertManager
+                    alert_mgr = AlertManager()
+                    alert_mgr.raise_alert("W9", "Telegram polling 409 Conflict: webhook active", severity="WARNING")
+                except Exception:
+                    pass
+            else:
+                logger.debug(f"Poll updates HTTP error {e.code}: {e}")
         except Exception as e:
             logger.debug(f"Poll updates exception: {e}")
 
@@ -456,3 +505,31 @@ class TelegramBotListener:
 
     def stop(self) -> None:
         self.running = False
+
+
+def process_telegram_update(
+    update: Dict[str, Any],
+    mcp_client: Optional[UpworkMCPClient] = None,
+    state_mgr: Optional[StateManager] = None,
+) -> Dict[str, Any]:
+    """
+    Module-level entrypoint for processing webhook updates (e.g. from Vercel /api/telegram).
+    Loads latest state, handles callback queries or commands, and returns result.
+    """
+    from .state_backend import get_default_backend
+    backend = get_default_backend()
+    if state_mgr is None:
+        state_mgr = StateManager(STATE_DIR, backend=backend)
+        try:
+            state_mgr.pull()
+        except Exception:
+            pass
+
+    if mcp_client is None:
+        from .upwork_oauth import UpworkOAuthManager
+        oauth = UpworkOAuthManager(backend=backend)
+        token = oauth.get_valid_access_token(lease_held=False)
+        mcp_client = UpworkMCPClient(auth_token=token, oauth_manager=oauth, lease_held=False)
+
+    listener = TelegramBotListener(mcp_client=mcp_client, state_mgr=state_mgr)
+    return listener.process_update(update)

@@ -120,8 +120,12 @@ def compile_daily_report_metrics(
     # -------------------------------------------------------------
     latest_activity_dt: Optional[datetime] = None
     all_ts: List[str] = []
-    if state.get("last_hunt_pass_at"):
+    # Principle P3: Heartbeat = proof of work (auth_ok & searches_ok), never just "loop ticked"
+    if state.get("last_success_at"):
+        all_ts.append(state["last_success_at"])
+    elif state.get("last_hunt_pass_at") and state.get("last_pass_record", {}).get("auth_ok", True):
         all_ts.append(state["last_hunt_pass_at"])
+
     for j in jobs.values():
         for k in ["first_seen_at", "scraped_at", "vetted_at", "staged_at", "rejected_at"]:
             v = j.get(k)
