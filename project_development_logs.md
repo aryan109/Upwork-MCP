@@ -612,5 +612,31 @@
     - Ran full test suite across the engine: all 55 tests passed in 9.47s with zero regressions.
     - Verified live HTTP endpoints (`/health`, `/report`, `/api/daily-report`) responding with HTTP 200 OK.
 
+## [2026-10-10 06:45 IST] — Strict 24h Date Isolation, System Downtime Tracker & Review Queue Backlog Separation
+
+- **Context & Problem Statement**:
+  - The daily report was showing 1 selected proposal for review from 4 days ago (`2026-10-06`), leading the user to suspect old historical jobs were masquerading as fresh daily activity.
+  - Root cause investigation identified a legacy fallback in `web_report.py` (`jobs_in_window = list(jobs.values())`) which, when 0 jobs ran on the target date, dumped the entire historical database into the report.
+  - The user requested strict date tracking and isolation so the system clearly tracks when and what was vetted, distinguishes 0-lead active hunt days from runner downtime (e.g. system being down for 1–3 days), and accurately isolates the historical review queue backlog.
+
+- **Architectural Solutions & Changes**:
+  - **Strict 24h Date Window Isolation (`aryan_implementation/engine/web_report.py`)**:
+    - Completely eliminated the historical fallback (`jobs_in_window = list(jobs.values())`).
+    - Enforced strict filtering against `event_date`, `vetted_date`, `staged_date`, `rejected_date`, or parsed ISO timestamps matching `target_date`.
+    - If 0 jobs were evaluated on the target date, the report strictly reflects `0 Analysed`, `0 Staged`, `0 Disqualified`, and `0 Connects Preserved`.
+  - **System Health & Downtime Tracker (`web_report.py` & `daily_report.py`)**:
+    - Built `detect_system_health()`: computes elapsed time since last active hunt pass (`state["last_hunt_pass_at"]`).
+    - If elapsed time exceeds 2 hours, triggers an explicit `⚠️ Runner Status Alert: System Downtime / Inactive ({elapsed_desc})` displaying last scan timestamp.
+    - Displays 🟢 Active & Healthy status with scan recency when the runner is operational.
+  - **Review Queue Backlog Separation (`web_report.py` & `daily_report.py`)**:
+    - Decoupled **Staged Proposals on Today's Date** from **Historical Review Queue Backlog**.
+    - Backlog items explicitly report original staging date and elapsed days (e.g. `2026-10-06 (4 days ago)`), review commands, and links without conflating them with today's activity.
+  - **Lifecycle Date Stamping (`aryan_implementation/engine/hourly_runner.py`)**:
+    - Injected ISO timestamps and YYYY-MM-DD date strings on all lifecycle transitions: `vetted_at`, `vetted_date`, `staged_at`, `staged_date`, `rejected_at`, `rejected_date`, and `event_date`.
+    - Persists `last_hunt_pass_at`, `last_hunt_date`, and `last_hunt_run_id` into persistent state.
+  - **Testing & Verification**:
+    - Added unit test validation in `test_daily_report.py` covering strict date isolation, downtime warnings, and backlog segregation.
+    - Verified full test suite across the engine: all 55 tests passed with zero regressions.
+
 
 

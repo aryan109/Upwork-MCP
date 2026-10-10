@@ -115,6 +115,13 @@ RULES:
 
 > *This section is maintained automatically by the Monthly Strategy Engine.*
 
+- **[2026-10-10] Monthly Strategy Calibration**: - Adjusted proposal template to foreground ROI metrics in Proof section.
+- Added explicit scope‑control language to Risk section.
+- Integrated top‑performing buzzwords (Agile, Scalable, API Integration, Cloud Migration, Performance Optimization) into opening paragraphs.
+- Updated budget framing to align with $55/hr ceiling and $850 fixed‑price expectations. Trending stacks: `Agile, Scalable, API Integration, Cloud Migration, Performance Optimization`. Core proof priority: *'Showcase quantifiable ROI or performance improvements from past projects (e.g., % increase in conversion rates, time saved, cost reductions).'*. Risk anchor: *'Highlight a clear scope‑management plan to mitigate scope creep and budget overruns, especially for mid‑range budgets.'*.
+- **[2026-10-10] Monthly Strategy Calibration**: - Adjusted proof focus to API integration success story
+- Added risk warning about scope creep and phased milestones
+- Updated keyword list to reflect high‑signal terms despite low market volume Trending stacks: `API integration, scalable architecture, remote collaboration, CI/CD pipelines, microservices`. Core proof priority: *'Showcase a recent end‑to‑end API integration project with measurable performance gains.'*. Risk anchor: *'Highlight potential scope creep due to ambiguous requirements and propose a phased delivery plan.'*.
 - **[2026-10-10] Monthly Strategy Calibration**: - Adjusted proposal template to foreground migration ROI metrics.
 - Added explicit scope‑creep mitigation language.
 - Integrated top‑trend tech terms to align with client search behavior. Trending stacks: `microservices, CI/CD pipelines, cloud-native, API integration, performance optimization`. Core proof priority: *'Demonstrate measurable performance improvements in legacy system migrations, such as reduced load times or cost savings, to showcase tangible ROI.'*. Risk anchor: *'Highlight potential scope creep due to ambiguous requirements and propose a phased delivery model with clear milestones.'*.

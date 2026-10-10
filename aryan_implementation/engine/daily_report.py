@@ -85,6 +85,23 @@ class DailyReportEngine:
             f"- 🛡️ **Connects Preserved by Safeguards**: **~{connects_saved} Connects** (Est. Value: ~${connects_saved * 0.15:.2f})",
         ]
 
+        # System Health Note
+        s_health = metrics.get("system_health", {})
+        if s_health.get("is_downtime"):
+            report_lines.append(f"- ⚠️ **Runner Status Alert**: {s_health.get('status_label')}. Last scan completed at {s_health.get('last_activity_at')}.")
+        else:
+            report_lines.append(f"- 🟢 **Runner Status**: Active & Healthy (last scan {s_health.get('elapsed_desc')}).")
+
+        # Review Queue Backlog from earlier dates
+        backlog = metrics.get("review_queue_backlog", [])
+        if backlog:
+            report_lines.append("")
+            report_lines.append(f"### 📋 Review Queue Backlog ({len(backlog)} Pending from Earlier Dates):")
+            for b in backlog:
+                report_lines.append(f"- **[{b.get('title')}]({b.get('url')})** — Score: `{b.get('score', 0):.1f}` | Rate: `{b.get('pricing')}`")
+                report_lines.append(f"  - *Staged Date*: **{b.get('staged_date')}** ({b.get('age_days')} days ago)")
+                report_lines.append(f"  - *Review Command*: `python -m aryan_implementation.engine.cli submit --job-id {b.get('job_id')} --confirm`")
+
         # Connects Saved by D11 explicit mention
         d11_info = rejection_breakdown.get("D11")
         if d11_info:
@@ -105,12 +122,16 @@ class DailyReportEngine:
         # Staged Proposals Pending Action (With Why Selected)
         if selected_jobs:
             report_lines.append("")
-            report_lines.append("### 🎯 Staged Proposals Pending Action (Why Selected):")
+            report_lines.append(f"### 🎯 Staged Proposals Pending Action (Why Selected) — {target_date}:")
             for s in selected_jobs:
                 reasons_str = "; ".join(s["why_selected"])
                 report_lines.append(f"- **[{s.get('title')}]({s.get('url')})** — Score: `{s.get('score', 0):.1f}` | Rate: `{s.get('pricing')}`")
                 report_lines.append(f"  - **Why Selected**: {reasons_str}")
                 report_lines.append(f"  - *Review Command*: `python -m aryan_implementation.engine.cli submit --job-id {s.get('job_id')} --confirm`")
+        else:
+            report_lines.append("")
+            report_lines.append(f"### 🎯 Staged Proposals on {target_date}:")
+            report_lines.append(f"- *0 new proposals were staged strictly on {target_date}.*")
 
         # -------------------------------------------------------------
         # Part 2: What the Trend Is (Market Demand Signals & Velocity)

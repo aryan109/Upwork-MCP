@@ -97,12 +97,19 @@ def run_single_pass(
 
         is_disq, d_id, d_reason = check_disqualifiers(job)
 
+        now_iso = now_utc.isoformat()
+        today_date_str = now_utc.strftime("%Y-%m-%d")
+
         if is_disq:
             job["status"] = "skipped"
             job["decision"] = "SKIP"
             job["disqualifiers"] = [d_id]
             job["reasons"] = [d_reason]
             job["score"] = 0.0
+            job["vetted_at"] = now_iso
+            job["rejected_at"] = now_iso
+            job["rejected_date"] = today_date_str
+            job["event_date"] = today_date_str
 
             # Permanently record rejection into ledger blacklist
             ledger.record_job(job, status="skipped", decision="SKIP", score=0.0, rejection_reason=f"{d_id}: {d_reason}")
@@ -124,6 +131,8 @@ def run_single_pass(
             job["reasons"] = score_res["reasons"]
             job["rung_suggested"] = score_res["rung_suggested"]
             job["pricing_hint"] = score_res["pricing_hint"]
+            job["vetted_at"] = now_iso
+            job["event_date"] = today_date_str
 
             # Always capture high scoring jobs into intelligence
             if score_res["score"] >= 60.0:
@@ -141,6 +150,8 @@ def run_single_pass(
                     job["status"] = "ai_rejected"
                     job["decision"] = "SKIP"
                     job["reasons"] = ai_eval.get("toxic_client_flags", ["AI detected bad client / toxic flags"])
+                    job["rejected_at"] = now_iso
+                    job["rejected_date"] = today_date_str
                     skipped_count += 1
 
                     # Record AI rejection into ledger blacklist
@@ -156,6 +167,8 @@ def run_single_pass(
                     draft = drafter.generate_full_draft(job, score_res)
                     job["draft"] = draft
                     job["status"] = "drafted"
+                    job["staged_at"] = now_iso
+                    job["staged_date"] = today_date_str
                     staged_proposals.append(job)
 
                     # Record drafted status into ledger
@@ -187,6 +200,10 @@ def run_single_pass(
         vetted_count += 1
 
     # Save state
+    state["last_hunt_pass_at"] = now_utc.isoformat()
+    state["last_hunt_date"] = now_utc.strftime("%Y-%m-%d")
+    state["last_hunt_run_id"] = run_id
+    state_mgr.save_state(state)
     state_mgr.save_jobs(jobs)
     try:
         intel_eng.generate_digest()
