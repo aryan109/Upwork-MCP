@@ -2,7 +2,7 @@
 name: upwork-proposal-crafting-skill
 description: Authoritative, model-agnostic guidelines and system prompt for generating high-converting Upwork proposals in 2026. Enforces the 14-second attention budget, first-line preview optimization, verifiable proof matching, proactive risk identification, and anti-AI linguistic filters.
 version: "1.0.0"
-last_updated: "2026-10-08"
+last_updated: "2026-10-10"
 ---
 
 # 🎯 Upwork Proposal Crafting Skill: High-Conversion Engine (2026 Edition)
@@ -115,6 +115,15 @@ RULES:
 
 > *This section is maintained automatically by the Monthly Strategy Engine.*
 
+- **[2026-10-10] Monthly Strategy Calibration**: - Adjusted proposal template to foreground migration ROI metrics.
+- Added explicit scope‑creep mitigation language.
+- Integrated top‑trend tech terms to align with client search behavior. Trending stacks: `microservices, CI/CD pipelines, cloud-native, API integration, performance optimization`. Core proof priority: *'Demonstrate measurable performance improvements in legacy system migrations, such as reduced load times or cost savings, to showcase tangible ROI.'*. Risk anchor: *'Highlight potential scope creep due to ambiguous requirements and propose a phased delivery model with clear milestones.'*.
+- **[2026-10-10] Monthly Strategy Calibration**: - Adjusted proposal template to foreground budget‑constrained success stories and a strict scope‑control clause.
+- Added a new proof point section highlighting $850‑$900 fixed‑price project completions.
+- Integrated top‑performing keywords to align with current client cost‑sensitivity. Trending stacks: `budget optimization, deadline adherence, ROI-focused, clear milestones, risk mitigation`. Core proof priority: *'Showcase completed projects delivered within $800‑$900 fixed budgets and under 55 $/hr, emphasizing on‑time delivery and measurable ROI.'*. Risk anchor: *'Highlight the risk of scope creep when budgets are tight, and propose a clear change‑order process to protect both parties.'*.
+- **[2026-10-10] Monthly Strategy Calibration**: - Adjusted proposal template to foreground ROI‑driven proof points (e.g., API integration case study).
+- Added explicit scope‑control risk language.
+- Updated keyword bank with high‑signal terms reflecting current client interests. Trending stacks: `API integration, cloud migration, automation, data pipelines, microservices`. Core proof priority: *'Include a concise case study highlighting a recent API integration project that delivered a 30% performance boost and measurable cost savings.'*. Risk anchor: *'Emphasize risk of scope creep and outline a clear change‑request process with milestone‑based approvals.'*.
 - **[2026-10-08] Monthly Strategy Calibration**: - Adjusted proposal template to foreground ROI case studies.
 - Added explicit risk mitigation clause for scope creep.
 - Integrated top‑trend keywords into opening paragraph. Trending stacks: `scalable architecture, API integration, cloud migration, CI/CD pipelines, data security`. Core proof priority: *'Include concrete ROI case studies that showcase cost‑efficient automation or productivity gains for similar budget ranges.'*. Risk anchor: *'Highlight the risk of scope creep caused by ambiguous requirements and propose a clear change‑order process.'*.

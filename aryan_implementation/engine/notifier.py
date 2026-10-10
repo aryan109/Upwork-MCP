@@ -147,15 +147,17 @@ def notify_daily_report_ready(
     report_date: str,
     staged_count: int,
     report_text: Optional[str] = None,
+    metrics: Optional[Dict[str, Any]] = None,
 ) -> bool:
     """Alert when the daily intelligence report has been compiled."""
     title = f"Daily Upwork Report Ready ({report_date})"
-    message = f"Market trends, {staged_count} staged leads, content hooks, and improvement insights ready."
+    message = f"Market trends, {staged_count} staged leads, breakdown, and improvement insights ready."
     
     desktop_ok = notify(title, message, category="Daily Report", priority="normal", send_telegram=False)
     try:
-        send_daily_report_alert(report_text or message, report_date, staged_count)
+        send_daily_report_alert(report_text or message, report_date, staged_count, metrics=metrics)
     except Exception as e:
         logger.debug(f"Telegram daily report alert note: {e}")
 
     return desktop_ok
+

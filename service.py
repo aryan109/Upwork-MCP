@@ -6,12 +6,15 @@ Combines:
 3. Hourly Autonomous Hunter Loop (discovery, vetting, D1-D11 safeguards)
 4. Daily Notion & Market Intelligence Sync
 """
+import html
 import http.server
+import json
 import logging
 import os
 import sys
 import threading
 import time
+import urllib.parse
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -39,11 +42,27 @@ logging.basicConfig(
 logger = logging.getLogger("upwork_service")
 
 
+from aryan_implementation.engine.web_report import (
+    compile_daily_report_metrics,
+    render_html_dashboard,
+)
+
+
 class HealthCheckHandler(http.server.BaseHTTPRequestHandler):
-    """Simple HTTP server responding to Railway health checks."""
+    """
+    Production HTTP Server for Railway:
+    - Responds to Railway health checks at /health
+    - Serves dynamic interactive Daily Report Web Dashboard at / and /report
+    - Serves JSON API at /api/daily-report and /api/status
+    """
 
     def do_GET(self):
-        if self.path in ("/", "/health"):
+        parsed = urllib.parse.urlparse(self.path)
+        path = parsed.path.rstrip("/") or "/"
+        query_params = urllib.parse.parse_qs(parsed.query)
+
+        # 1. Railway Health Check
+        if path in ("/health",):
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
@@ -52,11 +71,70 @@ class HealthCheckHandler(http.server.BaseHTTPRequestHandler):
                 "service": "Aryan Upwork Autonomous Pipeline",
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             }
-            import json
             self.wfile.write(json.dumps(status).encode("utf-8"))
+            return
+
+        # 2. Daily Report JSON API
+        elif path in ("/api/daily-report", "/api/report"):
+            try:
+                date_param = query_params.get("date", [None])[0]
+                metrics = compile_daily_report_metrics(STATE_DIR, target_date=date_param)
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.end_headers()
+                self.wfile.write(json.dumps(metrics, indent=2, ensure_ascii=False).encode("utf-8"))
+            except Exception as e:
+                logger.error(f"Error serving report JSON: {e}", exc_info=True)
+                self.send_response(500)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode("utf-8"))
+            return
+
+        # 3. Dynamic Interactive HTML Daily Report Dashboard
+        elif path in ("/", "/report", "/daily-report"):
+            try:
+                date_param = query_params.get("date", [None])[0]
+                metrics = compile_daily_report_metrics(STATE_DIR, target_date=date_param)
+                html_content = render_html_dashboard(metrics)
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.end_headers()
+                self.wfile.write(html_content.encode("utf-8"))
+            except Exception as e:
+                logger.error(f"Error serving report HTML dashboard: {e}", exc_info=True)
+                self.send_response(500)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.end_headers()
+                self.wfile.write(f"<h1>500 Internal Error</h1><p>{html.escape(str(e))}</p>".encode("utf-8"))
+            return
+
+        # 4. Pipeline Status JSON
+        elif path in ("/api/status", "/status"):
+            try:
+                sm = StateManager(STATE_DIR)
+                st = sm.load_state()
+                jb = sm.load_jobs()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    "connects_balance": st.get("connects_balance", 110),
+                    "kill_switch": st.get("kill_switch", False),
+                    "total_jobs": len(jb),
+                    "staged_proposals": sum(1 for j in jb.values() if j.get("status") in ("drafted", "preview_ready")),
+                    "last_updated": datetime.now(timezone.utc).isoformat(),
+                }, indent=2).encode("utf-8"))
+            except Exception as e:
+                self.send_response(500)
+                self.end_headers()
+            return
+
         else:
             self.send_response(404)
+            self.send_header("Content-Type", "text/plain")
             self.end_headers()
+            self.wfile.write(b"404 Not Found")
 
     def log_message(self, format, *args):
         # Silence verbose access logs
@@ -65,8 +143,9 @@ class HealthCheckHandler(http.server.BaseHTTPRequestHandler):
 
 def start_http_server(port: int):
     server = http.server.HTTPServer(("0.0.0.0", port), HealthCheckHandler)
-    logger.info(f"Health check HTTP server listening on port {port}")
+    logger.info(f"Health check & Web Report HTTP server listening on port {port}")
     server.serve_forever()
+
 
 
 def hourly_hunter_worker(state_mgr: StateManager, mcp_client: UpworkMCPClient):

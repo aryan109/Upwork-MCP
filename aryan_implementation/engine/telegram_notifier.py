@@ -332,33 +332,41 @@ def send_daily_report_alert(
     report_text: str,
     target_date: str,
     staged_count: int,
+    metrics: Optional[Dict[str, Any]] = None,
 ) -> bool:
     """
-    Dispatches a formatted summary of the daily 4-part report to Telegram,
-    including direct links to the Notion live document.
+    Dispatches a comprehensive formatted summary of the daily report to Telegram,
+    including analysed count, selected jobs with reasons, rejections breakdown with reasons,
+    observations, possible actions, and direct links to the dynamic web report on Railway & Notion.
     """
-    hook_match = re.search(r"\*\*Headline / Hook\*\*:\s*\*\*([^\*]+)\*\*", report_text)
-    hook = hook_match.group(1).strip() if hook_match else "Focus on hardening AI prototypes into production RAG & Evals."
+    try:
+        from .web_report import render_telegram_summary_message, compile_daily_report_metrics
+        if not metrics:
+            metrics = compile_daily_report_metrics(target_date=target_date)
+        text = render_telegram_summary_message(metrics)
+        return send_telegram_message(text, parse_mode="HTML")
+    except Exception as e:
+        logger.warning(f"Error compiling web report metrics for Telegram: {e}")
+
+    # Fallback formatting if web_report module fails
+    connects_match = re.search(r"Connects Status\*\*:\s*\*\*([^\*]+)\*\*", report_text)
+    connects = connects_match.group(1).strip() if connects_match else "110"
 
     rate_match = re.search(r"Average Top Hourly Rate\*\*:\s*\*\*([^\*]+)\*\*", report_text)
     top_rate = rate_match.group(1).strip() if rate_match else "$80/hr"
-
-    connects_match = re.search(r"Connects Status\*\*:\s*\*\*([^\*]+)\*\*", report_text)
-    connects = connects_match.group(1).strip() if connects_match else "110"
 
     text = (
         f"📊 <b>Daily Upwork Intelligence & Action Report ({target_date})</b>\n\n"
         f"<b>1. Activity & Pipeline:</b>\n"
         f"• Connects Available: <b>{connects}</b>\n"
-        f"• New Proposals Staged for Review: <b>{staged_count}</b>\n\n"
+        f"• Proposals Staged for Review: <b>{staged_count}</b>\n\n"
         f"<b>2. Market Demand & Velocity:</b>\n"
-        f"• High Velocity Stacks: <code>Cursor, Lovable, Supabase, RAG, Evals</code>\n"
+        f"• High Velocity Stacks: <code>Claude MCP, Cursor, Lovable, Supabase, RAG</code>\n"
         f"• Top Hourly Ceiling: <b>{top_rate}</b>\n\n"
-        f"<b>3. Today's Content / Social Hook:</b>\n"
-        f"💡 <i>\"{hook}\"</i>\n\n"
-        f"<b>4. Live Knowledge Base & Hub Links:</b>\n"
+        f"<b>3. Live Knowledge Base & Hub Links:</b>\n"
         f"📖 <a href=\"{NOTION_DAILY_REPORT_URL}\">View Full Report on Notion</a>\n"
         f"🧠 <a href=\"{NOTION_MARKET_INTEL_URL}\">Market Intelligence Knowledge Base</a>\n"
         f"💼 <a href=\"{NOTION_HUB_URL}\">Upwork OS Command Center</a>"
     )
     return send_telegram_message(text, parse_mode="HTML")
+

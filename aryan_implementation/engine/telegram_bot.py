@@ -369,10 +369,17 @@ class TelegramBotListener:
             rep_eng = DailyReportEngine(self.state_mgr.state_dir)
             today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
             res = rep_eng.generate_daily_report(today_str)
+            metrics = res.get("metrics", {})
+            web_link = metrics.get("web_report_link", "http://localhost:8080/report")
             telegram_api_call("sendMessage", {
                 "chat_id": chat_id,
-                "text": "✅ <i>Daily report generated and delivered above!</i>",
+                "text": f"✅ <b>Daily report delivered above!</b>\n\n🌐 <a href=\"{web_link}\">Open Live Web Dashboard on Railway</a>",
                 "parse_mode": "HTML",
+                "reply_markup": {
+                    "inline_keyboard": [
+                        [{"text": "🌐 Open Web Dashboard", "url": web_link}],
+                    ]
+                }
             })
 
         elif cmd == "/monthly":

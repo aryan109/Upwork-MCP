@@ -1,7 +1,7 @@
 """
 Daily Comprehensive Report & Continuous Improvement Engine for Aryan Upwork Acquisition Pipeline.
 Compiles a 4-part daily briefing:
-1. What's Happened (Last 24 hours retrospective)
+1. What's Happened (Last 24 hours retrospective: jobs analysed, selected, rejected & why)
 2. What the Trend Is (Market intelligence, velocity, tech stacks)
 3. What You Need to Focus On (Profile adjustments, content angles, proof assets)
 4. How We Can Improve (System learning, query calibration, conversion tuning)
@@ -19,6 +19,11 @@ from .market_intel import MarketIntelEngine
 from .notifier import notify_daily_report_ready
 from .notion_publisher import NotionPublisher
 from .state_manager import StateManager
+from .web_report import (
+    compile_daily_report_metrics,
+    render_html_dashboard,
+    render_telegram_summary_message,
+)
 
 logger = logging.getLogger("daily_report")
 
@@ -36,141 +41,80 @@ class DailyReportEngine:
     def generate_daily_report(self, date_str: Optional[str] = None) -> Dict[str, Any]:
         """
         Compile the full 4-part daily report.
-        Writes to daily_report.md and stores in the historical archive.
+        Writes to daily_report.md, daily_report_{date}.html, and stores in the historical archive.
         """
         now_utc = datetime.now(timezone.utc)
         target_date = date_str or now_utc.strftime("%Y-%m-%d")
         self.reports_dir.mkdir(parents=True, exist_ok=True)
         archive_path = self.reports_dir / f"daily_report_{target_date}.md"
+        html_archive_path = self.reports_dir / f"daily_report_{target_date}.html"
+        latest_html_path = self.reports_dir / "daily_report_latest.html"
 
-        state = self.state_mgr.load_state()
-        jobs = self.state_mgr.load_jobs()
-        camps_data = self.state_mgr.load_campaigns()
-        intel = self.intel_eng.load_intelligence()
+        # Compile granular metrics across jobs, state, and market intelligence
+        metrics = compile_daily_report_metrics(self.state_dir, target_date=target_date)
 
-        if date_str:
-            try:
-                ref_dt = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc) + timedelta(days=1)
-            except Exception:
-                ref_dt = now_utc
-        else:
-            ref_dt = now_utc
-        one_day_ago = ref_dt - timedelta(hours=24)
-        
-        discovered_24h: List[Dict[str, Any]] = []
-        applied_24h: List[Dict[str, Any]] = []
-        staged_24h: List[Dict[str, Any]] = []
-        skipped_24h: List[Dict[str, Any]] = []
-        d11_filled_24h: List[Dict[str, Any]] = []
-        disq_counts: Dict[str, int] = {}
-
-        for jid, job in jobs.items():
-            first_seen = job.get("first_seen_at")
-            in_window = True
-            if first_seen:
-                try:
-                    dt = datetime.fromisoformat(first_seen.replace("Z", "+00:00"))
-                    in_window = (one_day_ago <= dt <= ref_dt)
-                except Exception:
-                    pass
-
-            if in_window:
-                discovered_24h.append(job)
-                status = job.get("status", "")
-                if status == "submitted":
-                    applied_24h.append(job)
-                elif status in ("drafted", "preview_ready"):
-                    staged_24h.append(job)
-                elif status == "skipped":
-                    skipped_24h.append(job)
-                    for d in job.get("disqualifiers", []):
-                        disq_counts[d] = disq_counts.get(d, 0) + 1
-                        if d == "D11":
-                            d11_filled_24h.append(job)
-
-        connects_balance = state.get("connects_balance", 110)
-        connects_budget = state.get("connects_budget_month", 250)
+        connects_balance = metrics["connects_balance"]
+        connects_budget = metrics["connects_budget"]
+        total_analysed = metrics["total_analysed"]
+        selected_jobs = metrics["selected_jobs"]
+        rejected_jobs = metrics["rejected_jobs"]
+        rejection_breakdown = metrics["rejection_breakdown"]
+        connects_saved = metrics["connects_saved"]
+        top_techs = metrics["top_techs"]
+        avg_hourly = metrics["avg_hourly"]
+        top_ceiling = metrics["top_ceiling"]
+        dynamic_hook = metrics["dynamic_hook"]
 
         # -------------------------------------------------------------
-        # Part 2: What the Trend Is (Market Velocity & Tech Stacks)
-        # -------------------------------------------------------------
-        records = list(intel.get("records", {}).values())
-        tech_counts: Dict[str, int] = {}
-        for r in records:
-            for t in r.get("tech_stack", []):
-                tech_counts[t] = tech_counts.get(t, 0) + 1
-
-        top_techs = sorted(tech_counts.items(), key=lambda x: x[1], reverse=True)[:8]
-
-        # Rate insights
-        hourly_rates = [
-            float(r["budget"]["hourly_max"])
-            for r in records
-            if r.get("budget", {}).get("type") == "hourly" and r.get("budget", {}).get("hourly_max")
-        ]
-        avg_hourly = (sum(hourly_rates) / len(hourly_rates)) if hourly_rates else 65.0
-
-        # Rapid hire signals
-        rapid_hires = [r for r in records if r.get("status") == "FILLED" or r.get("total_hired", 0) > 0]
-
-        # -------------------------------------------------------------
-        # Part 3: What Aryan Needs to Focus On
-        # -------------------------------------------------------------
-        recommended_tags = ["#AIEvals", "#RAGArchitecture", "#LovableDev", "#CursorAI", "#Supabase", "#ModelContextProtocol"]
-        
-        post_hook = "Why Cursor & Lovable AI prototypes fail on real customer documents (and how 3-step evals fix them)"
-        post_outline = [
-            "1. The Demo Trap: AI app builders make slick demos in hours, but production accuracy plummets when messy customer PDFs and edge-case queries arrive.",
-            "2. Stop Tweaking Prompts Blindly: Before modifying system prompts, set up an automated evaluation harness measuring retrieval recall and answer faithfulness.",
-            "3. Hardening Vector Retrieval: Hybrid search in Supabase (pgvector + full-text) and strict confidence thresholds keep your assistant trustworthy.",
-        ]
-        proof_asset = "Record a 3-minute Loom demo showing a lightweight automated evaluation runner measuring hallucination rates over sample customer documents."
-
-        # -------------------------------------------------------------
-        # Part 4: How We Can Improve (Continuous Self-Improvement)
-        # -------------------------------------------------------------
-        improvement_points = [
-            "1. **Speed to Discovery**: High-paying AI roles ($50–$80/hr) are hiring within 3 hours. Running the automated hourly task ensures new postings are caught within 15–45 minutes.",
-            "2. **Campaign Keyword Calibration**: Live marketplace signals show high client demand for `Lovable`, `Cursor`, and `Evals`. Adding these terms into `campaigns.json` under `rag-knowledge` will increase high-converting candidate discovery.",
-            "3. **Connects Preservation**: Disqualifier D11 successfully prevents applying to jobs where the client has already hired, directly preserving your Connects balance.",
-            "4. **Proposal Structure Feedback**: Proposing a clear fixed Sprint ($599) as an alternative to hourly rates makes it easy for fast-moving founders to approve immediately without open-ended hourly risk.",
-        ]
-
-        # -------------------------------------------------------------
-        # Compile Markdown Report
+        # Part 1: What's Happened (Last 24 Hours Retrospective)
         # -------------------------------------------------------------
         report_lines = [
             f"# Daily Upwork Intelligence & Action Report — {target_date}",
             f"*Generated: {now_utc.strftime('%Y-%m-%d %H:%M:%S UTC')}*",
             "",
-            "> **Executive Summary**: Hourly background hunter is active. Vetted postings are guarded by D1–D11 disqualifiers to protect Connects. High-velocity market demand centers around hardening Cursor/Lovable AI prototypes into production-grade RAG and MCP architectures.",
+            f"> **Executive Summary**: Hourly background hunter is active. Analyzed **{total_analysed}** opportunities with strict D1–D11 and AI risk safeguards, preserving **~{connects_saved} Connects**. High-velocity market demand centers around hardening Claude MCP, Cursor/Lovable AI prototypes into production-grade RAG and Supabase pipelines.",
             "",
             "---",
             "",
-            "## 1. What's Happened (Last 24 Hours)",
+            "## 1. What's Happened & Pipeline Activity",
             "",
             f"- **Connects Status**: **{connects_balance}** available (Monthly Budget: {connects_budget})",
-            f"- **Total Opportunities Processed**: **{len(discovered_24h)}** leads",
-            f"- **Proposals Awaiting Your 1-Click Review**: **{len(staged_24h)}**",
-            f"- **Proposals Submitted**: **{len(applied_24h)}**",
-            f"- **Disqualified Leads Filtered**: **{len(skipped_24h)}**",
+            f"- **Total Opportunities Analysed**: **{total_analysed}** leads",
+            f"- **Proposals Awaiting Your 1-Click Review**: **{len(selected_jobs)}**",
+            f"- **Disqualified Leads Filtered**: **{len(rejected_jobs)}**",
+            f"- 🛡️ **Connects Preserved by Safeguards**: **~{connects_saved} Connects** (Est. Value: ~${connects_saved * 0.15:.2f})",
         ]
 
-        if disq_counts:
-            report_lines.append("  - *Disqualification Breakdown*:")
-            for d_code, count in sorted(disq_counts.items()):
-                report_lines.append(f"    - `{d_code}`: {count} jobs")
+        # Connects Saved by D11 explicit mention
+        d11_info = rejection_breakdown.get("D11")
+        if d11_info:
+            report_lines.append(f"- ⚡ **Connects Saved by D11**: Successfully caught **{d11_info['count']}** already-filled jobs before proposal creation.")
 
-        if d11_filled_24h:
-            report_lines.append(f"- ⚡ **Connects Saved by D11**: Successfully caught **{len(d11_filled_24h)}** already-filled jobs before proposal creation.")
-
-        if staged_24h:
+        # Granular Rejection Breakdown & Why
+        if rejection_breakdown:
             report_lines.append("")
-            report_lines.append("### 🎯 Staged Proposals Pending Action:")
-            for s in staged_24h:
-                report_lines.append(f"- **[{s.get('title')}]({f'https://www.upwork.com/jobs/~' + str(s.get('job_id', '')).lstrip('~')})** — Score: `{s.get('score', 0)}` | Rate: `{s.get('pricing_hint') or '$65/hr'}`")
+            report_lines.append("### 🛑 Disqualification Breakdown & Why Rejected:")
+            for code, item in sorted(rejection_breakdown.items(), key=lambda x: x[1]["count"], reverse=True):
+                cnt = item["count"]
+                expl = item["explanation"]
+                report_lines.append(f"- **`{code}` ({cnt} jobs)**: *{expl}*")
+                if item["examples"]:
+                    for ex in item["examples"][:2]:
+                        report_lines.append(f"  - Example: *{ex}*")
+
+        # Staged Proposals Pending Action (With Why Selected)
+        if selected_jobs:
+            report_lines.append("")
+            report_lines.append("### 🎯 Staged Proposals Pending Action (Why Selected):")
+            for s in selected_jobs:
+                reasons_str = "; ".join(s["why_selected"])
+                report_lines.append(f"- **[{s.get('title')}]({s.get('url')})** — Score: `{s.get('score', 0):.1f}` | Rate: `{s.get('pricing')}`")
+                report_lines.append(f"  - **Why Selected**: {reasons_str}")
                 report_lines.append(f"  - *Review Command*: `python -m aryan_implementation.engine.cli submit --job-id {s.get('job_id')} --confirm`")
 
+        # -------------------------------------------------------------
+        # Part 2: What the Trend Is (Market Demand Signals & Velocity)
+        # -------------------------------------------------------------
         report_lines.extend([
             "",
             "---",
@@ -182,46 +126,48 @@ class DailyReportEngine:
             "|---|---|---|",
         ])
 
-        for tech, count in top_techs:
-            velocity = "🔥 High Velocity (<3h hire time)" if tech in ["Cursor", "Lovable", "RAG", "Evals", "Supabase"] else "Strong"
+        for tech, count, velocity in top_techs:
             report_lines.append(f"| **{tech}** | {count} | {velocity} |")
 
         report_lines.extend([
             "",
-            f"- **Average Top Hourly Rate**: **${avg_hourly:.0f}/hr** for fullstack AI / agent implementation roles.",
+            f"- **Average Top Hourly Rate**: **${avg_hourly:.0f}/hr** (Ceiling: **${top_ceiling:.0f}/hr**) for fullstack AI / agent implementation roles.",
             f"- **Fastest Hiring Niche**: Founders who built prototypes in **Cursor** or **Lovable** needing an engineer to add automated **evals** and fix document **hallucinations**.",
             "",
             "---",
             "",
-            "## 3. What You Need to Focus on Today",
+            "## 3. What You Need to Focus on Today & Possible Actions",
             "",
             "### A. Upwork Profile & Tags:",
-            f"- Ensure these tags are active on your profile: `{', '.join(recommended_tags)}`",
+            "- Ensure these tags are active on your profile: `#AIEvals, #RAGArchitecture, #LovableDev, #CursorAI, #Supabase, #ModelContextProtocol`",
             "- Update your profile headline/intro to emphasize: *\"Taking Cursor & Lovable AI Prototypes to Production Reliability (RAG, Evals, MCP)\"*",
             "",
-            "### B. Social / Content Hook to Publish Today:",
-            f"- **Headline / Hook**: **\"{post_hook}\"**",
+            "### B. Social / Content Hook to Publish Today (Market-Derived):",
+            f"- **Headline / Hook**: **\"{dynamic_hook}\"**",
             "- **Post Talking Points**:",
+            "  - 1. The Demo Trap: AI app builders make slick demos in hours, but production accuracy plummets when messy customer PDFs arrive.",
+            "  - 2. Stop Tweaking Prompts Blindly: Set up an automated evaluation harness measuring retrieval recall and answer faithfulness.",
+            "  - 3. Hardening Vector Retrieval: Hybrid search in Supabase (pgvector + full-text) and strict confidence thresholds keep your assistant trustworthy.",
+            "",
+            "### C. Recommended Next Actions:",
         ])
 
-        for pt in post_outline:
-            report_lines.append(f"  - {pt}")
+        for act in metrics["possible_actions"]:
+            report_lines.append(f"- [ ] {act}")
 
+        # -------------------------------------------------------------
+        # Part 4: How We Can Improve (Continuous System Evolution)
+        # -------------------------------------------------------------
         report_lines.extend([
-            "",
-            "### C. Portfolio Proof Asset to Pre-Build:",
-            f"- **Action**: {proof_asset}",
             "",
             "---",
             "",
             "## 4. How We Can Improve (Continuous System Evolution)",
             "",
-        ])
-
-        for imp in improvement_points:
-            report_lines.append(f"- {imp}")
-
-        report_lines.extend([
+            "1. **Speed to Discovery**: High-paying AI roles ($50–$80/hr) are hiring within 3 hours. Running the automated hourly task ensures new postings are caught within 15–45 minutes.",
+            "2. **Campaign Keyword Calibration**: Live marketplace signals show high client demand for `Lovable`, `Cursor`, and `Evals`. Adding these terms into `campaigns.json` under `rag-knowledge` will increase high-converting candidate discovery.",
+            "3. **Connects Preservation**: Disqualifiers D6 and D11 successfully prevent applying to ghost or already-filled jobs, directly preserving your Connects balance.",
+            "4. **Proposal Structure Feedback**: Proposing a clear fixed Sprint ($599) as an alternative to hourly rates makes it easy for fast-moving founders to approve immediately without open-ended hourly risk.",
             "",
             "---",
             "",
@@ -229,19 +175,27 @@ class DailyReportEngine:
             "- View Review Queue: `python -m aryan_implementation.engine.cli queue`",
             "- Run On-Demand Hunt: `python -m aryan_implementation.engine.cli hunt`",
             "- View Market Intel Digest: `python -m aryan_implementation.engine.cli intel`",
+            f"- Open Web Dashboard: `{metrics['web_report_link']}`",
             "- Regenerate This Daily Report: `python -m aryan_implementation.engine.cli daily-report`",
         ])
 
         report_md = "\n".join(report_lines)
 
-        # Write to workspace and historical archive
+        # Render Standalone HTML Dashboard
+        report_html = render_html_dashboard(metrics)
+
+        # Write Markdown & HTML reports to workspace and archive
         try:
             with open(self.workspace_report, "w", encoding="utf-8") as f:
                 f.write(report_md)
             with open(archive_path, "w", encoding="utf-8") as f:
                 f.write(report_md)
+            with open(html_archive_path, "w", encoding="utf-8") as f:
+                f.write(report_html)
+            with open(latest_html_path, "w", encoding="utf-8") as f:
+                f.write(report_html)
         except Exception as e:
-            logger.warning(f"Error writing daily report file: {e}")
+            logger.warning(f"Error writing daily report files: {e}")
 
         # Sync with Notion
         try:
@@ -252,13 +206,20 @@ class DailyReportEngine:
         except Exception as e:
             logger.debug(f"Notion sync note: {e}")
 
-        # Trigger desktop and Telegram notification
-        notify_daily_report_ready(target_date, len(staged_24h), report_text=report_md)
+        # Trigger desktop and Telegram notification with rich metrics
+        notify_daily_report_ready(
+            target_date,
+            metrics["selected_count"],
+            report_text=report_md,
+            metrics=metrics,
+        )
 
         return {
             "date": target_date,
             "report_path": str(self.workspace_report),
             "archive_path": str(archive_path),
-            "staged_count": len(staged_24h),
+            "html_path": str(html_archive_path),
+            "staged_count": metrics["selected_count"],
+            "metrics": metrics,
             "content": report_md,
         }

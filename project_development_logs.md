@@ -575,4 +575,42 @@
     - Deployed updated engine container to Railway production (`https://railway.com/project/b197eb1c-796a-47e2-aa92-a49ac00ab566/service/d35fc7d1-1790-451b-b554-fa900ff4778b`).
     - Verified live cloud logs: 15-minute scheduled cycles running autonomously with zero leakage.
 
+## [2026-10-10] — Daily Reporting System Overhaul: Dynamic Railway Web Dashboard & High-Signal Telegram Audits
+
+- **Context & Problem Statement**:
+  - The previous daily Telegram notification delivered minimal pipeline signal (showing 0 leads staged, static placeholders) and spent 30%+ of message space on a hardcoded, repetitive "Social Hook" (`"Why Cursor & Lovable AI prototypes fail on real customer documents..."`), which appeared like a static hallucination rather than live intelligence.
+  - The operator requested full daily transparency: exact count of jobs analysed, jobs selected (with concrete rationale for why selected), jobs rejected (with categorized breakdown of why rejected), today's observations/conclusion, and recommended possible actions.
+  - Furthermore, to avoid overflowing Telegram's mobile screen while offering exhaustive details (including full sample job titles and filter breakdowns), a dynamic web-based daily report dashboard was requested to be hosted on the existing Railway production server and linked directly in Telegram.
+
+- **Architectural Solutions & Changes**:
+  - **Dynamic Web Report & Metrics Compiler Engine (`aryan_implementation/engine/web_report.py`)**:
+    - Implemented `compile_daily_report_metrics()`:
+      - Aggregates jobs across the 24-hour analysis window or specified date.
+      - Extracts **Selected Jobs** with fit scores, pricing/terms, and human-readable positive matching signals (e.g. `title_strong_match`, `spend_high`, `client_verified`, `rung_impl`, AI fit rationale).
+      - Extracts **Rejected Jobs** with categorized disqualification breakdown: hard rules (D1–D11 with code, rule name, count, and why filtered), AI safety rejections (`ai_rejected`), and score floor filters (`SCORE_LOW`).
+      - Calculates **Connects Preserved**: tracks actual connects saved by preventing dead/ghost applications (D11 saves 16 connects each; D6/D7/D8 save 8 connects each; ~$0.15/connect economic valuation).
+      - Dynamically synthesizes market observations (noise ratio, lead quality, in-demand tech velocity) and generates operator action checklists.
+    - Implemented `render_html_dashboard()`:
+      - Generates a standalone, responsive, modern dark-themed HTML/CSS dashboard with zero external CDN dependencies (loads instantly on mobile/desktop).
+      - Features KPI stat cards (Analysed, Selected, Disqualified, Connects Preserved, Hourly Ceiling), Selected Jobs showcase cards, Rejection Breakdown with visual progress bars, collapsible sample filtered jobs, Observations & Actions checklist, and a detailed Rejection Audit log table.
+    - Implemented `render_telegram_summary_message()`:
+      - Creates a compact, high-signal HTML message formatted specifically for Telegram's 4096 character limit, featuring pipeline stats, selected proposals with rationale, rejections breakdown with reasons, key observations, recommended actions, and direct links to the Railway web report and Command Center.
+  - **Daily Report Engine Refactoring (`aryan_implementation/engine/daily_report.py`)**:
+    - Replaced hardcoded static "Social Hook" with dynamically market-derived angles computed from actual day-of leads.
+    - Refactored `DailyReportEngine.generate_daily_report()` to compile markdown (`daily_report.md` and historical archive), render and write HTML dashboards (`daily_report_{date}.html` and `daily_report_latest.html`), sync with Notion, and trigger enriched Telegram alerts.
+  - **Railway Cloud Server Upgraded for Web Dashboard Hosting (`service.py`)**:
+    - Upgraded `HealthCheckHandler` into a multi-endpoint HTTP service running on Railway's `$PORT`:
+      - `GET /health`: Continues returning 200 OK JSON for Railway health checks.
+      - `GET /` and `GET /report`: Renders and serves the dynamic HTML Daily Report Dashboard (supports `?date=YYYY-MM-DD` query parameter).
+      - `GET /api/daily-report`: Returns full structured report metrics in JSON format for headless integrations.
+      - `GET /api/status`: Returns live pipeline status and Connects balance.
+  - **Telegram Bot & Notifier Enhancements (`telegram_notifier.py` & `telegram_bot.py`)**:
+    - `send_daily_report_alert()` now dispatches the comprehensive report summary with dynamic links to the Railway web report.
+    - Updated `/report` command in `TelegramBotListener` to include an interactive inline button (`[🌐 Open Web Dashboard]`) directly opening the Railway web report URL.
+  - **Testing & Verification**:
+    - Expanded `test_daily_report.py` to verify metric compilation, selection/rejection categorization, Connects saved math, Telegram summary formatting, and HTML dashboard rendering.
+    - Ran full test suite across the engine: all 55 tests passed in 9.47s with zero regressions.
+    - Verified live HTTP endpoints (`/health`, `/report`, `/api/daily-report`) responding with HTTP 200 OK.
+
+
 
