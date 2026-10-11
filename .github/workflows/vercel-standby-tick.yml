@@ -1,0 +1,39 @@
+name: vercel-standby-tick
+
+# Independent 15-minute wake-up for the Vercel hunter when Railway and this PC
+# are both offline. Vercel Hobby cron is daily-only, so this Actions schedule
+# is the cloud trigger. Duplicate ticks are lease-protected and harmless.
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: POST Vercel /api/tick
+        env:
+          TICK_SECRET: ${{ secrets.TICK_SECRET }}
+          VERCEL_TICK_URL: ${{ secrets.VERCEL_TICK_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "${VERCEL_TICK_URL:-}" ]; then
+            echo "VERCEL_TICK_URL secret is not set"
+            exit 1
+          fi
+          curl -sS -X POST \
+            -H "X-Tick-Secret: ${TICK_SECRET}" \
+            -H "Accept: application/json" \
+            --max-time 55 \
+            -o /tmp/tick.json \
+            -w "HTTP %{http_code}\n" \
+            "$VERCEL_TICK_URL"
+          python - <<'PY'
+          import json
+          data = json.load(open("/tmp/tick.json", encoding="utf-8"))
+          print("tier=", data.get("tier") or data.get("summary", {}).get("tier"))
+          print("status=", data.get("ok"), data.get("summary", {}).get("status") or data.get("error"))
+          PY

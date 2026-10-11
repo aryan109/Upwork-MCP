@@ -295,6 +295,14 @@ def test_api_health_handler():
     assert hasattr(h, "do_GET")
 
 
+def test_ping_vercel_standby_skips_self_and_test_mode():
+    from aryan_implementation.engine.tick import ping_vercel_standby
+
+    assert ping_vercel_standby("vercel") is False
+    with patch.dict(os.environ, {"UPWORK_TEST_MODE": "1", "VERCEL_TICK_URL": "https://example.invalid/api/tick"}):
+        assert ping_vercel_standby("railway") is False
+
+
 def test_oauth_read_json_tuple_and_engine_refresh_guard(tmp_path):
     from aryan_implementation.engine.upwork_oauth import UpworkOAuthManager
 

@@ -12,9 +12,16 @@ From the local terminal:
 python -m aryan_implementation.engine.cli status
 ```
 Or check via Vercel / Railway endpoints:
-- **Vercel Health:** `https://<your-vercel-app>.vercel.app/api/health`
+- **Vercel Health:** `https://upwork-engine-blush.vercel.app/api/health`
+- **Vercel Tick:** `POST https://upwork-engine-blush.vercel.app/api/tick` (header `X-Tick-Secret`)
 - **Railway Health:** `https://upwork-engine-production-16dc.up.railway.app/health`
 - **Live Web Dashboard:** `https://upwork-engine-production-16dc.up.railway.app/report` (or Vercel `/report`)
+
+Standby wake-ups (all lease-protected, duplicates are harmless):
+- GitHub Action `vercel-standby-tick` every 15 minutes
+- Railway and local ticks POST the Vercel `/api/tick` after they finish
+- Vercel Hobby cron once daily at 03:00 UTC as a last-ditch proof-of-life
+- Windows task `AryanUpworkLocalTier` every 15 minutes and at logon
 
 ### Inspect Heartbeats & Passes
 Heartbeats and pass records are stored continuously in the private GitHub store (`aryan109/upwork-engine-state`):

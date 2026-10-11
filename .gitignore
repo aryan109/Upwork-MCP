@@ -18,3 +18,8 @@ Thumbs.db
 
 # External reference input datasets
 Upwork Analysis Agent Data/
+
+# Vercel local link metadata
+.vercel/
+
+.vercel

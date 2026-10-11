@@ -21,6 +21,8 @@ import json
 import logging
 import os
 import sys
+import urllib.error
+import urllib.request
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, Optional
 
@@ -37,6 +39,37 @@ from .upwork_oauth import UpworkOAuthManager, get_oauth_manager
 from .watchdog import WatchdogEvaluator
 
 logger = logging.getLogger("upwork_tick")
+
+
+def ping_vercel_standby(from_tier: str) -> bool:
+    """
+    Wake the Vercel standby tick. Railway and local call this after their own tick
+    so Vercel still writes a heartbeat while Railway holds the hunter lease.
+    Independent 15-minute GitHub Actions also hit the same URL.
+    """
+    if from_tier.lower() == "vercel":
+        return False
+    if os.environ.get("UPWORK_TEST_MODE"):
+        return False
+    url = os.environ.get("VERCEL_TICK_URL", "").strip()
+    secret = os.environ.get("TICK_SECRET", "").strip()
+    if not url:
+        logger.debug("VERCEL_TICK_URL unset; skipping Vercel standby ping")
+        return False
+    try:
+        headers = {
+            "User-Agent": "UpworkEngine-StandbyPing/1.0",
+            "Accept": "application/json",
+        }
+        if secret:
+            headers["X-Tick-Secret"] = secret
+        req = urllib.request.Request(url, data=b"", headers=headers, method="POST")
+        with urllib.request.urlopen(req, timeout=20) as r:
+            logger.info("Vercel standby ping from %s -> HTTP %s", from_tier, r.status)
+            return r.status in (200, 204)
+    except Exception as e:
+        logger.warning("Vercel standby ping from %s failed: %s", from_tier, e)
+        return False
 
 
 def write_heartbeat(backend: StateBackend, tier: str, ok: bool = True, detail: str = "") -> None:
@@ -137,6 +170,7 @@ def run_tick(
         logger.error(f"Store unreachable during tick pull on tier '{active_tier}': {e}")
         alert_mgr.raise_alert("W6", f"Failed to pull state from store on {active_tier}: {e}", severity="WARNING", tier=active_tier)
         if active_tier != "local":
+            ping_vercel_standby(active_tier)
             return {"tier": active_tier, "status": "store_unreachable_aborted"}
         # Local tier continues from local disk cache
         state = state_mgr.load_state()
@@ -163,6 +197,7 @@ def run_tick(
     if not lease_held:
         logger.info(f"Tier '{active_tier}' did not acquire hunter lease; operating in Watchdog/Standby mode.")
         write_heartbeat(active_backend, active_tier, ok=True, detail="Watchdog/Standby tick complete")
+        ping_vercel_standby(active_tier)
         return {"tier": active_tier, "status": "standby", "role": "watchdog"}
 
     # 7. Resolve Upwork OAuth access token (lease holder performs early refresh if stale)
@@ -204,6 +239,7 @@ def run_tick(
     lease_mgr.renew_or_yield("hunter", active_tier)
 
     write_heartbeat(active_backend, active_tier, ok=is_healthy, detail="Hunt tick completed")
+    ping_vercel_standby(active_tier)
     logger.info(f"=== Engine Tick Completed on Tier [{active_tier}] (Healthy: {is_healthy}) ===")
 
     return {

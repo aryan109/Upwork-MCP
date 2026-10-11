@@ -743,7 +743,14 @@
   - First Railway tick: `force_refresh_once` consumed; OAuth refresh succeeded; new expiry 2026-10-12 06:02 UTC.
   - Search coverage 37/37, `auth_ok=True`, `healthy=True`. Heartbeat `heartbeats/railway.json` and `passes/railway/2026-10-11.jsonl` written.
   - Live: `/health` 200 reasons=[], `/api/health-strict` 200, `/api/status` serving.
-- **Out of scope still**: Vercel tier and local Windows scheduled task.
+
+## [2026-10-11 12:05 IST] — Vercel Standby Tier + Local Scheduled Task
+
+- **Vercel**: Project `upwork-engine` at `https://upwork-engine-blush.vercel.app`. Deployment protection disabled. `/api/health` 200. Authenticated `/api/tick` returns `standby/watchdog` while Railway holds the hunter lease. Heartbeat `heartbeats/vercel.json` written.
+- **Wake-ups**: GitHub Action `vercel-standby-tick` every 15 minutes (secrets `TICK_SECRET`, `VERCEL_TICK_URL` set). Railway and local ticks POST `/api/tick` after they finish. Vercel Hobby cron daily 03:00 UTC only (plan limit).
+- **Local PC**: `schtasks` registered `AryanUpworkLocalTier` every 15 minutes. Logon fallback `Startup\AryanUpworkLocalTier.cmd`. First run wrote `heartbeats/local.json` in Watchdog/Standby (Railway still lease holder). Logs: `%USERPROFILE%\upwork_engine\logs\local_tick.log`.
+- **Alert isolation**: `AlertManager` with a backend no longer falls through to the host `alerts.json` (fixed a false cooldown in tests after live W11 writes).
+- Telegram inbound remains `polling:railway`. Vercel `/api/telegram` is deployed but unused so polling and webhook do not collide.
 
 
 

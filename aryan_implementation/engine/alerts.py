@@ -75,6 +75,7 @@ class AlertManager:
                     return data
             except Exception as e:
                 logger.debug(f"Failed to read alerts.json from backend: {e}")
+            return {"active": {}, "history": []}
 
         if self.alerts_file.exists():
             try:

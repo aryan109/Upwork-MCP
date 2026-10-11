@@ -1,0 +1,13 @@
+.env
+.env.*
+.git
+__pycache__
+.pytest_cache
+*.pyc
+*.pyo
+Upwork Analysis Agent Data
+scratch
+tmp
+*.log
+.cursor
+node_modules

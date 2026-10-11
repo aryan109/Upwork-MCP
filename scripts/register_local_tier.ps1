@@ -1,7 +1,8 @@
 # Register Windows Scheduled Task for Aryan Upwork Resilient Local Tier
-# Triggers: At logon, on session unlock, and every 15 minutes
+# Triggers: At logon and every 15 minutes
 # Executes: python -m aryan_implementation.engine.tick --tier local
 # Execution Limit: 10 minutes
+# Logs: %USERPROFILE%\upwork_engine\logs\local_tick.log
 
 $ErrorActionPreference = "Stop"
 $taskName = "AryanUpworkLocalTier"
@@ -11,37 +12,39 @@ if (-not $pythonExe) {
     $pythonExe = "python.exe"
 }
 
+$logDir = Join-Path $env:USERPROFILE "upwork_engine\logs"
+New-Item -ItemType Directory -Force -Path $logDir | Out-Null
+$logFile = Join-Path $logDir "local_tick.log"
+
 Write-Host "Registering Windows Scheduled Task: $taskName" -ForegroundColor Cyan
 Write-Host "Repository Root: $repoRoot" -ForegroundColor Gray
 Write-Host "Python Executable: $pythonExe" -ForegroundColor Gray
+Write-Host "Log file: $logFile" -ForegroundColor Gray
 
-# Action runs python -m aryan_implementation.engine.tick --tier local from repo directory
-$actionArg = "/c cd /d `"$repoRoot`" && `"$pythonExe`" -m aryan_implementation.engine.tick --tier local"
+$actionArg = "/c cd /d `"$repoRoot`" && set ENGINE_TIER=local&& `"$pythonExe`" -m aryan_implementation.engine.tick --tier local --budget 90 >> `"$logFile`" 2>&1"
 $action = New-ScheduledTaskAction -Execute "cmd.exe" -Argument $actionArg -WorkingDirectory $repoRoot
 
-# Triggers:
-# 1. At user logon
 $triggerLogon = New-ScheduledTaskTrigger -AtLogOn
+$triggerInterval = New-ScheduledTaskTrigger -Once -At (Get-Date) -RepetitionInterval (New-TimeSpan -Minutes 15) -RepetitionDuration (New-TimeSpan -Days 3650)
 
-# 2. Every 15 minutes indefinitely
-$triggerInterval = New-ScheduledTaskTrigger -Once -At (Get-Date) -RepetitionInterval (New-TimeSpan -Minutes 15)
-
-# Settings: battery allowed, 10-minute limit
 $settings = New-ScheduledTaskSettingsSet `
     -AllowStartIfOnBatteries `
     -DontStopIfGoingOnBatteries `
+    -StartWhenAvailable `
     -ExecutionTimeLimit (New-TimeSpan -Minutes 10) `
     -RestartCount 2 `
     -RestartInterval (New-TimeSpan -Minutes 5)
 
-# Register or update task
+$principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive -RunLevel Limited
+
 Register-ScheduledTask `
     -TaskName $taskName `
     -Action $action `
     -Trigger @($triggerLogon, $triggerInterval) `
     -Settings $settings `
+    -Principal $principal `
     -Description "Aryan Upwork Acquisition Pipeline Local Tier Watchdog & Fail-Safe Hunter" `
-    -Force
+    -Force | Out-Null
 
 Write-Host "Task '$taskName' registered successfully!" -ForegroundColor Green
 Write-Host "Verify status: Get-ScheduledTask -TaskName '$taskName'" -ForegroundColor Yellow
