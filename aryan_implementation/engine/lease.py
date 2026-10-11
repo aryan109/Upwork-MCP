@@ -46,7 +46,7 @@ class LeaseManager:
         tier_prio = PRIORITY.get(tier.lower(), 99)
 
         if lease_data:
-            current_holder = lease_data.get("holder", "")
+            current_holder = lease_data.get("holder") or ""
             exp_str = lease_data.get("expires_at", "")
             is_expired = True
 

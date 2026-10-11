@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 from .logger import execute_with_audit
 
@@ -190,7 +190,7 @@ class UpworkMCPClient:
             if err.code == 401:
                 logger.warning("Upwork MCP returned 401 Unauthorized. Attempting token refresh...")
                 if self.lease_held:
-                    ref_res = mgr.refresh()
+                    ref_res = mgr.refresh(lease_held=True)
                     if ref_res.get("ok"):
                         fresh_token = ref_res["token_data"]["access_token"]
                         self.auth_token = fresh_token
