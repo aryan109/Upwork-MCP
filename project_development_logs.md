@@ -709,6 +709,23 @@
     - Vercel API tick authentication and time budgeting.
   - Ran the complete test suite: **all 65 tests passed in 11.83s** (100% pass rate).
 
+## [2026-10-11 11:03 IST] — Audit: No Job Notifications Since 2026-10-10 (Read-Only Investigation)
+
+- **Question**: No "apply" notification for a full day. Is the market empty, or did the system stop scanning?
+- **Verdict**: Both, at different times. The scanner ran normally on 10-Oct but found nothing that passed vetting; from **11-Oct 07:36 IST it has been completely blind** (Upwork token expired, failure reported as "0 candidates").
+- **Evidence**:
+  - Railway live deployment `607d822d` (created 2026-10-10 07:59 IST), 735 log lines pulled via `scripts/railway_probe.py logs` to `%USERPROFILE%\upwork_engine\cloud_backup\railway\logs_607d822d.jsonl`.
+  - 108 passes at 15-minute cadence, no crashes or restarts. 32 new jobs discovered in total; 28 unique rejected as D6 (payment unverified, $0 spend, 0 hires); remaining 4 left no log line; 0 staged.
+  - From 2026-10-11 02:06 UTC every pass returns exactly `0 candidates found` (13+ consecutive passes).
+  - Read-only test of Railway's `UPWORK_ACCESS_TOKEN`: `list_accounts` and `find_jobs smart_search` both return **HTTP 401**. Railway has no refresh token, so it cannot self-heal. The local IDE token is valid (account "Aryan Pegwar", expiry 2026-10-12 10:58 IST) and the same search returned 10 live jobs.
+- **Contributing defects found**:
+  1. **Silent auth failure**: `hunt.py` swallows failed searches into `error_classes`; `hourly_runner.py` logs only "Discovery completed: 0 candidates". Auth failure is indistinguishable from an empty market in logs and Telegram.
+  2. **Resilience architecture (Phases 1–5) not deployed**: Railway runs pre-resilience code (`/health` has no `reasons`, `/api/status` and `/api/daily-report` return 404). GitHub state store `aryan109/upwork-engine-state` has no writes since migration (empty `heartbeats/`, `passes/`, `secrets/`). No Vercel project exists; the `AryanUpworkLocalTier` scheduled task is not registered. Watchdog W2 `auth_failed` alerts therefore never fired.
+  3. **Railway `/health` always 200**: the deployed health check reports "healthy" while the hunter is blind.
+  4. **Search budget truncates campaigns**: `run_single_pass(max_searches=15)` vs 33 configured searches (26 queries + 7 title filters). Campaigns run in config order (no `priority` set), so `mcp-integrations`, `rag-knowledge`, `integrations-repair`, `ai-training-coaching` and part of `n8n-automation` are **never searched**.
+  5. Minor: each D6 blacklist line is logged twice (duplicate log handler); non-D-rule rejections (score floor / AI) produce no log line.
+- **Changes made**: None to code or infrastructure (audit only). Temporary token probe script was run from `%TEMP%` and deleted.
+
 
 
 
