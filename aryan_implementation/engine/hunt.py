@@ -67,9 +67,59 @@ class JobHunter:
         discovered_candidates: Dict[str, Dict[str, Any]] = {}
         mismatches_observed: List[str] = []
 
-        # Sort campaigns by priority
+        # Sort campaigns by global.priority_order, then campaign.priority, then id
+        priority_order = campaigns_data.get("global", {}).get("priority_order") or []
+        order_index = {cid: i for i, cid in enumerate(priority_order)}
         active_campaigns = [c for c in campaigns if c.get("active", True)]
-        active_campaigns.sort(key=lambda x: x.get("priority", 999))
+        active_campaigns.sort(
+            key=lambda x: (
+                order_index.get(x.get("id"), 999),
+                x.get("priority", 999),
+                x.get("id", ""),
+            )
+        )
+
+        search_tasks: List[Tuple[str, str, Dict[str, Any]]] = []
+        for camp in active_campaigns:
+            camp_id = camp.get("id", "default")
+            for q in camp.get("queries", []):
+                search_tasks.append((
+                    camp_id,
+                    "smart_search",
+                    {
+                        "mode": "most_recent",
+                        "query": q,
+                        "from_date": from_date_iso,
+                        "days_posted": 1,
+                    },
+                ))
+            if include_best_match:
+                for q in camp.get("queries", [])[:2]:
+                    search_tasks.append((
+                        camp_id,
+                        "smart_search",
+                        {"mode": "best_match", "query": q},
+                    ))
+            for tf in camp.get("title_filters", []) or []:
+                search_tasks.append((
+                    camp_id,
+                    "search",
+                    {
+                        "title": tf,
+                        "verified_payment_only": True,
+                        "days_posted": 2,
+                    },
+                ))
+
+        cursor = int(state.get("search_cursor") or 0)
+        n_tasks = len(search_tasks)
+        if n_tasks:
+            cursor = cursor % n_tasks
+            rotated = search_tasks[cursor:] + search_tasks[:cursor]
+        else:
+            rotated = []
+
+        per_campaign_searches: Dict[str, int] = {}
 
         def _budget_exhausted() -> bool:
             if time_budget_s and (time.time() - t_start) >= (0.8 * time_budget_s):
@@ -77,109 +127,53 @@ class JobHunter:
                 return True
             return False
 
-        for camp in active_campaigns:
+        for camp_id, action, params in rotated:
             if searches_used >= max_searches or _budget_exhausted():
                 break
+            res = self.mcp.call_tool(
+                "find_jobs",
+                action,
+                params,
+                run_id=run_id,
+                campaign=camp_id,
+                state=state,
+            )
+            searches_used += 1
+            per_campaign_searches[camp_id] = per_campaign_searches.get(camp_id, 0) + 1
 
-            camp_id = camp.get("id", "default")
-            queries = camp.get("queries", [])
-            title_filters = camp.get("title_filters", [])
+            if res.get("ok"):
+                searches_ok += 1
+                data = res.get("data", {})
+                ignored = data.get("filters_ignored", [])
+                if ignored:
+                    mismatches_observed.extend(ignored)
+                jobs_found = data.get("jobs", [])
+                for j in jobs_found:
+                    jid = j.get("job_id") or j.get("id")
+                    if not jid:
+                        continue
+                    jtitle = j.get("title", "")
+                    if is_test_job(jid, jtitle):
+                        continue
+                    if self.ledger.is_blacklisted(jid):
+                        continue
+                    if jid not in discovered_candidates:
+                        j["matched_campaign"] = camp_id
+                        discovered_candidates[jid] = j
+            else:
+                searches_failed += 1
+                if res.get("error_class"):
+                    error_classes.append(res["error_class"])
 
-            # A. smart_search most_recent
-            for q in queries:
-                if searches_used >= max_searches or _budget_exhausted():
-                    break
-                params = {
-                    "mode": "most_recent",
-                    "query": q,
-                    "from_date": from_date_iso,
-                    "days_posted": 1,
-                }
-                res = self.mcp.call_tool("find_jobs", "smart_search", params, run_id=run_id, campaign=camp_id, state=state)
-                searches_used += 1
-
-                if res.get("ok"):
-                    searches_ok += 1
-                    data = res.get("data", {})
-                    ignored = data.get("filters_ignored", [])
-                    if ignored:
-                        mismatches_observed.extend(ignored)
-                    jobs_found = data.get("jobs", [])
-                    for j in jobs_found:
-                        jid = j.get("job_id") or j.get("id")
-                        if not jid:
-                            continue
-                        jtitle = j.get("title", "")
-                        if is_test_job(jid, jtitle):
-                            continue
-                        if self.ledger.is_blacklisted(jid):
-                            continue
-                        if jid not in discovered_candidates:
-                            j["matched_campaign"] = camp_id
-                            discovered_candidates[jid] = j
-                else:
-                    searches_failed += 1
-                    if res.get("error_class"):
-                        error_classes.append(res["error_class"])
-
-            # B. Optional best_match (morning pass)
-            if include_best_match:
-                for q in queries[:2]:
-                    if searches_used >= max_searches or _budget_exhausted():
-                        break
-                    params = {"mode": "best_match", "query": q}
-                    res = self.mcp.call_tool("find_jobs", "smart_search", params, run_id=run_id, campaign=camp_id, state=state)
-                    searches_used += 1
-                    if res.get("ok"):
-                        searches_ok += 1
-                        jobs_found = res.get("data", {}).get("jobs", [])
-                        for j in jobs_found:
-                            jid = j.get("job_id") or j.get("id")
-                            if not jid:
-                                continue
-                            jtitle = j.get("title", "")
-                            if is_test_job(jid, jtitle):
-                                continue
-                            if self.ledger.is_blacklisted(jid):
-                                continue
-                            if jid not in discovered_candidates:
-                                j["matched_campaign"] = camp_id
-                                discovered_candidates[jid] = j
-                    else:
-                        searches_failed += 1
-                        if res.get("error_class"):
-                            error_classes.append(res["error_class"])
-
-            # C. title_filters with search
-            for tf in title_filters:
-                if searches_used >= max_searches or _budget_exhausted():
-                    break
-                params = {
-                    "title": tf,
-                    "verified_payment_only": True,
-                    "days_posted": 2,
-                }
-                res = self.mcp.call_tool("find_jobs", "search", params, run_id=run_id, campaign=camp_id, state=state)
-                searches_used += 1
-                if res.get("ok"):
-                    searches_ok += 1
-                    jobs_found = res.get("data", {}).get("jobs", [])
-                    for j in jobs_found:
-                        jid = j.get("job_id") or j.get("id")
-                        if not jid:
-                            continue
-                        jtitle = j.get("title", "")
-                        if is_test_job(jid, jtitle):
-                            continue
-                        if self.ledger.is_blacklisted(jid):
-                            continue
-                        if jid not in discovered_candidates:
-                            j["matched_campaign"] = camp_id
-                            discovered_candidates[jid] = j
-                else:
-                    searches_failed += 1
-                    if res.get("error_class"):
-                        error_classes.append(res["error_class"])
+        if n_tasks:
+            state["search_cursor"] = (cursor + searches_used) % n_tasks
+        logger.info(
+            "Search coverage: tasks=%s cursor=%s used=%s per_campaign=%s",
+            n_tasks,
+            cursor,
+            searches_used,
+            per_campaign_searches,
+        )
 
         # 2. Dedup & Pre-filtering
         survivors: List[Tuple[str, Dict[str, Any]]] = []

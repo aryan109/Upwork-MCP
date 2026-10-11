@@ -147,6 +147,10 @@ def main() -> None:
     p_up_login = subparsers.add_parser("upwork-login", help="Refresh or re-seed Upwork OAuth tokens")
     p_up_login.add_argument("--force-refresh", action="store_true", help="Force token refresh")
 
+    # release-lease
+    p_rel = subparsers.add_parser("release-lease", help="Force-release a distributed lease")
+    p_rel.add_argument("resource", nargs="?", default="hunter", help="Lease resource (default: hunter)")
+
     args = parser.parse_args()
 
     state_mgr = StateManager(args.state_dir)
@@ -546,6 +550,13 @@ def main() -> None:
             print(f"Expiry: {data.get('expiry')}")
             print(f"Updated at: {data.get('updated_at')}")
             print("Use --force-refresh to rotate tokens immediately.")
+            print("For a new engine-owned login run: python scripts/engine_oauth_login.py")
+
+    elif args.command == "release-lease":
+        from .lease import LeaseManager
+        mgr = LeaseManager()
+        ok = mgr.force_release(args.resource)
+        print(f"Lease '{args.resource}' released: {ok}")
 
     elif args.command == "serve":
         try:

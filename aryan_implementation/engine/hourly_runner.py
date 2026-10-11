@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from .ai_job_analyzer import AIJobAnalyzer
-from .config import STATE_DIR, PROJECT_ROOT
+from .config import STATE_DIR, PROJECT_ROOT, MAX_SEARCHES_PER_PASS, MAX_DETAIL_FETCHES_PER_PASS
 from .daily_report import DailyReportEngine
 from .draft import ProposalDrafter
 from .hunt import JobHunter
@@ -25,19 +25,20 @@ from .notifier import notify_proposal_ready
 from .state_manager import StateManager
 from .vet import check_disqualifiers, score_job
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
+if not logging.getLogger().handlers:
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
 logger = logging.getLogger("hourly_hunter")
 
 
 def run_single_pass(
     state_mgr: StateManager,
     mcp_client: UpworkMCPClient,
-    max_searches: int = 15,
-    max_details: int = 20,
+    max_searches: int = MAX_SEARCHES_PER_PASS,
+    max_details: int = MAX_DETAIL_FETCHES_PER_PASS,
     time_budget_s: Optional[float] = None,
 ) -> Dict[str, Any]:
     """Execute a single hourly hunt, vet, intel capture, and staging pass."""
@@ -71,7 +72,9 @@ def run_single_pass(
     )
     logger.info(
         f"Discovery completed: {hunt_res['candidates_found']} candidates found, "
-        f"{hunt_res['new']} new, {hunt_res['detail_fetched']} details fetched."
+        f"{hunt_res['new']} new, {hunt_res['detail_fetched']} details fetched | "
+        f"searches_ok={hunt_res.get('searches_ok')} failed={hunt_res.get('searches_failed')} "
+        f"auth_ok={hunt_res.get('auth_ok')} errors={hunt_res.get('error_classes')}"
     )
 
     # 2. Vet all newly discovered or refreshed jobs
@@ -120,7 +123,7 @@ def run_single_pass(
 
             # Permanently record rejection into ledger blacklist
             ledger.record_job(job, status="skipped", decision="SKIP", score=0.0, rejection_reason=f"{d_id}: {d_reason}")
-            ledger.add_to_rejected(jid, reason=f"{d_id}: {d_reason}", title=jtitle)
+            logger.info(f"[REJECT {d_id}] '{jtitle}' — {d_reason}")
 
             if d_id == "D11":
                 filled_caught.append(job)
@@ -164,7 +167,6 @@ def run_single_pass(
                     # Record AI rejection into ledger blacklist
                     rejection_reason = f"AI rejected ({ai_eval.get('client_risk_level')} risk): {ai_eval.get('fit_reasoning')}"
                     ledger.record_job(job, status="ai_rejected", decision="SKIP", score=score_res["score"], rejection_reason=rejection_reason)
-                    ledger.add_to_rejected(jid, reason=rejection_reason, title=jtitle)
 
                     logger.info(
                         f"🛑 [AI VETTING] Bad client intercepted: '{job.get('title')}' "
@@ -203,6 +205,23 @@ def run_single_pass(
                         send_interactive_proposal(job, score_res, draft, state_mgr=state_mgr)
                     except Exception as e:
                         logger.debug(f"Interactive proposal card note: {e}")
+            else:
+                logger.info(
+                    f"[SCORE_FLOOR] '{jtitle}' score={score_res['score']} "
+                    f"decision={score_res['decision']} reasons={score_res.get('reasons')}"
+                )
+                skipped_count += 1
+                if score_res["decision"] == "SKIP":
+                    job["status"] = "skipped"
+                    job["rejected_at"] = now_iso
+                    job["rejected_date"] = today_date_str
+                    ledger.record_job(
+                        job,
+                        status="skipped",
+                        decision="SKIP",
+                        score=score_res["score"],
+                        rejection_reason=f"SCORE_LOW: {score_res.get('reasons')}",
+                    )
 
         vetted_count += 1
 
@@ -213,17 +232,50 @@ def run_single_pass(
 
     try:
         from .alerts import AlertManager, dead_man_ping
-        alert_mgr = AlertManager()
+        from .telegram_notifier import send_telegram_message
+        alert_mgr = AlertManager(backend=getattr(state_mgr, "backend", None))
+
+        searches_ok = int(hunt_res.get("searches_ok") or 0)
+        searches_failed = int(hunt_res.get("searches_failed") or 0)
+        searches_used = int(hunt_res.get("searches_used") or 0)
+        majority_failed = searches_used > 0 and searches_failed >= (searches_used / 2.0)
+        all_failed = searches_used > 0 and searches_ok == 0
+
+        if majority_failed or all_failed:
+            streak = int(state.get("search_fail_streak") or 0) + 1
+            state["search_fail_streak"] = streak
+        else:
+            state["search_fail_streak"] = 0
 
         if not auth_ok:
             alert_mgr.raise_alert(
                 "W2",
                 "Upwork OAuth authentication failed during discovery pass.",
                 severity="CRITICAL",
-                fix="Run 'python -m aryan_implementation.engine.cli upwork-login'",
+                fix="python scripts/engine_oauth_login.py",
+            )
+            send_telegram_message(
+                "🚨 <b>CRITICAL: Upwork auth failed after refresh attempt</b>\n"
+                "Railway cannot search jobs until you re-login the engine.\n"
+                "Run locally: <code>python scripts/engine_oauth_login.py</code>",
+                parse_mode="HTML",
             )
         else:
             alert_mgr.resolve_alert("W2", "Upwork OAuth authentication valid")
+
+        if all_failed or int(state.get("search_fail_streak") or 0) >= 2:
+            alert_mgr.raise_alert(
+                "W11",
+                (
+                    f"Discovery search failure: ok={searches_ok} failed={searches_failed} "
+                    f"used={searches_used} errors={hunt_res.get('error_classes')} "
+                    f"streak={state.get('search_fail_streak')}"
+                ),
+                severity="CRITICAL",
+                fix="python scripts/engine_oauth_login.py",
+            )
+        else:
+            alert_mgr.resolve_alert("W11", "Discovery searches succeeding")
 
         if is_healthy:
             state["last_success_at"] = now_utc.isoformat()

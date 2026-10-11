@@ -8,14 +8,14 @@
     "max_submits_per_day": 5,
     "target_submits_per_day": 3,
     "connects_budget_month": 250,
-    "searches_per_pass": 20,
+    "searches_per_pass": 40,
     "detail_fetches_per_pass": 25,
     "lookback_cap_hours": 72,
     "default_score_threshold": 70,
     "review_band_min": 55,
     "boost_max_connects": 10,
     "boost_min_score": 80,
-    "priority_order": ["claude-implementation", "mcp-integrations", "rag-knowledge", "ai-agents", "n8n-automation", "integrations-repair", "ai-training-coaching"],
+    "priority_order": ["claude-implementation", "mcp-integrations", "ai-agents", "rag-knowledge", "n8n-automation", "integrations-repair", "ai-training-coaching"],
     "exclude_terms": ["cold email", "deliverability", "gohighlevel", "clay", "apollo", "smartlead", "instantly", "linkedin outreach", "ios", "android", "unity", "solidity", "video editing", "data entry", "voice over"]
   },
   "campaigns": [

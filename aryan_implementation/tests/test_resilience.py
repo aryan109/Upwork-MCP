@@ -295,6 +295,70 @@ def test_api_health_handler():
     assert hasattr(h, "do_GET")
 
 
+def test_oauth_read_json_tuple_and_engine_refresh_guard(tmp_path):
+    from aryan_implementation.engine.upwork_oauth import UpworkOAuthManager
+
+    backend = FileBackend(tmp_path)
+    backend.write_json("secrets/upwork_oauth.json", {
+        "owner": "engine",
+        "access_token": "tok_live",
+        "refresh_token": "rt_live",
+        "client_id": "cid",
+        "expiry": (datetime.now(timezone.utc) + timedelta(hours=20)).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    })
+    mgr = UpworkOAuthManager(secrets_path=tmp_path / "unused.json", backend=backend)
+    loaded = mgr.load_token_data()
+    assert loaded.get("access_token") == "tok_live"
+    assert loaded.get("owner") == "engine"
+
+    with patch("aryan_implementation.engine.tier.current_tier", return_value="local"):
+        res = mgr.refresh(force=True, lease_held=True)
+        assert res.get("ok") is False
+        assert res.get("error") == "refresh_blocked"
+
+    with patch("aryan_implementation.engine.tier.current_tier", return_value="railway"):
+        allowed, reason = mgr._can_refresh(loaded, lease_held=True)
+        assert allowed is True
+        assert "railway" in reason
+
+
+def test_w11_search_failed_alert_raise_and_resolve(tmp_path):
+    backend = FileBackend(tmp_path)
+    alert_mgr = AlertManager(backend=backend)
+    with patch("aryan_implementation.engine.alerts.send_telegram_message") as mock_tg:
+        raised = alert_mgr.raise_alert(
+            "W11",
+            "Discovery search failure: ok=0 failed=12",
+            severity="CRITICAL",
+        )
+        assert raised is True
+        assert mock_tg.call_count == 1
+        resolved = alert_mgr.resolve_alert("W11", "Discovery searches succeeding")
+        assert resolved is True
+        assert mock_tg.call_count == 2
+
+
+def test_health_liveness_vs_strict_reasons():
+    from aryan_implementation.engine.health import collect_health_reasons
+
+    now = datetime.now(timezone.utc)
+    empty_reasons = collect_health_reasons({
+        "kill_switch": False,
+        "last_success_at": now.isoformat(),
+        "last_pass_record": {"auth_ok": True, "searches_ok": 10, "searches_failed": 0},
+    }, now_utc=now)
+    assert empty_reasons == []
+
+    silent_reasons = collect_health_reasons({
+        "kill_switch": False,
+        "last_pass_record": {"auth_ok": False, "searches_ok": 0, "searches_failed": 8},
+    }, now_utc=now)
+    assert any("hunter_silent" in r for r in silent_reasons)
+    assert any("auth_failed" in r for r in silent_reasons)
+    assert any("search_failed" in r for r in silent_reasons)
+
+
 def test_api_tick_authentication():
     from api.tick import handler
 

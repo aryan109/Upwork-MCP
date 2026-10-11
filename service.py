@@ -25,6 +25,7 @@ if str(WORKSPACE_ROOT) not in sys.path:
 
 from aryan_implementation.engine.config import STATE_DIR
 from aryan_implementation.engine.daily_report import DailyReportEngine
+from aryan_implementation.engine.health import collect_health_reasons
 from aryan_implementation.engine.hourly_runner import run_single_pass
 from aryan_implementation.engine.mcp_client import UpworkMCPClient
 from aryan_implementation.engine.notion_publisher import NotionPublisher
@@ -61,40 +62,25 @@ class HealthCheckHandler(http.server.BaseHTTPRequestHandler):
         path = parsed.path.rstrip("/") or "/"
         query_params = urllib.parse.parse_qs(parsed.query)
 
-        # 1. Railway Health Check
-        if path in ("/health",):
+        # 1. Railway liveness (/health always 200) and strict readiness (/api/health-strict)
+        if path in ("/health", "/api/health-strict"):
             reasons = []
             now_utc = datetime.now(timezone.utc)
             try:
                 state_mgr = StateManager(STATE_DIR)
                 state = state_mgr.load_state()
-
-                if state.get("kill_switch"):
-                    reasons.append("kill_switch_active")
-
-                last_success = state.get("last_success_at")
-                if last_success:
-                    try:
-                        succ_dt = datetime.fromisoformat(last_success.replace("Z", "+00:00"))
-                        if (now_utc - succ_dt).total_seconds() > 2 * 3600:
-                            reasons.append("hunter_silent: last successful pass > 2h old")
-                    except Exception:
-                        pass
-                else:
-                    reasons.append("hunter_silent: no successful pass recorded")
-
-                last_pass = state.get("last_pass_record", {})
-                if last_pass and not last_pass.get("auth_ok", True):
-                    reasons.append("auth_failed: OAuth rejected")
+                reasons = collect_health_reasons(state, now_utc=now_utc)
             except Exception as e:
                 reasons.append(f"state_read_error: {e}")
 
-            status_code = 503 if reasons else 200
+            strict = path == "/api/health-strict"
+            status_code = 503 if (strict and reasons) else 200
             self.send_response(status_code)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
             status = {
                 "status": "unhealthy" if reasons else "healthy",
+                "liveness": True,
                 "service": "Aryan Upwork Autonomous Pipeline",
                 "reasons": reasons,
                 "timestamp": now_utc.isoformat(),

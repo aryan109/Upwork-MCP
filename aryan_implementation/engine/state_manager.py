@@ -300,8 +300,137 @@ class StateManager:
             except Exception as e:
                 logger.warning(f"Backend save_state warning: {e}")
 
+    def _job_rank(self, status: str) -> int:
+        if status in self.TERMINAL_STATUSES:
+            return 100
+        return self.STATUS_RANK.get(status, 0)
+
+    def merge_volume_into_store(self) -> Dict[str, Any]:
+        """
+        One-time union of the Railway/local volume files with the GitHub store.
+        Keeps the most advanced job status and unions the rejection blacklist.
+        """
+        summary = {"merged": False, "jobs_added": 0, "jobs_updated": 0, "rejected_added": 0}
+        if not self.backend:
+            return summary
+
+        try:
+            state = self.load_state()
+        except Exception:
+            state = {}
+        if os.environ.get("UPWORK_TEST_MODE"):
+            summary["skipped"] = "test_mode"
+            return summary
+        if state.get("volume_merged_at"):
+            summary["skipped"] = "already_merged"
+            return summary
+
+        logger.info("Starting one-time volume→store job merge...")
+        store_jobs: Dict[str, Dict[str, Any]] = {}
+        try:
+            raw, _ = self.backend.read_json("jobs.json")
+            if isinstance(raw, dict):
+                store_jobs = raw
+            elif isinstance(raw, list):
+                store_jobs = {j["job_id"]: j for j in raw if isinstance(j, dict) and "job_id" in j}
+        except Exception as e:
+            logger.warning(f"Store jobs read during merge: {e}")
+
+        volume_jobs: Dict[str, Dict[str, Any]] = {}
+        if self.jobs_file.exists():
+            try:
+                with open(self.jobs_file, "r", encoding="utf-8") as f:
+                    raw_v = json.load(f)
+                if isinstance(raw_v, dict):
+                    volume_jobs = raw_v
+                elif isinstance(raw_v, list):
+                    volume_jobs = {j["job_id"]: j for j in raw_v if isinstance(j, dict) and "job_id" in j}
+            except Exception as e:
+                logger.warning(f"Volume jobs read during merge: {e}")
+
+        merged = dict(store_jobs)
+        for jid, vjob in volume_jobs.items():
+            if jid not in merged:
+                merged[jid] = vjob
+                summary["jobs_added"] += 1
+                continue
+            sjob = merged[jid]
+            if self._job_rank(str(vjob.get("status") or "")) > self._job_rank(str(sjob.get("status") or "")):
+                merged[jid] = {**sjob, **vjob}
+                summary["jobs_updated"] += 1
+            else:
+                merged[jid] = {**vjob, **sjob}
+
+        self._atomic_write(self.jobs_file, merged)
+        try:
+            self.backend.write_json("jobs.json", merged, message="volume merge jobs")
+        except Exception as e:
+            logger.warning(f"Store jobs write during merge: {e}")
+
+        # Union rejection blacklist (volume rejected_jobs.json + store jobs/rejected.json)
+        rejected: Dict[str, Any] = {}
+        store_rej = None
+        try:
+            store_rej, _ = self.backend.read_json("jobs/rejected.json")
+        except Exception:
+            store_rej = None
+        if isinstance(store_rej, dict):
+            rejected.update(store_rej)
+        elif isinstance(store_rej, list):
+            for jid in store_rej:
+                rejected[str(jid)] = {"reason": "store_historical"}
+
+        local_rej_file = self.state_dir / "rejected_jobs.json"
+        if local_rej_file.exists():
+            try:
+                with open(local_rej_file, "r", encoding="utf-8") as f:
+                    local_rej = json.load(f)
+                if isinstance(local_rej, dict):
+                    before = set(rejected.keys())
+                    rejected.update(local_rej)
+                    summary["rejected_added"] = len(set(rejected.keys()) - before)
+                elif isinstance(local_rej, list):
+                    for jid in local_rej:
+                        if str(jid) not in rejected:
+                            rejected[str(jid)] = {"reason": "volume_historical"}
+                            summary["rejected_added"] += 1
+            except Exception as e:
+                logger.warning(f"Volume rejected read during merge: {e}")
+
+        try:
+            tmp = local_rej_file.with_suffix(".tmp")
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump(rejected, f, indent=2, ensure_ascii=False)
+            tmp.replace(local_rej_file)
+        except Exception as e:
+            logger.warning(f"Volume rejected write during merge: {e}")
+        try:
+            self.backend.write_json("jobs/rejected.json", rejected, message="volume merge rejected")
+        except Exception as e:
+            logger.warning(f"Store rejected write during merge: {e}")
+
+        now_iso = datetime.now(timezone.utc).isoformat()
+        state["volume_merged_at"] = now_iso
+        try:
+            self.save_state(state)
+        except Exception as e:
+            logger.warning(f"Could not stamp volume_merged_at: {e}")
+
+        summary["merged"] = True
+        logger.info(
+            "Volume merge complete: added=%s updated=%s rejected_added=%s",
+            summary["jobs_added"],
+            summary["jobs_updated"],
+            summary["rejected_added"],
+        )
+        return summary
+
     def pull(self) -> Tuple[Dict[str, Any], Dict[str, Dict[str, Any]]]:
         """Pull state and jobs from the backend store (with local fallback)."""
+        try:
+            self.merge_volume_into_store()
+        except Exception as e:
+            logger.warning(f"Volume merge skipped: {e}")
         state = self.load_state()
         jobs = self.load_jobs()
         return state, jobs
@@ -321,6 +450,13 @@ class StateManager:
             return False
 
     def load_campaigns(self) -> Dict[str, Any]:
+        if self.backend:
+            try:
+                data, _ = self.backend.read_json("campaigns.json")
+                if isinstance(data, dict) and data.get("campaigns"):
+                    return data
+            except Exception as e:
+                logger.debug(f"Backend load_campaigns error: {e}")
         if not self.campaigns_file.exists():
             self.init_state_directory()
         with open(self.campaigns_file, "r", encoding="utf-8") as f:
@@ -329,6 +465,11 @@ class StateManager:
     def save_campaigns(self, campaigns_data: Dict[str, Any]) -> None:
         self.validate_campaigns(campaigns_data)
         self._atomic_write(self.campaigns_file, campaigns_data)
+        if self.backend:
+            try:
+                self.backend.write_json("campaigns.json", campaigns_data, message="sync campaigns")
+            except Exception as e:
+                logger.warning(f"Backend save_campaigns warning: {e}")
 
     def load_scoring(self) -> Dict[str, Any]:
         if not self.scoring_file.exists():

@@ -32,6 +32,7 @@ ALERT_CONFIG = {
     "W8": {"name": "token_stale", "severity": "WARNING", "resend_hours": 1.0},
     "W9": {"name": "telegram_inbound_broken", "severity": "WARNING", "resend_hours": 1.0},
     "W10": {"name": "backup_stale", "severity": "WARNING", "resend_hours": 6.0},
+    "W11": {"name": "search_failed", "severity": "CRITICAL", "resend_hours": 1.0},
 }
 
 

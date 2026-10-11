@@ -189,6 +189,23 @@ class WatchdogEvaluator:
             "resolved_note": "Cloud backup completed successfully.",
         }
 
+        # W11: search_failed (all searches failed, or majority failed 2+ consecutive passes)
+        fail_streak = int(state.get("search_fail_streak") or 0)
+        searches_ok = int(last_pass.get("searches_ok") or 0)
+        searches_failed = int(last_pass.get("searches_failed") or 0)
+        all_failed = searches_failed > 0 and searches_ok == 0
+        w11 = all_failed or fail_streak >= 2
+        results["W11"] = {
+            "triggered": w11,
+            "message": (
+                f"Discovery searches failing: ok={searches_ok} failed={searches_failed} "
+                f"streak={fail_streak}."
+            ),
+            "severity": "CRITICAL",
+            "fix": "python scripts/engine_oauth_login.py",
+            "resolved_note": "Discovery searches succeeding again.",
+        }
+
         return results
 
 
