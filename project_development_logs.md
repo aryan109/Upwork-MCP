@@ -726,6 +726,25 @@
   5. Minor: each D6 blacklist line is logged twice (duplicate log handler); non-D-rule rejections (score floor / AI) produce no log line.
 - **Changes made**: None to code or infrastructure (audit only). Temporary token probe script was run from `%TEMP%` and deleted.
 
+## [2026-10-11 11:35 IST] — Durable Railway OAuth + Full Search Coverage Deployed
+
+- **Engine-owned Upwork login**:
+  - Added `scripts/engine_oauth_login.py`: dynamic public-client registration + PKCE browser grant. Registered independently of the Antigravity IDE. Verified `list_accounts` = Aryan Pegwar.
+  - Secrets stored in GitHub store `secrets/upwork_oauth.json` with `owner=engine`. IDE token file is never written for this chain.
+  - Fixed `UpworkOAuthManager.load_token_data` to unpack `backend.read_json()` `(data, sha)` tuple (would have crashed on Railway).
+  - Only the Railway hunter lease holder may rotate the engine refresh token. Local ticks use the current access token and skip refresh.
+- **Production-safety**:
+  - One-time volume→store job/blacklist merge on first `pull()`.
+  - `/health` is liveness-only (always 200, reasons in JSON). `/api/health-strict` returns 503 when silent/auth/search-failed.
+  - Discovery logs now include `searches_ok/failed`, `auth_ok`, `error_classes`. W11 `search_failed` Telegram alert. Auth 401 after refresh sends CRITICAL with `python scripts/engine_oauth_login.py`. Duplicate D-rule blacklist log removed; score-floor and AI rejections are logged.
+- **Search coverage**: `MAX_SEARCHES_PER_PASS=40`; rotating `search_cursor`; campaigns ordered `claude-implementation`, `mcp-integrations`, `ai-agents`, `rag-knowledge`, `n8n-automation`, `integrations-repair`, `ai-training-coaching` (campaigns.json v1.0.1, pushed to store).
+- **Validation**: 68 tests passed. Local tick: 37/37 searches, all 7 campaigns, `auth_ok=True`. Hunter lease released before deploy.
+- **Railway deploy** `dd130d0e` (SUCCESS). Removed stale `UPWORK_ACCESS_TOKEN`. Rollback target was `607d822d` (now REMOVED).
+  - First Railway tick: `force_refresh_once` consumed; OAuth refresh succeeded; new expiry 2026-10-12 06:02 UTC.
+  - Search coverage 37/37, `auth_ok=True`, `healthy=True`. Heartbeat `heartbeats/railway.json` and `passes/railway/2026-10-11.jsonl` written.
+  - Live: `/health` 200 reasons=[], `/api/health-strict` 200, `/api/status` serving.
+- **Out of scope still**: Vercel tier and local Windows scheduled task.
+
 
 
 
