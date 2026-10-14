@@ -45,8 +45,8 @@ class StateBackend(ABC):
     def read_json(self, path: str) -> Tuple[Optional[Any], Optional[str]]:
         """Read and deserialize JSON. Returns (data, sha)."""
         content, sha = self.read_file(path)
-        if content is None:
-            return None, None
+        if not content or not content.strip():
+            return None, sha
         try:
             return json.loads(content), sha
         except Exception as e:

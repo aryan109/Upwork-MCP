@@ -763,7 +763,26 @@
   - `GitHubBackend.read_file` fetches `/git/blobs/{sha}` when Contents `content` is empty.
 - **Tests**: `test_proof_of_life.py` + GitHub blob read in `test_resilience.py`. D6 dominance observation in daily report compiler.
 
+## [2026-10-14 13:00 IST] — Telegram Polling 409 Conflict Diagnosis, Damping & Auto-Resolution
 
-
-
-
+- **Incident & Alert Diagnosis**:
+  - Received alert: `⚠️ UPWORK ENGINE ALERT: [WARNING] W9 Tier: unknown Message: Telegram polling 409 Conflict: webhook active`.
+  - Probed Railway container via GraphQL deployment logs and HTTP health/status endpoints (`/health`, `/status`):
+    - Railway container was healthy (`status: healthy, liveness: true, reasons: []`).
+    - Autonomous hunter loop was active (latest pass at 07:26 UTC / 12:56 IST completed 37/37 searches ok, AI vetting via Gemini, Notion sync).
+    - Webhook status on Telegram API verified clear (`url: ""`).
+  - **Root cause identified**: A secondary local process briefly called Telegram's `getUpdates` endpoint (via `cli.py link-telegram` or implicit credential discovery). Telegram Bot API terminates existing long-polls with `HTTP 409: Conflict (terminated by other getUpdates request; make sure that only one bot instance is running)`. Because `telegram_bot.py` fired alert `W9` immediately on the very first 409 error without checking if it was a momentary collision, and without tier attribution (`tier="unknown"`), a warning alert was dispatched even though Railway's loop immediately resumed polling cleanly.
+- **Engine Resilience Fixes**:
+  - `telegram_bot.py`:
+    - Added `consecutive_409_count` damping to `TelegramBotListener`.
+    - Alert `W9` now triggers only if 409 conflict persists across 3+ consecutive poll iterations (>= 30 seconds), preventing false positives from transient CLI checks.
+    - Reads error payload description from Telegram API (`terminated by other getUpdates request` vs `webhook active`) for precise alert messages.
+    - Passes `tier=current_tier()` to `raise_alert` instead of default `"unknown"`.
+    - Auto-resolves alert `W9` and resets consecutive counter as soon as a subsequent poll succeeds.
+  - `telegram_notifier.py`:
+    - Guarded `auto_discover_chat_id` in `get_telegram_credentials()` so it does not execute automatically in production/daemon tiers (railway/vercel), preventing accidental background polling collisions.
+  - `state_backend.py`:
+    - Updated `read_json()` with `if not content or not content.strip(): return None, sha` to eliminate noisy `JSONDecodeError: Expecting value: line 1 column 1 (char 0)` logs on empty bodies.
+- **Testing & Verification**:
+  - Added unit test `test_telegram_polling_409_streak_and_recovery` in `aryan_implementation/tests/test_telegram_and_notion.py`.
+  - All 76 tests in the test suite passed cleanly.

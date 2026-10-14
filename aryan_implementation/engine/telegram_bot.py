@@ -153,6 +153,7 @@ class TelegramBotListener:
         self.review_mgr = ReviewSubmitManager(mcp_client, state_mgr)
         self.last_update_id = 0
         self.running = False
+        self.consecutive_409_count = 0
 
     def handle_callback_query(self, cb: Dict[str, Any]) -> None:
         """Handle inline button clicks (Approve, View, Reject)."""
@@ -474,18 +475,48 @@ class TelegramBotListener:
                 data = json.loads(resp.read().decode("utf-8"))
                 if not data.get("ok"):
                     return
+                if self.consecutive_409_count > 0:
+                    logger.info("Telegram polling recovered successfully after conflict.")
+                    try:
+                        from .alerts import AlertManager
+                        alert_mgr = AlertManager(backend=getattr(self.state_mgr, "backend", None))
+                        alert_mgr.resolve_alert("W9", "Telegram polling connection restored successfully.")
+                    except Exception:
+                        pass
+                    self.consecutive_409_count = 0
                 for update in data.get("result", []):
                     self.last_update_id = max(self.last_update_id, update.get("update_id", 0))
                     self.process_update(update)
         except urllib.error.HTTPError as e:
             if e.code == 409:
-                logger.warning("Telegram polling returned 409 Conflict: webhook or another poller active.")
+                self.consecutive_409_count += 1
+                err_detail = "webhook or another poller active"
                 try:
-                    from .alerts import AlertManager
-                    alert_mgr = AlertManager()
-                    alert_mgr.raise_alert("W9", "Telegram polling 409 Conflict: webhook active", severity="WARNING")
+                    err_body = e.read().decode("utf-8", errors="replace")
+                    err_json = json.loads(err_body)
+                    desc = err_json.get("description", "")
+                    if desc:
+                        err_detail = desc
                 except Exception:
                     pass
+                logger.warning(
+                    f"Telegram polling returned 409 Conflict (streak {self.consecutive_409_count}): {err_detail}"
+                )
+                # Only raise alert if conflict persists across multiple cycles (>= 3 consecutive polls),
+                # to avoid triggering false alarms on brief momentary collisions (e.g. from a CLI check or link-telegram).
+                if self.consecutive_409_count >= 3:
+                    try:
+                        from .alerts import AlertManager
+                        from .tier import current_tier
+                        alert_mgr = AlertManager(backend=getattr(self.state_mgr, "backend", None))
+                        alert_mgr.raise_alert(
+                            "W9",
+                            f"Telegram polling 409 Conflict ({err_detail})",
+                            severity="WARNING",
+                            tier=current_tier(),
+                        )
+                    except Exception:
+                        pass
             else:
                 logger.debug(f"Poll updates HTTP error {e.code}: {e}")
         except Exception as e:

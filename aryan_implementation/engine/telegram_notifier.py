@@ -76,8 +76,10 @@ def get_telegram_credentials() -> Tuple[Optional[str], Optional[str]]:
             except Exception:
                 pass
 
-    # If token exists but chat_id is missing, try automatic discovery from getUpdates
-    if token and not chat_id:
+    # If token exists but chat_id is missing, only attempt automatic discovery
+    # if explicitly enabled or requested, never in background daemon/production tiers
+    tier = (os.environ.get("ENGINE_TIER") or "").lower()
+    if token and not chat_id and tier not in ("railway", "vercel") and os.environ.get("AUTO_DISCOVER_TELEGRAM_CHAT") == "1":
         chat_info = auto_discover_chat_id(token=token, save=True)
         if chat_info and "id" in chat_info:
             chat_id = str(chat_info["id"])

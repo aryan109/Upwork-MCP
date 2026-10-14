@@ -168,3 +168,58 @@ def test_telegram_bot_callback_actions(tmp_path):
             saved_jobs_2 = state_mgr.load_jobs()
             assert "rejected" in saved_jobs_2["~02sample"]["status"]
 
+
+def test_telegram_polling_409_streak_and_recovery(tmp_path):
+    import io
+    import urllib.error
+    from aryan_implementation.engine.state_manager import StateManager
+    from aryan_implementation.engine.mcp_client import UpworkMCPClient
+    from aryan_implementation.engine.telegram_bot import TelegramBotListener
+
+    state_mgr = StateManager(tmp_path)
+    state_mgr.init_state_directory(force=True)
+    state = state_mgr.load_state()
+    state["inbound_mode"] = "polling"
+    state_mgr.save_state(state)
+    mcp = UpworkMCPClient(mock_mode=True)
+    listener = TelegramBotListener(mcp, state_mgr)
+
+    err_409_body = json.dumps({"ok": False, "error_code": 409, "description": "Conflict: terminated by other getUpdates request"}).encode()
+
+    with patch.dict(os.environ, {"TELEGRAM_BOT_TOKEN": "123456:ABC-DEF", "TELEGRAM_CHAT_ID": "987654321"}):
+        with patch("aryan_implementation.engine.alerts.AlertManager.raise_alert") as mock_raise, \
+             patch("aryan_implementation.engine.alerts.AlertManager.resolve_alert") as mock_resolve:
+
+            # 1st 409 error: streak 1, does NOT raise W9
+            with patch("urllib.request.urlopen", side_effect=urllib.error.HTTPError("url", 409, "Conflict", {}, io.BytesIO(err_409_body))):
+                listener.poll_updates()
+                assert listener.consecutive_409_count == 1
+                mock_raise.assert_not_called()
+
+            # 2nd 409 error: streak 2, does NOT raise W9
+            with patch("urllib.request.urlopen", side_effect=urllib.error.HTTPError("url", 409, "Conflict", {}, io.BytesIO(err_409_body))):
+                listener.poll_updates()
+                assert listener.consecutive_409_count == 2
+                mock_raise.assert_not_called()
+
+            # 3rd 409 error: streak 3, DOES raise W9
+            with patch("urllib.request.urlopen", side_effect=urllib.error.HTTPError("url", 409, "Conflict", {}, io.BytesIO(err_409_body))):
+                listener.poll_updates()
+                assert listener.consecutive_409_count == 3
+                mock_raise.assert_called_once()
+                args, kwargs = mock_raise.call_args
+                assert args[0] == "W9"
+                assert "Conflict: terminated by other getUpdates request" in args[1]
+
+            # Next poll succeeds: resets streak and resolves W9
+            mock_resp = MagicMock()
+            mock_resp.read.return_value = b'{"ok": true, "result": []}'
+            mock_resp.__enter__.return_value = mock_resp
+            with patch("urllib.request.urlopen", return_value=mock_resp):
+                listener.poll_updates()
+                assert listener.consecutive_409_count == 0
+                mock_resolve.assert_called_once()
+                r_args, _ = mock_resolve.call_args
+                assert r_args[0] == "W9"
+
+
