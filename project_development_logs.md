@@ -752,6 +752,17 @@
 - **Alert isolation**: `AlertManager` with a backend no longer falls through to the host `alerts.json` (fixed a false cooldown in tests after live W11 writes).
 - Telegram inbound remains `polling:railway`. Vercel `/api/telegram` is deployed but unused so polling and webhook do not collide.
 
+## [2026-10-14 07:15 IST] — Proof-of-life funnel + once-per-day persist
+
+- **User issue**: Daily proof-of-life Telegram repeated every ~15 min after 09:00 IST (screenshot 11:03 / 11:19 / 11:35) with only lease/health/token/connects. No job counts or learnings; concern that search is too narrow because nothing is apply-ready.
+- **Root cause of spam**: `send_proof_of_life` set `last_proof_of_life_date` only on the in-memory `state` pulled *before* the hunt. `push()` reloads store state, so the date never persisted.
+- **Why zero APPLY is not empty search**: Local ledger 64 jobs — D6 ghost clients 51, REVIEW 7 (mostly under score 70), AI skip 3, APPLY 1, D11 1. Last Railway pass: 37 searches ok, 16 candidates, 0 new, 0 staged (repeats). GitHub `jobs.json` Contents API returned empty body (likely >1 MB); blob fallback added.
+- **Changes**:
+  - Proof-of-life now includes jobs processed (IST day, else last 24h), APPLY/REVIEW/filtered, top rejection reasons, and learnings (D6 share vs query width).
+  - Date persisted via `StateManager.save_state` immediately after a successful Telegram send. Standby ticks can send if hunter already wrote the date.
+  - `GitHubBackend.read_file` fetches `/git/blobs/{sha}` when Contents `content` is empty.
+- **Tests**: `test_proof_of_life.py` + GitHub blob read in `test_resilience.py`. D6 dominance observation in daily report compiler.
+
 
 
 

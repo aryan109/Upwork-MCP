@@ -195,12 +195,41 @@ class GitHubBackend(StateBackend):
         status, data = self._req(url)
 
         if status == 200:
-            content_b64 = data.get("content", "")
+            content_b64 = (data.get("content") or "").replace("\n", "")
             sha = data.get("sha")
-            raw_bytes = base64.b64decode(content_b64)
-            text = raw_bytes.decode("utf-8", errors="replace")
-            # Update local read cache
-            self.local_cache.write_file(clean_path, text)
+            size = int(data.get("size") or 0)
+            raw_bytes = b""
+            encoding = data.get("encoding") or ""
+            # Contents API omits `content` for files > 1 MB; fetch the git blob instead.
+            if content_b64 and encoding != "none":
+                try:
+                    raw_bytes = base64.b64decode(content_b64)
+                except Exception as e:
+                    logger.warning(f"GitHubBackend base64 decode failed for {clean_path}: {e}")
+                    raw_bytes = b""
+            if not raw_bytes and sha and size > 0:
+                blob_url = f"{self.api_base}/git/blobs/{sha}"
+                bstatus, bdata = self._req(blob_url, timeout=45)
+                if bstatus == 200:
+                    blob_b64 = (bdata.get("content") or "").replace("\n", "")
+                    try:
+                        raw_bytes = base64.b64decode(blob_b64)
+                    except Exception as e:
+                        logger.warning(f"GitHubBackend blob decode failed for {clean_path}: {e}")
+                else:
+                    logger.warning(
+                        f"GitHubBackend git blob HTTP {bstatus} for {clean_path} sha={sha}"
+                    )
+            text = raw_bytes.decode("utf-8", errors="replace") if raw_bytes else ""
+            if text:
+                self.local_cache.write_file(clean_path, text)
+            elif size > 0:
+                logger.warning(
+                    f"GitHubBackend empty body for {clean_path} size={size} sha={sha}; using cache"
+                )
+                cached, cached_sha = self.local_cache.read_file(clean_path)
+                if cached:
+                    return cached, sha or cached_sha
             return text, sha
         elif status == 404:
             return None, None

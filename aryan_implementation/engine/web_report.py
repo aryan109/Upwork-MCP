@@ -386,6 +386,16 @@ def compile_daily_report_metrics(
         observations.append(f"Analyzed {total_analysed_today} opportunities today with a {sel_pct:.1f}% selection rate.")
         if d6_count > 0:
             observations.append(f"High noise of unverified clients: D6 filtered {d6_count} ghost leads with $0 spend, saving ~{d6_count * 8} Connects.")
+        if d6_count and total_analysed_today and (d6_count / total_analysed_today) >= 0.4:
+            observations.append(
+                "Search is not too narrow — jobs are matching campaign keywords. "
+                "Zero APPLY is from D6 ghost-client filtering (unverified payment, $0 spend, 0 hires), not empty search."
+            )
+        score_low = rejection_breakdown_today.get("SCORE_LOW", {}).get("count", 0)
+        if score_low:
+            observations.append(
+                f"{score_low} jobs passed hard filters but scored under the 70 APPLY/REVIEW floor — close misses, not missing queries."
+            )
         if d11_count > 0:
             observations.append(f"Intercepted {d11_count} already-filled jobs via D11, saving {d11_count * 16} Connects.")
 

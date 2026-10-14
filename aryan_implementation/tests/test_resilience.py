@@ -388,3 +388,22 @@ def test_api_tick_authentication():
         h.headers = {}
         h.path = "/api/tick?secret=test_secret_123"
         assert h._authenticate() is True
+
+
+def test_github_backend_reads_large_file_via_git_blob(tmp_path):
+    from aryan_implementation.engine.state_backend import GitHubBackend
+
+    backend = GitHubBackend(repo="aryan109/upwork-engine-state", token="x", cache_dir=tmp_path)
+    blob_b64 = __import__("base64").b64encode(b'{"job": 1}').decode("ascii")
+
+    def fake_req(url, method="GET", data=None, timeout=10):
+        if "/contents/jobs.json" in url:
+            return 200, {"content": "", "encoding": "none", "sha": "abc123", "size": 9}
+        if "/git/blobs/abc123" in url:
+            return 200, {"content": blob_b64, "encoding": "base64", "sha": "abc123"}
+        return 404, {}
+
+    with patch.object(backend, "_req", side_effect=fake_req):
+        text, sha = backend.read_file("jobs.json")
+    assert sha == "abc123"
+    assert '"job"' in text
