@@ -786,3 +786,34 @@
 - **Testing & Verification**:
   - Added unit test `test_telegram_polling_409_streak_and_recovery` in `aryan_implementation/tests/test_telegram_and_notion.py`.
   - All 76 tests in the test suite passed cleanly.
+
+## [2026-10-23 14:10 IST] — Upwork OAuth Token Refresh Unblocked on Failover Tiers & W8 Alert Resolved
+
+- **Incident & Alert Diagnosis**:
+  - Received repeated Telegram warnings: `⚠️ UPWORK ENGINE ALERT: [WARNING] W8 Tier: local Message: OAuth token is 23.1 hours old without refresh. Suggested Fix: Lease holder should trigger token refresh on next pass.`
+  - Probed local runner logs (`%USERPROFILE%\upwork_engine\logs\local_tick.log`) and store backend state (`secrets/upwork_oauth.json`, `heartbeats/railway.json`, `lease.json`):
+    - Railway primary tier went silent at `2026-10-22 12:29 UTC` (>20 hours ago; W3 alert active).
+    - Local tier scheduled task (`AryanUpworkLocalTier`) successfully stepped in and acquired the distributed hunter lease (`lease.json`).
+    - The local runner was executing healthy discovery and vetting passes every 15 minutes.
+    - However, on every pass when checking OAuth token freshness, the runner logged:
+      `[INFO] Access token needs refresh (stale=True force_once=False owner=engine expiry=2026-10-23T09:05:40.865036+00:00)`
+      `[WARNING] OAuth refresh skipped: engine token refresh blocked on tier=local`
+      `[INFO] Engine token refresh deferred to Railway; using current access token`
+    - Token was within ~30 minutes of its hard 24-hour expiration (`09:05:40 UTC`).
+  - **Root Cause**:
+    - `UpworkOAuthManager._can_refresh()` previously hardcoded `if owner == "engine" and tier != "railway": return False`.
+    - This restriction was left over from the initial deployment before multi-tier failover was activated. Although `local` held the distributed hunter lease, it was forbidden from rotating the engine-owned OAuth token, and Railway was offline to do it.
+    - In addition, `UpworkOAuthManager.__init__` defaulted `backend=None` rather than falling back to `get_default_backend()`, preventing standalone CLI operations from updating the shared GitHub state store.
+- **Engine Resilience Fixes**:
+  - `upwork_oauth.py`:
+    - Updated `UpworkOAuthManager.__init__` to default `backend` to `get_default_backend()`.
+    - Updated `_can_refresh()`: removed the hardcoded `tier != "railway"` check. Engine-owned tokens are now refreshed by whichever tier currently holds the distributed hunter lease (`lease_held=True`) or when explicitly forced (`force=True`). Passive/standby tiers without the lease remain prevented from rotating the token.
+    - Updated log message when refresh is deferred to reflect lease ownership rather than tier name.
+  - `test_resilience.py`:
+    - Updated `test_oauth_read_json_tuple_and_engine_refresh_guard` to verify that engine-owned tokens require `lease_held=True` regardless of tier, and that any lease-holding tier (`railway` or `local`) is permitted to rotate the token.
+- **Execution & Validation**:
+  - Rotated the active OAuth token via `UpworkOAuthManager.refresh(force=True)`. Token refresh succeeded with Upwork's OAuth endpoint, extending expiration to `2026-10-24T08:36:49 UTC` (+24 hours) and writing the rotated secrets to GitHub backend.
+  - Watchdog condition `W8` evaluated to `triggered: False`.
+  - Ran local engine tick: 37/37 searches passed, 38 candidates discovered, alert `W8` resolved and cleared from active alerts in `alerts.json`.
+  - All 76 tests in pytest passed cleanly.
+

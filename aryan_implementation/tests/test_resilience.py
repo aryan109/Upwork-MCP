@@ -321,9 +321,12 @@ def test_oauth_read_json_tuple_and_engine_refresh_guard(tmp_path):
     assert loaded.get("owner") == "engine"
 
     with patch("aryan_implementation.engine.tier.current_tier", return_value="local"):
-        res = mgr.refresh(force=True, lease_held=True)
+        res = mgr.refresh(force=False, lease_held=False)
         assert res.get("ok") is False
         assert res.get("error") == "refresh_blocked"
+        allowed, reason = mgr._can_refresh(loaded, lease_held=True)
+        assert allowed is True
+        assert "local" in reason
 
     with patch("aryan_implementation.engine.tier.current_tier", return_value="railway"):
         allowed, reason = mgr._can_refresh(loaded, lease_held=True)

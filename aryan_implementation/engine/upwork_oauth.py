@@ -47,6 +47,12 @@ class UpworkOAuthManager:
         secrets_path: Optional[Path] = None,
         backend: Optional[Any] = None,
     ):
+        if backend is None:
+            try:
+                from .state_backend import get_default_backend
+                backend = get_default_backend()
+            except Exception:
+                backend = None
         self.secrets_path = secrets_path or (ENGINE_DIR / "secrets" / "upwork_oauth.json")
         self.backend = backend
 
@@ -231,15 +237,13 @@ class UpworkOAuthManager:
         return False
 
     def _can_refresh(self, token_data: Dict[str, Any], lease_held: bool = False) -> Tuple[bool, str]:
-        """Engine-owned tokens may only be rotated by the Railway lease holder."""
+        """Engine-owned tokens may only be rotated by whichever tier currently holds the hunter lease."""
         from .tier import current_tier
 
         owner = str(token_data.get("owner") or "ide")
         tier = current_tier()
-        if owner == "engine" and tier != "railway":
-            return False, f"engine token refresh blocked on tier={tier}"
         if owner == "engine" and not lease_held:
-            return False, "engine token refresh requires hunter lease"
+            return False, f"engine token refresh requires hunter lease (tier={tier})"
         return True, f"tier={tier} owner={owner} lease_held={lease_held}"
 
     def refresh(self, force: bool = False, lease_held: bool = False) -> Dict[str, Any]:
@@ -329,7 +333,7 @@ class UpworkOAuthManager:
         """
         Retrieve a valid access token.
         If the token is stale and lease_held is True, refreshes it.
-        Engine-owned tokens are only refreshed on the Railway tier.
+        Engine-owned tokens are refreshed by whichever tier holds the hunter lease.
         """
         token_data = self.load_token_data()
         force_once = bool(token_data.get("force_refresh_once"))
@@ -347,7 +351,7 @@ class UpworkOAuthManager:
             if res.get("ok"):
                 token_data = res.get("token_data", token_data)
             elif res.get("error") == "refresh_blocked":
-                logger.info("Engine token refresh deferred to Railway; using current access token")
+                logger.info("Engine token refresh deferred (lease not held); using current access token")
             elif token_data.get("owner") == "engine":
                 logger.error("Engine token refresh failed: %s", res.get("error"))
 
