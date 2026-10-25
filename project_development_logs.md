@@ -860,4 +860,33 @@
   - Redeployed Vercel production tier (`https://upwork-engine-blush.vercel.app`) and verified `/api/health` (`status: healthy`) and `/api/report?format=json` (`total_analysed: 63, selected_count: 13, total_tracked_cumulative: 150, connects_balance: 74, is_downtime: false`).
   - Added 3 new unit tests in `aryan_implementation/tests/test_vet_rubric.py`; all **79 passed** in `pytest`.
 
+## [2026-10-25 18:10 IST] — First-Mover Advantage (<1h, <20 Proposals, 0 Interviews), High-Quality Client Rubric & 3-Hour Reporting Cadence
 
+- **User Requirements & Strategy Alignment**:
+  - Re-architected the Upwork MCP discovery, vetting, scoring, and reporting pipeline around four strict principles:
+    1. **Strict 1-Hour First-Mover Window (`<= 1.0 hour` / `60 minutes`)**: Since the engine executes every 15 minutes, only surface and stage jobs posted within the last 1 hour (`MAX_FIRST_MOVER_AGE_HOURS = 1.0`). Old jobs from past days/weeks/months are immediately discarded as noise.
+    2. **Strict Low-Competition & Zero-Interview Gate (`< 20 proposals` & `0 interviewing/invites`)**: Immediately disqualify any job with `>= 20` proposals (`MAX_COMPETITION_PROPOSALS = 20` or tier `20 to 50` / `50+`) or where the client has already started interviewing or sent interview invites (`totalInvitedToInterview > 0`, `invitesSent > 0`, or `unansweredInvites > 0`).
+    3. **High-Quality Client Priority (No More Undervaluing Strong Clients)**: Heavily weight client quality (35 base points + `+5` `elite_client_bonus` + `+3` `first_mover_prime`) — rewarding high star ratings (`feedback_score >= 4.8`), high review/like volume (`reviews_count >= 5`), frequent job posting (`jobs_posted` / `total_posted_jobs >= 10`), high hire volume/rate (`jobs_with_hires`), and willingness to pay higher rates (`total_spent`, `avg_hourly_paid`, strong hourly/fixed budgets) — and stop penalizing concise job descriptions from elite clients.
+    4. **3-Hour Reporting Cadence (`REPORT_INTERVAL_HOURS = 3.0`)**: Automatically compile and dispatch the intelligence & pipeline report every 3 hours instead of once every 24 hours.
+
+- **Codebase Changes**:
+  - `aryan_implementation/engine/config.py`:
+    - Added `MAX_FIRST_MOVER_AGE_HOURS = 1.0`, `MAX_COMPETITION_PROPOSALS = 20`, and `REPORT_INTERVAL_HOURS = 3.0`.
+    - Updated `DISQUALIFIERS["D8"]` description to `"Missed first-mover window (>1h old, 20+ proposals, or client already interviewing/inviting)"`.
+  - `aryan_implementation/engine/job_ledger.py`:
+    - Updated `extract_job_timestamps()` to prioritize `"published_date"` and `"created_date"` and always compute `age_minutes` against current real UTC time (`now_utc - p_dt`) rather than historical `scraped_at`.
+  - `aryan_implementation/engine/vet.py`:
+    - Updated `normalize_job_record()` to unify `reviews_count`, `jobs_posted` / `total_posted_jobs`, `proposals_count` (from `activityStat.jobActivity.totalApplicants` or `proposals_tier`), and real-time `posted_age_hours`.
+    - Updated `check_disqualifiers()` (`D8`) to strictly reject jobs with `posted_age_hours > 1.0`, `proposals_count >= 20` (or `20 to 50` / `50+`), or `interviewing > 0` / `invites_sent > 0`.
+    - Re-weighted `score_job()` (`scoring_version = "2.0-first-mover"`) to allocate 35 pts to Client Quality (`B1_total_spent` 10 pts, `B2_hire_rate` & posting frequency 9 pts, `B3_rating` & review count 8 pts, `B4_avg_hourly_paid` / pay willingness 5 pts, `B5_payment_verified` 3 pts), 22 pts to First-Mover Speed & Low Competition (`D1_competition` 10 pts, `D2_freshness` 8 pts, `D3_engagement` 4 pts for zero-interview open field), 15 pts to Economics (`C1_budget_signal` 11 pts, `C2_duration` 4 pts), 20 pts to Technical Fit (`A1`–`A4`), 8 pts to Low Friction (`E1`–`E4`, removing heavy penalty on concise descriptions), plus `+5` `elite_client_bonus` and `+3` `first_mover_prime`.
+  - `aryan_implementation/engine/hunt.py`:
+    - Added server-side `proposals_max = 19` to `find_jobs.search` tasks and `days_posted = 1, verified_payment_only = True` to `smart_search`.
+    - Added strict `<1h` age and `<20` proposal pre-filtering before `find_jobs.get` detail calls and sorted candidate survivors by client verification, total spend, posting frequency, and freshness.
+  - `aryan_implementation/engine/ai_job_analyzer.py`:
+    - Updated Gemini/Groq system and user prompts to include full client stars, review count, jobs posted, hires, spend, job age in minutes, and proposal count, and explicitly instructed the evaluator not to undervalue concise posts from high-quality clients.
+  - `aryan_implementation/engine/hourly_runner.py` & `aryan_implementation/engine/web_report.py`:
+    - Added `is_three_hour_report_due()` in `hourly_runner.py` to trigger `DailyReportEngine.generate_daily_report(today_str, notify=True)` every 3 hours (`last_3h_report_at`).
+    - Added automatic sweep in `hourly_runner.py` to expire any previously staged `drafted`/`preview_ready` jobs that have aged past the 1-hour window or exceeded competition/interview limits.
+    - Updated `web_report.py` with 3-Hour First-Mover window metrics (`analysed_last_3h`, `selected_last_3h`, `rejected_last_3h`) and new signal labels.
+  - `aryan_implementation/tests/test_vet_rubric.py`:
+    - Updated `D8` and rubric tests and added `test_concise_job_from_high_quality_client_scores_apply` and `test_three_hour_reporting_cadence`.

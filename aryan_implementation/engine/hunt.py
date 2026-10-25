@@ -11,11 +11,17 @@ import re
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-from .config import MAX_SEARCHES_PER_PASS, MAX_DETAIL_FETCHES_PER_PASS, PAYLOADS_DIR
+from .config import (
+    MAX_COMPETITION_PROPOSALS,
+    MAX_DETAIL_FETCHES_PER_PASS,
+    MAX_FIRST_MOVER_AGE_HOURS,
+    MAX_SEARCHES_PER_PASS,
+    PAYLOADS_DIR,
+)
 from .job_ledger import JobLedger, extract_job_timestamps, is_test_job
 from .mcp_client import UpworkMCPClient
 from .state_manager import StateManager
-from .vet import CAPABILITY_DISQUALIFIERS, check_disqualifiers, normalize_job_record, score_job
+from .vet import CAPABILITY_DISQUALIFIERS, check_disqualifiers, normalize_job_record, parse_number, score_job
 
 logger = logging.getLogger("upwork_engine")
 
@@ -68,21 +74,21 @@ class JobHunter:
         )
 
         search_tasks: List[Tuple[str, str, Dict[str, Any]]] = []
-        # 1. Profile-matched smart_search feeds (no query param; days_posted without from_date)
+        # 1. Profile-matched smart_search feeds focused on most recent verified-payment posts
         lead_camp = active_campaigns[0].get("id", "claude-implementation") if active_campaigns else "claude-implementation"
         search_tasks.append((
             lead_camp,
             "smart_search",
-            {"mode": "most_recent", "days_posted": 2},
+            {"mode": "most_recent", "days_posted": 1, "verified_payment_only": True},
         ))
-        if include_best_match or len(active_campaigns) > 0:
+        if include_best_match:
             search_tasks.append((
                 lead_camp,
                 "smart_search",
-                {"mode": "best_match"},
+                {"mode": "best_match", "days_posted": 1, "verified_payment_only": True},
             ))
 
-        # 2. Campaign keyword & title searches via action="search" with full descriptions
+        # 2. Campaign keyword & title searches via action="search" with low-competition (<20 proposals) & full details
         for camp in active_campaigns:
             camp_id = camp.get("id", "default")
             for tf in camp.get("title_filters", []) or []:
@@ -91,6 +97,7 @@ class JobHunter:
                     "search",
                     {
                         "title": tf,
+                        "proposals_max": MAX_COMPETITION_PROPOSALS - 1,
                         "include_full_details": True,
                     },
                 ))
@@ -101,6 +108,7 @@ class JobHunter:
                     {
                         "query": q,
                         "sort": "recency",
+                        "proposals_max": MAX_COMPETITION_PROPOSALS - 1,
                         "include_full_details": True,
                     },
                 ))
@@ -177,7 +185,7 @@ class JobHunter:
             per_campaign_searches,
         )
 
-        # 2. Dedup & Pre-filtering
+        # 2. Dedup & Strict First-Mover Pre-filtering (<1h old, <20 proposals, 0 interviewing)
         survivors: List[Tuple[str, Dict[str, Any]]] = []
         new_count = 0
         refreshed_count = 0
@@ -200,6 +208,25 @@ class JobHunter:
             # Cheap list-level pre-filter
             title = str(job_summary.get("title", "")).lower()
             if job_summary.get("applied") is True:
+                pre_filtered_count += 1
+                continue
+
+            # Strict 1-Hour First-Mover Window pre-filter (drop old noise immediately before detail fetch)
+            posted_age_h = job_summary.get("posted_age_hours")
+            if posted_age_h is not None:
+                try:
+                    if float(posted_age_h) > MAX_FIRST_MOVER_AGE_HOURS:
+                        pre_filtered_count += 1
+                        continue
+                except (ValueError, TypeError):
+                    pass
+
+            # Strict Low-Competition pre-filter (<20 proposals)
+            prop_cnt = int(job_summary.get("proposals_count") or 0)
+            prop_tier_l = str(job_summary.get("proposals_tier") or "").lower()
+            if prop_cnt >= MAX_COMPETITION_PROPOSALS or any(
+                t in prop_tier_l for t in ("20 to 50", "20-50", "50+", "more than 50")
+            ):
                 pre_filtered_count += 1
                 continue
 
@@ -237,7 +264,19 @@ class JobHunter:
             survivors.append((jid, job_summary))
             new_count += 1
 
-        # 3. Detail fetching capped at max_details (prioritizing viable candidates and falling back to full search summary)
+        # Sort survivors so high-quality clients (verified, high spend, frequent posters) & freshest posts get detail fetches first
+        def _survivor_priority(item: Tuple[str, Dict[str, Any]]) -> Tuple[int, float, int, float]:
+            _, s = item
+            c = s.get("client_record") if isinstance(s.get("client_record"), dict) else (s.get("client") if isinstance(s.get("client"), dict) else {})
+            verified = 1 if c.get("payment_verified") else 0
+            spent = float(parse_number(c.get("total_spent"), 0.0) or 0.0)
+            posted = int(c.get("jobs_posted") or c.get("total_posted_jobs") or 0)
+            age_h = float(s.get("posted_age_hours") if s.get("posted_age_hours") is not None else 0.5)
+            return (-verified, -spent, -posted, age_h)
+
+        survivors.sort(key=_survivor_priority)
+
+        # 3. Detail fetching capped at max_details (always fetch details for fresh <1h candidates to get full client stars/reviews/activityStat)
         details_fetched = 0
         final_discovered_records: List[Dict[str, Any]] = []
 
@@ -250,7 +289,7 @@ class JobHunter:
                     need_detail_call = False
                 else:
                     pre_score = score_job(summary).get("score", 0.0)
-                    if pre_score < 55.0:
+                    if pre_score < 50.0:
                         need_detail_call = False
 
             if need_detail_call and details_fetched < max_details and not _budget_exhausted():

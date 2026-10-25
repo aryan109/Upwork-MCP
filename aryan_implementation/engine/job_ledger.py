@@ -1,4 +1,4 @@
-﻿"""
+"""
 Job Ledger, Persistent Deduplication & Timestamp Engine for Aryan Upwork Acquisition Pipeline.
 Ensures:
 1. Every scraped job has exact `posted_at`, `scraped_at`, and `age_minutes` recorded.
@@ -44,10 +44,11 @@ def extract_job_timestamps(job_data: Dict[str, Any]) -> Tuple[Optional[str], str
 
     # 1. Check known Upwork date/time fields in order of specificity
     candidate_keys = [
+        "published_date",
+        "created_date",
         "postedOn",
         "createdOn",
         "publishDate",
-        "published_date",
         "publishedDateTime",
         "created_time",
         "published_at",
@@ -55,6 +56,7 @@ def extract_job_timestamps(job_data: Dict[str, Any]) -> Tuple[Optional[str], str
         "created_at",
         "publish_date",
         "dateCreated",
+        "posted_at",
     ]
 
     for key in candidate_keys:
@@ -76,6 +78,8 @@ def extract_job_timestamps(job_data: Dict[str, Any]) -> Tuple[Optional[str], str
                 # Check if ISO format
                 try:
                     dt = datetime.fromisoformat(val_str.replace("Z", "+00:00"))
+                    if dt.tzinfo is None:
+                        dt = dt.replace(tzinfo=timezone.utc)
                     posted_at = dt.isoformat()
                     break
                 except Exception:
@@ -103,8 +107,9 @@ def extract_job_timestamps(job_data: Dict[str, Any]) -> Tuple[Optional[str], str
     else:
         try:
             p_dt = datetime.fromisoformat(posted_at.replace("Z", "+00:00"))
-            s_dt = datetime.fromisoformat(scraped_at.replace("Z", "+00:00"))
-            age_minutes = round(max(0.0, (s_dt - p_dt).total_seconds() / 60.0), 1)
+            if p_dt.tzinfo is None:
+                p_dt = p_dt.replace(tzinfo=timezone.utc)
+            age_minutes = round(max(0.0, (now_utc - p_dt).total_seconds() / 60.0), 1)
         except Exception:
             age_minutes = 0.0
 

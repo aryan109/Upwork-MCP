@@ -14,7 +14,13 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from .ai_job_analyzer import AIJobAnalyzer
-from .config import STATE_DIR, PROJECT_ROOT, MAX_SEARCHES_PER_PASS, MAX_DETAIL_FETCHES_PER_PASS
+from .config import (
+    MAX_DETAIL_FETCHES_PER_PASS,
+    MAX_SEARCHES_PER_PASS,
+    PROJECT_ROOT,
+    REPORT_INTERVAL_HOURS,
+    STATE_DIR,
+)
 from .daily_report import DailyReportEngine
 from .draft import ProposalDrafter
 from .hunt import JobHunter
@@ -32,6 +38,22 @@ if not logging.getLogger().handlers:
         datefmt="%Y-%m-%d %H:%M:%S",
     )
 logger = logging.getLogger("hourly_hunter")
+
+
+def is_three_hour_report_due(state: Dict[str, Any], now_utc: Optional[datetime] = None) -> bool:
+    """Return True if 3 hours (REPORT_INTERVAL_HOURS) have elapsed since last_3h_report_at."""
+    now = now_utc or datetime.now(timezone.utc)
+    last_ts = state.get("last_3h_report_at")
+    if not last_ts or not isinstance(last_ts, str):
+        return True
+    try:
+        dt = datetime.fromisoformat(last_ts.replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        elapsed_hours = (now - dt).total_seconds() / 3600.0
+        return elapsed_hours >= float(REPORT_INTERVAL_HOURS)
+    except Exception:
+        return True
 
 
 def run_single_pass(
@@ -309,6 +331,20 @@ def run_single_pass(
     except Exception as e:
         logger.warning(f"Alert / health evaluation note: {e}")
 
+    # Sweep any existing drafted/preview_ready jobs that have aged past the 1-hour first-mover window or exceeded 20 proposals
+    for jid_existing, j_existing in list(jobs.items()):
+        if not isinstance(j_existing, dict) or j_existing.get("status") not in ("drafted", "preview_ready"):
+            continue
+        is_stale_disq, stale_d_id, stale_reason = check_disqualifiers(j_existing)
+        if is_stale_disq:
+            j_existing["status"] = "skipped"
+            j_existing["decision"] = "SKIP"
+            j_existing["disqualifiers"] = [stale_d_id]
+            j_existing["reasons"] = [stale_reason]
+            j_existing["rejected_at"] = now_utc.isoformat()
+            j_existing["rejected_date"] = now_utc.strftime("%Y-%m-%d")
+            logger.info(f"[AUTO-EXPIRE {stale_d_id}] Removed stale draft '{j_existing.get('title')}' from queue — {stale_reason}")
+
     # Save state
     state["last_hunt_pass_at"] = now_utc.isoformat()
     state["last_hunt_date"] = now_utc.strftime("%Y-%m-%d")
@@ -331,19 +367,23 @@ def run_single_pass(
     except Exception as e:
         logger.warning(f"Digest generation warning: {e}")
 
-    # Once-a-day daily comprehensive report compilation (and silent refresh on new activity)
+    # Every-3-hours comprehensive report compilation & notification (and silent refresh on new activity)
     today_str = now_utc.strftime("%Y-%m-%d")
-    should_notify_report = state.get("last_daily_report_date") != today_str
+    should_notify_report = is_three_hour_report_due(state, now_utc)
     if should_notify_report or vetted_count > 0:
         try:
             report_eng = DailyReportEngine(state_mgr.state_dir)
             report_eng.generate_daily_report(today_str, notify=should_notify_report)
             if should_notify_report:
+                state["last_3h_report_at"] = now_utc.isoformat()
                 state["last_daily_report_date"] = today_str
                 state_mgr.save_state(state)
-            logger.info(f"Daily intelligence and improvement report compiled for {today_str} (notify={should_notify_report}).")
+            logger.info(
+                f"3-Hour intelligence and action report compiled for {today_str} "
+                f"(notify={should_notify_report}, interval={REPORT_INTERVAL_HOURS}h)."
+            )
         except Exception as e:
-            logger.warning(f"Failed to auto-generate daily report: {e}")
+            logger.warning(f"Failed to auto-generate 3-hour report: {e}")
 
     summary = {
         "run_id": run_id,

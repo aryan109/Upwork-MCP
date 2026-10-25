@@ -32,15 +32,30 @@ logger = logging.getLogger("web_report")
 # Positive matching signal human-readable descriptions
 POSITIVE_SIGNAL_LABELS = {
     "title_strong_match": "High keyword match with core AI/Agent services",
+    "title_adjacent": "Strong technical overlap in title/description",
     "title_moderate_match": "Target tech keywords in title",
     "desc_high_fit": "High technical overlap in project description",
     "client_verified": "Verified client payment method",
-    "spend_high": "High historical client spend ($10k+)",
+    "spend_high": "High historical client spend ($2.5k–$25k+)",
     "spend_medium": "Established client spend ($1k–$10k)",
+    "frequent_poster_high_hirer": "Frequent job poster with high hire rate",
+    "frequent_poster": "Frequent Upwork client (5+ jobs posted)",
+    "high_stars_high_reviews": "Top-tier client (4.8+ ⭐ with strong review/like volume)",
+    "high_stars": "Top rated client (4.8+ ⭐)",
+    "high_payer": "Proven willingness to pay higher rates ($50+/hr or $1k+ fixed)",
+    "elite_client_bonus": "Elite Client Bonus (high stars + frequent poster + strong spend)",
+    "first_mover_prime": "Prime First-Mover Window (<=30m old & <10 proposals & 0 interviews)",
+    "first_mover_under_5_proposals": "First-Mover Advantage (<5 proposals)",
+    "first_mover_15m": "Ultra-fresh job posted within 15 minutes",
+    "first_mover_30m": "Fresh job posted within 30 minutes",
+    "fresh": "Posted within 1-hour first-mover window",
+    "zero_interviews_open_field": "Zero interviews / zero invites sent (wide-open field)",
     "hire_rate_strong": "High client hire rate (>50%)",
     "rating_top": "Top rated client (4.8+ ⭐)",
     "rung_impl": "Direct implementation sprint fit",
+    "proof_direct": "Direct match with Aryan's production portfolio",
     "proof_adjacent": "Direct alignment with Aryan's proof portfolio",
+    "budget_strong": "Strong budget / hourly rate ceiling",
     "budget_in_sweet_spot": "Budget in target zone ($50–$80/hr)",
     "ai_fit_high": "Passed AI deep vetting with low toxicity & clean scope",
 }
@@ -53,7 +68,7 @@ DISQUALIFIER_EXPLANATIONS = {
     "D5": "Staffing/agency pool or unpaid equity/commission only",
     "D6": "Payment unverified AND $0 spend AND 0 hires (Ghost client filter)",
     "D7": "Fixed under $100 or hourly ceiling under $25 (Below rate floor)",
-    "D8": "Stale posting (>72h old, 50+ proposals, 0 interviewing)",
+    "D8": "Missed first-mover window (>1h old, 20+ proposals, or client already interviewing/inviting)",
     "D9": "Free test task over 1 hour",
     "D10": "Conflict: open proposal or contract with same client",
     "D11": "Job already filled (hires reached limit; Connects preserved)",
@@ -427,9 +442,40 @@ def compile_daily_report_metrics(
     public_url = get_public_service_url()
     web_report_link = f"{public_url}/report"
 
+    # Compute 3-Hour First-Mover Window metrics
+    cutoff_3h = now_utc - timedelta(hours=3)
+    analysed_last_3h = 0
+    selected_last_3h = 0
+    rejected_last_3h = 0
+    for j in jobs.values():
+        if not isinstance(j, dict):
+            continue
+        act_ts = None
+        for k in ("vetted_at", "staged_at", "rejected_at", "scraped_at", "first_seen_at"):
+            val = j.get(k)
+            if val and isinstance(val, str):
+                try:
+                    dt_v = datetime.fromisoformat(val.replace("Z", "+00:00"))
+                    if dt_v.tzinfo is None:
+                        dt_v = dt_v.replace(tzinfo=timezone.utc)
+                    act_ts = dt_v
+                    break
+                except Exception:
+                    continue
+        if act_ts and act_ts >= cutoff_3h:
+            analysed_last_3h += 1
+            if j.get("status") in ("drafted", "preview_ready", "submitted") or j.get("decision") == "APPLY":
+                selected_last_3h += 1
+            else:
+                rejected_last_3h += 1
+
     return {
         "date": t_date,
         "generated_at": now_utc.strftime("%Y-%m-%d %H:%M:%S UTC"),
+        "report_interval_hours": 3,
+        "analysed_last_3h": analysed_last_3h,
+        "selected_last_3h": selected_last_3h,
+        "rejected_last_3h": rejected_last_3h,
         "system_health": system_health,
         "total_analysed": total_analysed_today,
         "selected_jobs": selected_jobs_today,
@@ -456,13 +502,16 @@ def compile_daily_report_metrics(
 
 def render_telegram_summary_message(metrics: Dict[str, Any]) -> str:
     """
-    Format a clean, concise, high-signal Telegram HTML notification
+    Format a clean, concise, high-signal 3-Hour First-Mover Telegram HTML notification
     with strict date isolation, downtime status, and review backlog.
     """
     date_str = metrics["date"]
     analysed = metrics["total_analysed"]
     sel_count = metrics["selected_count"]
     rej_count = metrics["rejected_count"]
+    analysed_3h = metrics.get("analysed_last_3h", analysed)
+    sel_3h = metrics.get("selected_last_3h", sel_count)
+    rej_3h = metrics.get("rejected_last_3h", rej_count)
     saved = metrics["connects_saved"]
     balance = metrics["connects_balance"]
     web_link = metrics["web_report_link"]
@@ -470,10 +519,11 @@ def render_telegram_summary_message(metrics: Dict[str, Any]) -> str:
     backlog = metrics.get("review_queue_backlog", [])
 
     lines = [
-        f"📊 <b>Daily Upwork Intelligence & Action Report ({date_str})</b>",
+        f"📊 <b>Daily Upwork Intelligence & Action Report — 3-Hour First-Mover Briefing ({date_str})</b>",
         "",
-        "<b>1. Activity & Pipeline Today:</b>",
-        f"• Jobs Analysed Today: <b>{analysed}</b>",
+        "<b>1. First-Mover Activity (Last 3h / Today):</b>",
+        f"• Last 3 Hours: <b>{analysed_3h}</b> analysed · <b>{sel_3h}</b> APPLY 🎯 · <b>{rej_3h}</b> filtered 🛑",
+        f"• Jobs Analysed Today: <b>{analysed}</b> (Strict &lt;1h age, &lt;20 proposals, 0 interviews)",
         f"• Selected for Review: <b>{sel_count}</b> 🎯",
         f"• Disqualified / Filtered: <b>{rej_count}</b> 🛑",
         f"• Connects Preserved Today: <b>~{saved} Connects</b> 🛡️",

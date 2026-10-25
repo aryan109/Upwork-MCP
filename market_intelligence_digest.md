@@ -1,6 +1,6 @@
 # Upwork Market Intelligence & Demand Knowledge Base
-*Generated: 2026-10-25 12:04:50 UTC*
-*Total Cataloged Opportunities: 118*
+*Generated: 2026-10-25 12:41:50 UTC*
+*Total Cataloged Opportunities: 147*
 
 > **Purpose**: Tracks high-value client pain points, emerging tech stacks, and rapid-hire niches across Upwork. Even when a job is hired before we submit, the demand signal reveals exactly what topics, proof assets, and engagement tags Aryan should leverage.
 
@@ -84,6 +84,225 @@ The platform uses LLMs, t..."*
 ---
 
 ## 2. Active & Monitored Market Demand Signals
+
+### 🎯 [AI Evaluation / Benchmark Developer with Snorkel Experience — Analytical Task Authoring](https://www.upwork.com/jobs/~2107718510421989225)
+- **Status**: `OPEN` | Rate: $5–$30/hr | Client: UKR ($169 spent)
+- **Tech Stack**: `Python`
+- **Core Friction**: *"Debugging failed automated evaluations and model runs — Understands how to create genuinely difficult analytical problems"*
+- **Tags**: #AIEvals #AIPrototypes #CursorAI #LLMOps #LovableDev #Python #RAGArchitecture
+- **Content Hook**: **"Why Python prototypes hallucinate in production (and how to fix them with automated evals)"**
+
+### 🎯 [Senior AI Agent Evaluation & Benchmarking Team Lead](https://www.upwork.com/jobs/~2108133633287676878)
+- **Status**: `OPEN` | Rate: $100 fixed | Client: United States ($8,180 spent)
+- **Tech Stack**: `General AI`
+- **Core Friction**: *"We’re seeking a senior team lead to oversee AI agent evaluation and benchmarking for a 2-hour-per-day, part-time role. You’ll lead a team of 3-5 freelancers, manage evaluation work..."*
+- **Tags**: #AIEvals #AIPrototypes #CursorAI #LLMOps #LovableDev #RAGArchitecture
+- **Content Hook**: **"Why AI & LLM prototypes hallucinate in production (and how to fix them with automated evals)"**
+
+### 🎯 [AI Response Quality Evaluator – Coding Assistant Communication (Rubric-Based Scoring)](https://www.upwork.com/jobs/~2109728751736372310)
+- **Status**: `OPEN` | Rate: $10–$25/hr | Client: United States ($7,390 spent)
+- **Tech Stack**: `General AI`
+- **Core Friction**: *"Do Not Apply If You Are An Agency.
+
+**About the project**
+We're improving how our AI coding assistant communicates with users. We need an experienced evaluator to review conversati..."*
+- **Tags**: #AIEvals #AIPrototypes #CursorAI #LLMOps #LovableDev #RAGArchitecture
+- **Content Hook**: **"Why AI & LLM prototypes hallucinate in production (and how to fix them with automated evals)"**
+
+### 🎯 [AI Prompt Engineer | LLM Training, Evaluation & Prompt Optimization](https://www.upwork.com/jobs/~2110579829363639637)
+- **Status**: `OPEN` | Rate: $20–$60/hr | Client: USA ($1,284 spent)
+- **Tech Stack**: `Claude, OpenAI`
+- **Core Friction**: *"- Create high-quality prompts to test AI reasoning, accuracy, and problem-solving capabilities — - Identify hallucinations, reasoning errors, and inconsistencies"*
+- **Tags**: #AIEvals #AIPrototypes #Claude #CursorAI #LLMOps #LovableDev #OpenAI #RAGArchitecture
+- **Content Hook**: **"Why Claude, OpenAI prototypes hallucinate in production (and how to fix them with automated evals)"**
+
+### 🎯 [Paid Research Interview: AI Training & Evaluation Experience](https://www.upwork.com/jobs/~2110677658631872553)
+- **Status**: `OPEN` | Rate: $20–$100/hr | Client: CHN ($0 spent)
+- **Tech Stack**: `General AI`
+- **Core Friction**: *"Hi, I’m Wilson. I’m researching how independent professionals get started with AI training and evaluation work, and what the day-to-day experience is like.
+I’d like to speak with p..."*
+- **Tags**: #AIEvals #AIPrototypes #CursorAI #LLMOps #LovableDev #RAGArchitecture
+- **Content Hook**: **"Why AI & LLM prototypes hallucinate in production (and how to fix them with automated evals)"**
+
+### 🎯 [Review an LLM fine-tuning experiment design (LoRA, evaluation, small-sample statistics)](https://www.upwork.com/jobs/~2111853585570812651)
+- **Status**: `OPEN` | Rate: $400 fixed | Client: United States ($3,711 spent)
+- **Tech Stack**: `Make.com`
+- **Core Friction**: *"We're a small independent research project testing whether specially designed training data teaches open models to keep the substance of their answers fixed when the framing, perso..."*
+- **Tags**: #AIEvals #AIPrototypes #CursorAI #LLMOps #LovableDev #Makecom #RAGArchitecture
+- **Content Hook**: **"Why Make.com prototypes hallucinate in production (and how to fix them with automated evals)"**
+
+### 🎯 [AI Output Evaluator: Score AI-Generated Slides, Docs & Sheets (Long-Term)](https://www.upwork.com/jobs/~2112285359882123814)
+- **Status**: `OPEN` | Rate: $10–$30/hr | Client: United States ($7,390 spent)
+- **Tech Stack**: `Python`
+- **Core Friction**: *"The work spans many domains and helps measure and improve model performance through structured review of file outputs — - Check spreadsheets for wrong formulas, broken calculations, bad data, and misleading charts"*
+- **Tags**: #AIEvals #AIPrototypes #CursorAI #LLMOps #LovableDev #Python #RAGArchitecture
+- **Content Hook**: **"Why Python prototypes hallucinate in production (and how to fix them with automated evals)"**
+
+### 🎯 [Urgent: AI Content Evaluator (Decks, Documents & Spreadsheets) | HandShake AI Experience Required](https://www.upwork.com/jobs/~2112985526722486297)
+- **Status**: `OPEN` | Rate: $10–$30/hr | Client: USA ($564 spent)
+- **Tech Stack**: `General AI`
+- **Core Friction**: *"We’re looking for experienced AI content evaluators to review and assess AI-generated presentations, documents, and spreadsheets.
+
+The work involves evaluating output quality, accu..."*
+- **Tags**: #AIEvals #AIPrototypes #CursorAI #LLMOps #LovableDev #RAGArchitecture
+- **Content Hook**: **"Why AI & LLM prototypes hallucinate in production (and how to fix them with automated evals)"**
+
+### 🎯 [Senior Full Stack Engineer and Technical Lead for Dental Revenue Intelligence Platform](https://www.upwork.com/jobs/~2099883869395139137)
+- **Status**: `OPEN` | Rate: Hourly (rate open) | Client: United States ($114,881 spent)
+- **Tech Stack**: `Claude, OpenAI, Cursor, Lovable, PostgreSQL, Make.com, React, TypeScript`
+- **Core Friction**: *"* Determining what should be retained, refactored or replaced — What problems did you find, and how did you convert it into maintainable production software"*
+- **Tags**: #AIEvals #AIPrototypes #Claude #Cursor #CursorAI #LLMOps #Lovable #LovableDev #Makecom #OpenAI #PostgreSQL #RAGArchitecture #React #TypeScript
+- **Content Hook**: **"Why Claude, OpenAI, Cursor prototypes hallucinate in production (and how to fix them with automated evals)"**
+
+### 🎯 [AI Full-Stack Developer Needed — Lovable, Cursor & Claude Code | Growth + Product Engineering](https://www.upwork.com/jobs/~2100916672962349354)
+- **Status**: `OPEN` | Rate: $15–$95/hr | Client: FRA ($0 spent)
+- **Tech Stack**: `Claude, Cursor, Lovable, Supabase, PostgreSQL, n8n, Make.com, React, TypeScript`
+- **Core Friction**: *"Debug issues that AI tools cannot resolve automatically — What was the most difficult technical problem"*
+- **Tags**: #AIEvals #AIPrototypes #Claude #Cursor #CursorAI #LLMOps #Lovable #LovableDev #Makecom #PostgreSQL #RAGArchitecture #React #Supabase #TypeScript #n8n
+- **Content Hook**: **"Why Claude, Cursor, Lovable prototypes hallucinate in production (and how to fix them with automated evals)"**
+
+### 🎯 [Senior RAG / LLM Engineer — Knowledge Graph, Document Intelligence & Full-Stack MVP](https://www.upwork.com/jobs/~2111728357043815599)
+- **Status**: `OPEN` | Rate: $10–$30/hr | Client: New Zealand ($3,147 spent)
+- **Tech Stack**: `RAG, PostgreSQL, Make.com, Python, React`
+- **Core Friction**: *"The problem is not simply building a chatbot"*
+- **Tags**: #AIEvals #AIPrototypes #CursorAI #LLMOps #LovableDev #Makecom #PostgreSQL #Python #RAG #RAGArchitecture #React
+- **Content Hook**: **"Why RAG, PostgreSQL, Make.com prototypes hallucinate in production (and how to fix them with automated evals)"**
+
+### 🎯 [AI Business Process Automation Engineer](https://www.upwork.com/jobs/~2113729766738199814)
+- **Status**: `OPEN` | Rate: $3,000 fixed | Client: United States ($77,236 spent)
+- **Tech Stack**: `Claude, OpenAI, RAG`
+- **Core Friction**: *"About Us:
+
+We are a fast growing e commerce brand manufacturing modular fitness equipment. Because our products are highly customizable and technical, we are looking for an experie..."*
+- **Tags**: #AIEvals #AIPrototypes #Claude #CursorAI #LLMOps #LovableDev #OpenAI #RAG #RAGArchitecture
+- **Content Hook**: **"Why Claude, OpenAI, RAG prototypes hallucinate in production (and how to fix them with automated evals)"**
+
+### 🎯 [AI Business Process Automation Engineer](https://www.upwork.com/jobs/~2113760036778169234)
+- **Status**: `OPEN` | Rate: $3,000 fixed | Client: United States ($77,236 spent)
+- **Tech Stack**: `Claude, OpenAI, RAG`
+- **Core Friction**: *"About Us:
+
+We are a fast growing e commerce brand manufacturing modular fitness equipment. Because our products are highly customizable and technical, we are looking for an experie..."*
+- **Tags**: #AIEvals #AIPrototypes #Claude #CursorAI #LLMOps #LovableDev #OpenAI #RAG #RAGArchitecture
+- **Content Hook**: **"Why Claude, OpenAI, RAG prototypes hallucinate in production (and how to fix them with automated evals)"**
+
+### 🎯 [Senior Agentic AI Architect/Enginnner Needed – Cursor SDK or Grok API, Hands-On Development peering](https://www.upwork.com/jobs/~2112201617612238614)
+- **Status**: `OPEN` | Rate: Hourly (rate open) | Client: United States ($149 spent)
+- **Tech Stack**: `Cursor, MCP, Python, TypeScript`
+- **Core Friction**: *"The focus is on solving a complex enterprise Software Development Life Cycle (SDLC) problem through intelligent, multi-step AI workflows"*
+- **Tags**: #AIAgents #ClaudeAI #Cursor #MCP #ModelContextProtocol #Python #TypeScript
+- **Content Hook**: **"Why Cursor, MCP, Python prototypes hallucinate in production (and how to fix them with automated evals)"**
+
+### 🎯 [AI Automation Expert Needed — Smart Logistics Planning & Parcel Pickup Optimization](https://www.upwork.com/jobs/~2112232422409517606)
+- **Status**: `OPEN` | Rate: $25–$90/hr | Client: Ukraine ($0 spent)
+- **Tech Stack**: `Make.com`
+- **Core Friction**: *"We are looking for an experienced AI Automation Specialist to help us automate and improve daily operations for a logistics company.
+
+Our main goal is to maximize the number of par..."*
+- **Tags**: #Makecom
+- **Content Hook**: **"The difference between fragile workflows and resilient automation with Make.com"**
+
+### 🎯 [AI vibecoder | Workflow creator](https://www.upwork.com/jobs/~2112577203695088439)
+- **Status**: `OPEN` | Rate: Hourly (rate open) | Client: United States ($0 spent)
+- **Tech Stack**: `Claude, Cursor`
+- **Core Friction**: *"We have created a AI agency chat interface along with a custom CRM, dashboard and other autonomous tasks for Real Estate Agents.
+
+We need someone who can dedicate their time to fix..."*
+- **Tags**: #AIAgents #Claude #ClaudeAI #Cursor #ModelContextProtocol
+- **Content Hook**: **"Why Claude, Cursor prototypes hallucinate in production (and how to fix them with automated evals)"**
+
+### 🎯 [AI Agent Engineer for Department Automation](https://www.upwork.com/jobs/~2113184295813800246)
+- **Status**: `OPEN` | Rate: Hourly (rate open) | Client: SGP ($3,218 spent)
+- **Tech Stack**: `General AI`
+- **Core Friction**: *"We are hiring an experienced AI Agent Engineer to build a locally hosted multi-agent system for department automation. The role includes recommending hardware and local AI models,..."*
+- **Tags**: 
+- **Content Hook**: **"The difference between fragile workflows and resilient automation with AI & LLM"**
+
+### 🎯 [Senior WordPress Recovery & Modernization Engineer (AI-Augmented / Full-Stack PHP)](https://www.upwork.com/jobs/~2113449160756064668)
+- **Status**: `OPEN` | Rate: $15–$50/hr | Client: United States ($54,605 spent)
+- **Tech Stack**: `Claude, Cursor`
+- **Core Friction**: *"Current Website Issues — The website currently has several outstanding restoration issues:"*
+- **Tags**: #AIEvals #AIPrototypes #Claude #Cursor #CursorAI #LLMOps #LovableDev #RAGArchitecture
+- **Content Hook**: **"Why Claude, Cursor prototypes hallucinate in production (and how to fix them with automated evals)"**
+
+### 🎯 [AI/ML Senior Engineer](https://www.upwork.com/jobs/~2114276643812168594)
+- **Status**: `OPEN` | Rate: $30–$40/hr | Client: India ($30 spent)
+- **Tech Stack**: `LangChain, LlamaIndex, RAG, pgvector, Qdrant, Weaviate, Python`
+- **Core Friction**: *"Role Summary
+Looking for an experienced AI/ML Architect to lead our AI/ML architecture, agentic AI
+platform design, and applied AI research initiatives for healthcare payer operati..."*
+- **Tags**: #AIEvals #AIPrototypes #CursorAI #LLMOps #LangChain #LlamaIndex #LovableDev #Python #Qdrant #RAG #RAGArchitecture #Weaviate #pgvector
+- **Content Hook**: **"Why LangChain, LlamaIndex, RAG prototypes hallucinate in production (and how to fix them with automated evals)"**
+
+### 🎯 [AI Chatbot Developer for Support Automation](https://www.upwork.com/jobs/~2114285454551861333)
+- **Status**: `OPEN` | Rate: $38–$48/hr | Client: Slovakia ($0 spent)
+- **Tech Stack**: `General AI`
+- **Core Friction**: *"Strong problem-solving skills and familiarity with AI frameworks are essential for this project"*
+- **Tags**: 
+- **Content Hook**: **"The difference between fragile workflows and resilient automation with AI & LLM"**
+
+### 🎯 [AI Agent Developer for Technical Products](https://www.upwork.com/jobs/~2114033362478060434)
+- **Status**: `OPEN` | Rate: $19–$40/hr | Client: United States ($950 spent)
+- **Tech Stack**: `General AI`
+- **Core Friction**: *"We need an AI Agent Developer to build a complex AI Agent built on Gemini that functions as a technical products Application Engineer. The agent will be trained using data sheets,..."*
+- **Tags**: 
+- **Content Hook**: **"The difference between fragile workflows and resilient automation with AI & LLM"**
+
+### 🎯 [Senior Full-Stack Engineer: Platform Owner + AI Agents & Growth Automation (Telehealth)](https://www.upwork.com/jobs/~2110273897786435554)
+- **Status**: `OPEN` | Rate: Hourly (rate open) | Client: United States ($951,986 spent)
+- **Tech Stack**: `Claude, OpenAI, Cursor, MCP, n8n, Make.com, Zapier, React, TypeScript`
+- **Core Friction**: *"That includes code reviews, bug fixes, refactoring, performance, security and HIPAA safeguards, deployments, and keeping the platform stable as it grows"*
+- **Tags**: #AIAgents #Claude #ClaudeAI #Cursor #MCP #Makecom #ModelContextProtocol #OpenAI #React #TypeScript #Zapier #n8n
+- **Content Hook**: **"Why Claude, OpenAI, Cursor prototypes hallucinate in production (and how to fix them with automated evals)"**
+
+### 🎯 [Technical Consultant, AI Integration (Part-Time Contract)](https://www.upwork.com/jobs/~2110342503576294945)
+- **Status**: `OPEN` | Rate: $45–$100/hr | Client: United States ($16,208 spent)
+- **Tech Stack**: `Claude, MCP`
+- **Core Friction**: *"- Help resolve complex integration issues during scheduled sessions — - Strong experience with production AI applications, including tool use, context management, evaluation and failure handling"*
+- **Tags**: #AIEvals #AIPrototypes #Claude #CursorAI #LLMOps #LovableDev #MCP #RAGArchitecture
+- **Content Hook**: **"Why Claude, MCP prototypes hallucinate in production (and how to fix them with automated evals)"**
+
+### 🎯 [Senior Full-Stack Engineer, Telehealth: Platform Owner + AI Agents (Americas, US hours)](https://www.upwork.com/jobs/~2112959559036926948)
+- **Status**: `OPEN` | Rate: Hourly (rate open) | Client: United States ($951,986 spent)
+- **Tech Stack**: `Claude, OpenAI, Cursor, MCP, n8n, Make.com, Zapier, React, TypeScript`
+- **Core Friction**: *"That includes code reviews, bug fixes, refactoring, performance, security and HIPAA safeguards, deployments, and keeping the platform stable as it grows"*
+- **Tags**: #AIAgents #Claude #ClaudeAI #Cursor #MCP #Makecom #ModelContextProtocol #OpenAI #React #TypeScript #Zapier #n8n
+- **Content Hook**: **"Why Claude, OpenAI, Cursor prototypes hallucinate in production (and how to fix them with automated evals)"**
+
+### 🎯 [Full-Time Technical Assistant: AI-Assisted Full-Stack Programmer](https://www.upwork.com/jobs/~2112034853275530830)
+- **Status**: `OPEN` | Rate: $125 fixed | Client: USA ($36,582 spent)
+- **Tech Stack**: `Claude, OpenAI, MCP, LangChain, Supabase, n8n, Make.com, Zapier, Notion, Python, React, TypeScript`
+- **Core Friction**: *"•	You build what is asked and tell us about problems early"*
+- **Tags**: #AIAgents #Claude #ClaudeAI #LangChain #MCP #Makecom #ModelContextProtocol #Notion #OpenAI #Python #React #Supabase #TypeScript #Zapier #n8n
+- **Content Hook**: **"Connecting Claude Code to live systems: Why MCP (Model Context Protocol) is replacing custom API wrappers"**
+
+### 🎯 [AI and Automation Support Specialist (n8n, Claude) for a Members Program](https://www.upwork.com/jobs/~2112286367567867670)
+- **Status**: `OPEN` | Rate: $20–$30/hr | Client: United States ($110,011 spent)
+- **Tech Stack**: `Claude, MCP, n8n, Make.com, Zapier, Slack, Airtable, Python`
+- **Core Friction**: *"Point members to the lesson or tool that solves their next problem, and share what other members have built"*
+- **Tags**: #AIAgents #Airtable #Claude #ClaudeAI #MCP #Makecom #ModelContextProtocol #Python #Slack #Zapier #n8n
+- **Content Hook**: **"Connecting Claude Code to live systems: Why MCP (Model Context Protocol) is replacing custom API wrappers"**
+
+### 🎯 [Help Connecting Console Agent to pull shopify data](https://www.upwork.com/jobs/~2112911568248341965)
+- **Status**: `OPEN` | Rate: Hourly (rate open) | Client: USA ($0 spent)
+- **Tech Stack**: `Claude, MCP, n8n`
+- **Core Friction**: *"I am having trouble connecting a claude console agent to a client shopify store front. It doesn't seem to pull the live product info when the bot is talking to customers. No pricin..."*
+- **Tags**: #AIAgents #Claude #ClaudeAI #MCP #ModelContextProtocol #n8n
+- **Content Hook**: **"Connecting Claude Code to live systems: Why MCP (Model Context Protocol) is replacing custom API wrappers"**
+
+### 🎯 [Reporting & Data Operations Specialist (Performance Marketing)](https://www.upwork.com/jobs/~2112918566970980048)
+- **Status**: `OPEN` | Rate: $40–$120/hr | Client: United States ($311,891 spent)
+- **Tech Stack**: `Claude, Make.com`
+- **Core Friction**: *"Catching breakage before clients do: connector failures, missing days, naming or attribution changes — Treat a number that doesn't reconcile as a problem to chase, not a rounding note"*
+- **Tags**: #Claude #Makecom
+- **Content Hook**: **"The difference between fragile workflows and resilient automation with Claude, Make.com"**
+
+### 🎯 [SEO/AEO Lead (Execution): AI connectors and AI security](https://www.upwork.com/jobs/~2113724376218358674)
+- **Status**: `OPEN` | Rate: $35–$75/hr | Client: USA ($0 spent)
+- **Tech Stack**: `Claude, OpenAI, MCP`
+- **Core Friction**: *"StackOne connects AI to every company system and controls what it can do in each one, down to the field. Our buyers are AI leads, IT leaders and security teams rolling out tools li..."*
+- **Tags**: #AIAgents #Claude #ClaudeAI #MCP #ModelContextProtocol #OpenAI
+- **Content Hook**: **"Connecting Claude Code to live systems: Why MCP (Model Context Protocol) is replacing custom API wrappers"**
 
 ### 🎯 [AI engineer with python](https://www.upwork.com/jobs/~2112284930456697382)
 - **Status**: `OPEN` | Rate: $20–$30/hr | Client: Sweden ($415 spent)
@@ -944,30 +1163,31 @@ We are looking for a skilled, autonomous Full-Stack Next.js & React Developer wi
 
 | Tool / Framework | Mentions in Captured Jobs | Demand Velocity |
 |---|---|---|
-| **Claude** | 65 | High |
-| **Python** | 41 | High |
-| **OpenAI** | 39 | High |
-| **Make.com** | 30 | High |
-| **RAG** | 28 | 🔥 Critical (Clients hiring in <3h) |
-| **n8n** | 28 | High |
-| **MCP** | 23 | High |
-| **React** | 22 | High |
-| **PostgreSQL** | 14 | High |
-| **TypeScript** | 13 | High |
-| **Zapier** | 10 | High |
-| **LangChain** | 9 | High |
+| **Claude** | 80 | High |
+| **Python** | 48 | High |
+| **OpenAI** | 47 | High |
+| **Make.com** | 40 | High |
+| **n8n** | 34 | High |
+| **RAG** | 32 | 🔥 Critical (Clients hiring in <3h) |
+| **MCP** | 31 | High |
+| **React** | 28 | High |
+| **TypeScript** | 19 | High |
+| **PostgreSQL** | 17 | High |
+| **Zapier** | 14 | High |
+| **Cursor** | 12 | 🔥 Critical (Clients hiring in <3h) |
+| **LangChain** | 11 | High |
 | **Evals** | 8 | 🔥 Critical (Clients hiring in <3h) |
+| **pgvector** | 7 | High |
+| **Supabase** | 6 | 🔥 Critical (Clients hiring in <3h) |
 | **HubSpot** | 6 | High |
-| **pgvector** | 6 | High |
-| **Cursor** | 5 | 🔥 Critical (Clients hiring in <3h) |
-| **Airtable** | 4 | High |
-| **Supabase** | 4 | 🔥 Critical (Clients hiring in <3h) |
-| **Notion** | 3 | High |
-| **Slack** | 3 | High |
+| **Airtable** | 5 | High |
+| **Notion** | 4 | High |
+| **Slack** | 4 | High |
+| **Lovable** | 3 | 🔥 Critical (Clients hiring in <3h) |
+| **LlamaIndex** | 3 | High |
+| **Qdrant** | 3 | High |
 | **Pinecone** | 3 | High |
-| **LlamaIndex** | 2 | High |
-| **Qdrant** | 2 | High |
-| **Lovable** | 1 | 🔥 Critical (Clients hiring in <3h) |
+| **Weaviate** | 1 | High |
 
 ---
 

@@ -80,15 +80,41 @@ def test_disqualifier_d7_under_floors() -> None:
 
 
 def test_disqualifier_d8_stale_pile_on() -> None:
-    job = {
+    # 1. Older than 1 hour (>1.0h first-mover window)
+    job_old = {
         "title": "n8n automation",
-        "posted_age_hours": 96,
-        "proposals_count": 60,
+        "posted_age_hours": 1.5,
+        "proposals_count": 3,
         "activityStat": {"jobActivity": {"totalInvitedToInterview": 0}},
     }
-    disq, d_id, _ = check_disqualifiers(job)
+    disq, d_id, reason = check_disqualifiers(job_old)
     assert disq is True
     assert d_id == "D8"
+    assert "first-mover window" in str(reason)
+
+    # 2. High competition (>= 20 proposals) even if < 1h old
+    job_crowded = {
+        "title": "n8n automation",
+        "posted_age_hours": 0.4,
+        "proposals_count": 22,
+        "activityStat": {"jobActivity": {"totalInvitedToInterview": 0}},
+    }
+    disq2, d_id2, reason2 = check_disqualifiers(job_crowded)
+    assert disq2 is True
+    assert d_id2 == "D8"
+    assert "High competition" in str(reason2)
+
+    # 3. Client already interviewing or sent invites
+    job_interviewing = {
+        "title": "n8n automation",
+        "posted_age_hours": 0.3,
+        "proposals_count": 4,
+        "activityStat": {"jobActivity": {"totalInvitedToInterview": 1, "invitesSent": 1}},
+    }
+    disq3, d_id3, reason3 = check_disqualifiers(job_interviewing)
+    assert disq3 is True
+    assert d_id3 == "D8"
+    assert "already interviewing" in str(reason3)
 
 
 def test_disqualifier_d9_unpaid_test() -> None:
@@ -126,23 +152,27 @@ def test_disqualifier_d11_already_filled() -> None:
     assert "Job already filled" in reason
     assert "(1/1 hired)" in reason
 
-    # 2. Multi-hire job still open: 3 to hire, 1 hired
+    # 2. Multi-hire job still open: 3 to hire, 1 hired, 0 interviewing in first-mover window
     job_multi = {
         "title": "AI Solutions Engineer",
+        "posted_age_hours": 0.4,
+        "proposals_count": 4,
         "contractTerms": {"personsToHire": 3},
         "activityStat": {
-            "jobActivity": {"totalHired": 1, "totalInvitedToInterview": 2}
+            "jobActivity": {"totalHired": 1, "totalInvitedToInterview": 0}
         },
     }
     disq, _, _ = check_disqualifiers(job_multi)
     assert disq is False
 
-    # 3. Unfilled job: 1 to hire, 0 hired
+    # 3. Unfilled job: 1 to hire, 0 hired, 0 interviewing in first-mover window
     job_unfilled = {
         "title": "AI Solutions Engineer",
+        "posted_age_hours": 0.25,
+        "proposals_count": 2,
         "contractTerms": {"personsToHire": 1},
         "activityStat": {
-            "jobActivity": {"totalHired": 0, "totalInvitedToInterview": 1}
+            "jobActivity": {"totalHired": 0, "totalInvitedToInterview": 0}
         },
     }
     disq, _, _ = check_disqualifiers(job_unfilled)
@@ -150,20 +180,22 @@ def test_disqualifier_d11_already_filled() -> None:
 
 
 def test_worked_example_1_claude_implementation_expert() -> None:
-    # Example 1 from 06_LEAD_SCORING_RUBRIC.md
+    # Example 1 adapted for <1h First-Mover window (<20 proposals, 0 interviews)
     job = {
         "title": "Claude Implementation Expert",
         "description": "Need Claude Code integrated into our business workflow to automate operations.",
         "type": "hourly",
         "hourly_max": 40,
         "duration": "> 3 months",
-        "proposals_count": 25,
-        "posted_age_hours": 20,
+        "proposals_count": 6,
+        "posted_age_hours": 0.35,
         "connects_cost": 16,
         "client_record": {
             "total_spent": 430000,
             "hire_rate_percent": 75,
             "rating": 4.9,
+            "reviews_count": 28,
+            "jobs_posted": 40,
             "avg_hourly_paid": 5.04,
             "payment_verified": True,
         },
@@ -184,7 +216,7 @@ def test_worked_example_1_claude_implementation_expert() -> None:
 
 
 def test_worked_example_5_n8n_automation() -> None:
-    # Example 5 from 06_LEAD_SCORING_RUBRIC.md
+    # Example 5 adapted for <1h First-Mover window
     job = {
         "title": "n8n Automation Expert for HubSpot Slack Gmail",
         "description": "Automate data pipeline between Typeform, HubSpot and Slack with clear error boundaries.",
@@ -192,7 +224,7 @@ def test_worked_example_5_n8n_automation() -> None:
         "hourly_max": 45,
         "duration": "< 1 month",
         "proposals_count": 3,
-        "posted_age_hours": 3,
+        "posted_age_hours": 0.4,
         "connects_cost": 14,
         "client_record": {
             "total_spent": 3200,
@@ -223,6 +255,7 @@ def test_normalize_upwork_mcp_nested_schema_prevents_false_d6() -> None:
         "title": "AI Platform Integration & Account Risk Research Engineer (Claude)",
         "type": "fixed",
         "budget": "5,000.00",
+        "posted_age_hours": 0.25,
         "client": {
             "country": "United States",
             "feedback_score": 5.0,
@@ -254,7 +287,7 @@ def test_normalize_upwork_mcp_nested_schema_prevents_false_d6() -> None:
                     "jobActivity": {
                         "totalApplicants": 7,
                         "totalHired": 0,
-                        "totalInvitedToInterview": 2,
+                        "totalInvitedToInterview": 0,
                     }
                 },
                 "contractTerms": {
@@ -278,7 +311,52 @@ def test_normalize_upwork_mcp_nested_schema_prevents_false_d6() -> None:
 
     res = score_job(norm, campaign_threshold=70)
     assert res["decision"] == "APPLY"
-    assert res["score"] >= 80.0
+    assert res["score"] >= 85.0
+
+
+def test_concise_job_from_high_quality_client_scores_apply() -> None:
+    # Concise <100 char job post from an elite client (4.95 stars, 18 reviews, 30 jobs posted, $28k spent) posted 12 mins ago
+    job = {
+        "title": "Need Python & AI Automation Developer for Internal Workflow",
+        "description": "Looking for an experienced developer to connect our CRM with LLM APIs ASAP.",
+        "type": "hourly",
+        "budget": "50.00–85.00/hr",
+        "posted_age_hours": 0.2,
+        "proposals_tier": "Less than 5",
+        "client_record": {
+            "feedback_score": 4.95,
+            "reviews_count": 18,
+            "jobs_posted": 30,
+            "jobs_with_hires": 24,
+            "spend_total": 28500.0,
+            "verification_status": "VERIFIED",
+        },
+        "activityStat": {
+            "jobActivity": {
+                "totalApplicants": 3,
+                "totalHired": 0,
+                "totalInvitedToInterview": 0,
+                "invitesSent": 0,
+            }
+        },
+    }
+    disq, d_id, _ = check_disqualifiers(job)
+    assert disq is False, f"Unexpectedly disqualified by {d_id}"
+    res = score_job(job, campaign_threshold=70)
+    assert res["decision"] == "APPLY"
+    assert res["score"] >= 85.0
+    assert "elite_client_bonus" in res["reasons"]
+    assert "first_mover_prime" in res["reasons"]
+
+
+def test_three_hour_reporting_cadence() -> None:
+    from datetime import datetime, timezone, timedelta
+    from aryan_implementation.engine.hourly_runner import is_three_hour_report_due
+
+    now = datetime(2026, 10, 25, 12, 0, tzinfo=timezone.utc)
+    assert is_three_hour_report_due({}, now) is True
+    assert is_three_hour_report_due({"last_3h_report_at": (now - timedelta(hours=2, minutes=50)).isoformat()}, now) is False
+    assert is_three_hour_report_due({"last_3h_report_at": (now - timedelta(hours=3, minutes=1)).isoformat()}, now) is True
 
 
 def test_d4_allows_legitimate_telegram_whatsapp_automation_jobs() -> None:

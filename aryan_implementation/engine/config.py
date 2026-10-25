@@ -38,6 +38,9 @@ MIN_SCORE_FOR_BOOST = 80
 DEFAULT_STICKER_RATE = 65.0
 MAX_DETAIL_FETCHES_PER_PASS = 10
 MAX_SEARCHES_PER_PASS = 12
+MAX_FIRST_MOVER_AGE_HOURS = 1.0
+MAX_COMPETITION_PROPOSALS = 20
+REPORT_INTERVAL_HOURS = 3.0
 
 # Error Classes
 ERROR_CLASSES = [
@@ -59,7 +62,7 @@ DISQUALIFIERS = {
     "D5": "Staffing/agency pool or commission/equity-only",
     "D6": "Payment unverified AND $0 spend AND 0 hires",
     "D7": "Fixed under $100 or hourly ceiling under $25",
-    "D8": "Older than 72h AND 50+ proposals AND 0 interviewing",
+    "D8": "Missed first-mover window (>1h old, 20+ proposals, or client already interviewing/inviting)",
     "D9": "Free test task over 1 hour",
     "D10": "Conflict: open proposal or contract with same client",
     "D11": "Job already filled (hires reached limit)",

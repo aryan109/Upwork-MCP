@@ -56,40 +56,57 @@ class AIJobAnalyzer:
         desc = str(job.get("description") or job.get("description_snippet", ""))
         client = job.get("client_record") if isinstance(job.get("client_record"), dict) else (job.get("client") if isinstance(job.get("client"), dict) else {})
         activity = job.get("activityStat", {}).get("jobActivity", {}) if isinstance(job.get("activityStat"), dict) else {}
-        budget_str = f"Budget: {job.get('budget')} | Hourly: {job.get('hourly_budget') or job.get('hourly_max')}"
+        budget_str = (
+            f"Budget Fixed: {job.get('budget_fixed') or job.get('budget')} | "
+            f"Hourly Range: {job.get('hourly_min')}-{job.get('hourly_max') or job.get('hourly_budget')}"
+        )
         learning_context = self.learner.get_learning_context()
+        age_mins = job.get("age_when_scraped_minutes")
+        age_h = job.get("posted_age_hours")
+        age_label = f"{age_mins} mins" if age_mins is not None else (f"{float(age_h)*60:.0f} mins" if age_h is not None else "<60 mins")
+        proposals_cnt = job.get("proposals_count") or job.get("proposals_tier") or "<5"
+        interviewing_cnt = activity.get("totalInvitedToInterview", 0) or 0
 
         system_prompt = (
-            "You are Aryan's Senior AI Lead Vetting Specialist on Upwork. "
+            "You are Aryan's Senior First-Mover AI Lead Vetting Specialist on Upwork. "
             "Aryan is a Top Rated developer with a 100% Job Success Score specializing in: "
-            "Claude Code, Model Context Protocol (MCP), production AI agent architectures, FastAPI/Django backends, "
-            "eval-driven document RAG, and resilient n8n/Make automation pipelines.\n\n"
-            "YOUR MISSION: Deeply audit this job opportunity to determine if it is a TRUE high-fit win, "
-            "or a BAD CLIENT / LOW-MARGIN TRAP to immediately skip.\n\n"
+            "Claude Code, Model Context Protocol (MCP), production AI agent architectures, Python/FastAPI/Node backends, "
+            "eval-driven document RAG, and resilient n8n/Make/API automation pipelines.\n\n"
+            "YOUR PRIMARY OBJECTIVE: Capture FIRST-MOVER ADVANTAGE on newly posted (<1 hour old), low-competition (<20 proposals, 0 interviews) "
+            "jobs posted by HIGH-QUALITY CLIENTS (high star rating >=4.7, high review/like count, frequent job posters, strong total spend, "
+            "and willingness to pay higher rates).\n\n"
             f"{learning_context}\n\n"
             "AUDIT CRITERIA:\n"
-            "1. Client Risk & Toxicity Check: Look for red flags (unrealistic deadlines like 'must finish today', "
-            "demands for free work/unpaid tests, micromanagement, zero spend unverified ghost clients, abusive tone).\n"
-            "2. Scope Feasibility: Can this realistically be packaged into an entry offer (Setup Sprint $299/$599/$1200 or Audit $750)? "
-            "Or is it a 6-month enterprise build disguised as a $200 task?\n"
-            "3. Positioning Match: Is it in Aryan's wheelhouse (AI agents, LLM integrations, Python/workflow backends)? "
-            "Skip if out of scope (mobile Swift/Kotlin, low-level C++, hardware, cold calling, generic SEO).\n\n"
+            "1. DO NOT UNDERVALUE CONCISE POSTS FROM ELITE CLIENTS: High-spending, frequent-posting clients with 4.8-5.0 stars often write "
+            "short, direct job descriptions because they want a fast expert conversation. If the client has strong stars/reviews/spend/hires "
+            "and the work involves AI, LLMs, automation, APIs, Python, or full-stack agent tooling, score it HIGH (80-95) and return 'APPLY'.\n"
+            "2. First-Mover Advantage Check: Reward jobs posted <60 mins ago with <20 proposals and 0 interviews where Aryan can be among the first top-tier applicants.\n"
+            "3. Client Risk & Toxicity Check: Only flag HIGH/CRITICAL risk if there are explicit red flags (demands for unpaid test tasks, "
+            "off-platform Telegram/WhatsApp payment scams, abusive language, or $0 unverified ghost clients).\n"
+            "4. Positioning Match: Approve AI agents, LLM integrations, Claude/OpenAI/MCP, RAG, n8n/Make/Zapier workflows, Python/FastAPI/Supabase backends, "
+            "and AI-enabled web/API systems. Skip only clear non-AI mismatches (Unity/Unreal games, SAP, Solidity, video editing, manual data entry).\n\n"
             "Return JSON ONLY with exact keys:\n"
             "- 'fit_score': number (0 to 100)\n"
             "- 'decision': string ('APPLY', 'REVIEW', or 'SKIP')\n"
             "- 'client_risk_level': string ('LOW', 'MEDIUM', 'HIGH', or 'CRITICAL')\n"
             "- 'toxic_client_flags': array of string warnings (empty if clean)\n"
             "- 'scope_archetype': string (e.g. 'MCP Agent Workflow', 'Document RAG Pipeline', 'Webhook Automation', 'Out-of-Scope')\n"
-            "- 'fit_reasoning': string (2-sentence executive summary of why Aryan should or shouldn't bid)\n"
-            "- 'key_winning_hook': string (the unique technical insight that will make Aryan's proposal stand out)"
+            "- 'fit_reasoning': string (2-sentence executive summary of why Aryan has first-mover advantage and client quality fit)\n"
+            "- 'key_winning_hook': string (the specific technical insight that will win a fast reply from this client)"
         )
 
         user_prompt = (
             f"Job Title: {title}\n"
-            f"Client Telemetry: Country: {client.get('country', 'Unknown')}, Spent: ${client.get('total_spent', 0)}, "
-            f"Hire Rate: {client.get('hire_rate_percent', client.get('hire_rate', 'Unknown'))}%, "
-            f"Verified Payment: {client.get('payment_verified', False)}, "
-            f"Total Hired: {activity.get('totalHired', 0)}\n"
+            f"First-Mover Telemetry: Posted Age: {age_label} | Proposals So Far: {proposals_cnt} | Interviewing: {interviewing_cnt}\n"
+            f"High-Quality Client Telemetry: Stars/Rating: {client.get('rating', client.get('feedback_score', 'Unknown'))}/5.0 | "
+            f"Reviews/Likes Count: {client.get('reviews_count', 'Unknown')} | "
+            f"Jobs Posted (Frequency): {client.get('jobs_posted', client.get('total_posted_jobs', 'Unknown'))} | "
+            f"Total Hires: {client.get('jobs_with_hires', activity.get('totalHired', 0))} | "
+            f"Hire Rate: {client.get('hire_rate_percent', client.get('hire_rate', 'Unknown'))}% | "
+            f"Total Spent: ${client.get('total_spent', 0)} | "
+            f"Verified Payment: {client.get('payment_verified', False)} | "
+            f"Country: {client.get('country', 'Unknown')}\n"
+            f"Heuristic Rubric Score: {h_score}/100 ({h_decision})\n"
             f"{budget_str}\n\n"
             f"Full Job Description:\n{desc[:3000]}"
         )
