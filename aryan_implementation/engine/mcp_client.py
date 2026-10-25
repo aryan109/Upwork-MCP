@@ -150,6 +150,15 @@ class UpworkMCPClient:
             action = params.get("action", "")
             inner_params = {k: v for k, v in params.items() if k != "action"}
 
+            # Live Upwork MCP uses dedicated upwork__confirm_preview tool (action='confirm', type='proposal')
+            if full_tool_name == "upwork__manage_proposals" and action == "confirm_preview":
+                full_tool_name = "upwork__confirm_preview"
+                action = "confirm"
+                inner_params = {
+                    "type": inner_params.get("type", "proposal"),
+                    "preview_id": inner_params.get("preview_id") or inner_params.get("draft_id"),
+                }
+
             arguments: Dict[str, Any] = {
                 "org_uid": "1243443370794516481",
             }

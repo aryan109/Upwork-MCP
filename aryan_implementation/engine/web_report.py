@@ -36,8 +36,8 @@ POSITIVE_SIGNAL_LABELS = {
     "title_moderate_match": "Target tech keywords in title",
     "desc_high_fit": "High technical overlap in project description",
     "client_verified": "Verified client payment method",
-    "spend_high": "High historical client spend ($2.5k–$25k+)",
-    "spend_medium": "Established client spend ($1k–$10k)",
+    "spend_high": "High historical client spend ($2.5k-$25k+)",
+    "spend_medium": "Established client spend ($1k-$10k)",
     "frequent_poster_high_hirer": "Frequent job poster with high hire rate",
     "frequent_poster": "Frequent Upwork client (5+ jobs posted)",
     "high_stars_high_reviews": "Top-tier client (4.8+ ⭐ with strong review/like volume)",
@@ -56,7 +56,7 @@ POSITIVE_SIGNAL_LABELS = {
     "proof_direct": "Direct match with Aryan's production portfolio",
     "proof_adjacent": "Direct alignment with Aryan's proof portfolio",
     "budget_strong": "Strong budget / hourly rate ceiling",
-    "budget_in_sweet_spot": "Budget in target zone ($50–$80/hr)",
+    "budget_in_sweet_spot": "Budget in target zone ($50-$80/hr)",
     "ai_fit_high": "Passed AI deep vetting with low toxicity & clean scope",
 }
 
@@ -519,7 +519,7 @@ def render_telegram_summary_message(metrics: Dict[str, Any]) -> str:
     backlog = metrics.get("review_queue_backlog", [])
 
     lines = [
-        f"📊 <b>Daily Upwork Intelligence & Action Report — 3-Hour First-Mover Briefing ({date_str})</b>",
+        f"📊 <b>Daily Upwork Intelligence & Action Report | 3-Hour First-Mover Briefing ({date_str})</b>",
         "",
         "<b>1. First-Mover Activity (Last 3h / Today):</b>",
         f"• Last 3 Hours: <b>{analysed_3h}</b> analysed · <b>{sel_3h}</b> APPLY 🎯 · <b>{rej_3h}</b> filtered 🛑",
@@ -559,7 +559,7 @@ def render_telegram_summary_message(metrics: Dict[str, Any]) -> str:
 
     # 4. Selected Jobs Today
     if metrics["selected_jobs"]:
-        lines.append(f"<b>4. 🎯 Selected Jobs (Why Selected) — {date_str}:</b>")
+        lines.append(f"<b>4. 🎯 Selected Jobs (Why Selected) ({date_str}):</b>")
         for job in metrics["selected_jobs"][:3]:
             title = html.escape(job["title"])
             url = job["url"]

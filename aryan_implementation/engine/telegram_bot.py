@@ -8,6 +8,7 @@ Provides real-time 1-click proposal approvals, status checks, and command execut
 """
 from __future__ import annotations
 
+import html
 import json
 import logging
 import os
@@ -19,6 +20,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from .config import PROJECT_ROOT, STATE_DIR
+from .draft import sanitize_no_em_dash
 from .mcp_client import UpworkMCPClient
 from .review_submit import ReviewSubmitManager
 from .state_manager import StateManager
@@ -185,7 +187,9 @@ class TelegramBotListener:
             })
             return
 
-        title = (job.get("title") or "Job").replace("<", "&lt;").replace(">", "&gt;")
+        clean_jid = jid.lstrip("~")
+        title = html.escape(sanitize_no_em_dash(job.get("title") or "Job"))
+        job_url = job.get("url") or job.get("job_url") or f"https://www.upwork.com/jobs/~{clean_jid}"
 
         if action == "approve":
             telegram_api_call("answerCallbackQuery", {
@@ -194,18 +198,44 @@ class TelegramBotListener:
             })
 
             run_id = f"tg_{int(time.time())}"
+            target_job_id = str(job.get("job_id") or clean_jid)
             # Step 1: Prepare preview if needed
-            preview_id = job.get("submission_preview", {}).get("preview_id")
+            preview_id = (job.get("submission_preview") or {}).get("preview_id")
             if not preview_id:
-                prep = self.review_mgr.prepare_submission(job["job_id"], run_id)
+                prep = self.review_mgr.prepare_submission(target_job_id, run_id)
                 if not prep.get("ok"):
-                    send_telegram_message(f"❌ Failed to prepare submission: {prep.get('message')}")
+                    err_msg = sanitize_no_em_dash(prep.get("message") or "Unknown error")
+                    send_telegram_message(f"❌ Failed to prepare submission: {err_msg}")
+                    if chat_id and message_id:
+                        telegram_api_call("editMessageText", {
+                            "chat_id": chat_id,
+                            "message_id": message_id,
+                            "text": (
+                                f"⚠️ <b>Submission Preparation Failed</b>\n\n"
+                                f"<b>Job:</b> <a href=\"{job_url}\">{title}</a>\n"
+                                f"<b>Reason:</b> {html.escape(err_msg)}\n\n"
+                                f"<i>Tap below to view Draft or open directly on Upwork:</i>"
+                            ),
+                            "parse_mode": "HTML",
+                            "disable_web_page_preview": True,
+                            "reply_markup": {
+                                "inline_keyboard": [
+                                    [
+                                        {"text": "🔄 Retry Approve", "callback_data": f"approve:{clean_jid}"},
+                                        {"text": "📖 View Draft", "callback_data": f"view:{clean_jid}"},
+                                    ],
+                                    [
+                                        {"text": "🌐 Open on Upwork", "url": job_url},
+                                    ],
+                                ]
+                            },
+                        })
                     return
                 preview_id = prep.get("preview_id")
 
             # Step 2: Confirm submission with explicit human approval
             conf = self.review_mgr.confirm_submission(
-                job_id=job["job_id"],
+                job_id=target_job_id,
                 preview_id=preview_id,
                 human_confirmed=True,
                 run_id=run_id,
@@ -216,53 +246,95 @@ class TelegramBotListener:
                 spent = conf.get("connects_spent", 16)
                 updated_text = (
                     f"✅ <b>PROPOSAL SUBMITTED ON UPWORK</b>\n\n"
-                    f"<b>Job:</b> {title}\n"
+                    f"<b>Job:</b> <a href=\"{job_url}\">{title}</a>\n"
                     f"<b>Submitted At:</b> {now_str}\n"
                     f"<b>Connects Spent:</b> {spent}\n"
                     f"<b>Status:</b> Live on Upwork (Approved by Aryan)\n\n"
                     f"<i>Submission confirmed via 1-click Telegram authorization.</i>"
                 )
             else:
+                err_msg = html.escape(sanitize_no_em_dash(conf.get("message") or "Submission error"))
                 updated_text = (
                     f"⚠️ <b>Submission Failed</b>\n\n"
-                    f"<b>Job:</b> {title}\n"
-                    f"<b>Error:</b> {conf.get('message')}\n"
-                    f"<i>Check console or retry via CLI.</i>"
+                    f"<b>Job:</b> <a href=\"{job_url}\">{title}</a>\n"
+                    f"<b>Error:</b> {err_msg}\n"
+                    f"<i>Check console or open on Upwork.</i>"
                 )
 
             # Update original message to remove buttons
-            telegram_api_call("editMessageText", {
+            edit_res = telegram_api_call("editMessageText", {
                 "chat_id": chat_id,
                 "message_id": message_id,
                 "text": updated_text,
                 "parse_mode": "HTML",
+                "disable_web_page_preview": True,
             })
+            if not edit_res and chat_id:
+                telegram_api_call("sendMessage", {
+                    "chat_id": chat_id,
+                    "text": updated_text,
+                    "parse_mode": "HTML",
+                    "disable_web_page_preview": True,
+                })
 
         elif action == "view":
             telegram_api_call("answerCallbackQuery", {
                 "callback_query_id": cb_id,
                 "text": "Displaying cover letter...",
             })
-            draft = job.get("draft", {})
-            cl = draft.get("cover_letter", "No cover letter drafted.")
-            answers = draft.get("answers", [])
+            draft = job.get("draft") or {}
+            raw_cl = draft.get("cover_letter") or "No cover letter drafted."
+            clean_cl = sanitize_no_em_dash(raw_cl)
+            escaped_cl = html.escape(clean_cl)
+
+            terms = draft.get("terms") or draft.get("proposed_terms") or {}
+            b_type = str(terms.get("type", job.get("type", "hourly"))).capitalize()
+            b_rate = terms.get("charged_amount") or terms.get("charge_rate") or terms.get("hourly_bid") or 65.0
+            boost = terms.get("boost_connects", 0)
+
+            answers = draft.get("answers") or []
             ans_text = ""
             if answers:
-                ans_text = "\n\n<b>Screening Answers:</b>\n" + "\n".join(
-                    f"• <i>{a.get('question')}</i>\n  👉 {a.get('answer')}" for a in answers
-                )
+                ans_lines = []
+                for a in answers:
+                    q_str = html.escape(sanitize_no_em_dash(a.get("question", "")))
+                    a_str = html.escape(sanitize_no_em_dash(a.get("answer", "")))
+                    ans_lines.append(f"• <i>{q_str}</i>\n  👉 {a_str}")
+                ans_text = "\n\n<b>Screening Answers:</b>\n" + "\n".join(ans_lines)
 
             preview_msg = (
                 f"📝 <b>Cover Letter Preview</b>\n"
-                f"<b>Job:</b> {title}\n\n"
-                f"<blockquote>{cl}</blockquote>{ans_text}\n\n"
-                f"<i>Use the original message above to approve or reject.</i>"
+                f"<b>Job:</b> <a href=\"{job_url}\">{title}</a>\n"
+                f"<b>Terms:</b> {html.escape(b_type)} <b>${b_rate}</b> (Boost: {boost} Connects)\n\n"
+                f"<blockquote>{escaped_cl}</blockquote>{ans_text}\n\n"
+                f"<i>Tap below to approve &amp; submit or open on Upwork:</i>"
             )
-            telegram_api_call("sendMessage", {
+            view_markup = {
+                "inline_keyboard": [
+                    [
+                        {"text": "✅ Approve & Submit", "callback_data": f"approve:{clean_jid}"},
+                        {"text": "❌ Skip / Reject", "callback_data": f"reject:{clean_jid}"},
+                    ],
+                    [
+                        {"text": "🌐 View on Upwork", "url": job_url},
+                    ],
+                ]
+            }
+            send_res = telegram_api_call("sendMessage", {
                 "chat_id": chat_id,
                 "text": preview_msg,
                 "parse_mode": "HTML",
+                "reply_markup": view_markup,
+                "disable_web_page_preview": True,
             })
+            if not send_res and chat_id:
+                # Plain-text fallback so View Draft never fails silently
+                plain_msg = f"Cover Letter Preview - {sanitize_no_em_dash(job.get('title', 'Job'))}\n\n{clean_cl}"
+                telegram_api_call("sendMessage", {
+                    "chat_id": chat_id,
+                    "text": plain_msg[:4000],
+                    "reply_markup": view_markup,
+                })
 
         elif action == "reject":
             telegram_api_call("answerCallbackQuery", {
@@ -559,8 +631,8 @@ def process_telegram_update(
     if mcp_client is None:
         from .upwork_oauth import UpworkOAuthManager
         oauth = UpworkOAuthManager(backend=backend)
-        token = oauth.get_valid_access_token(lease_held=False)
-        mcp_client = UpworkMCPClient(auth_token=token, oauth_manager=oauth, lease_held=False)
+        token = oauth.get_valid_access_token(lease_held=True)
+        mcp_client = UpworkMCPClient(auth_token=token, oauth_manager=oauth, lease_held=True)
 
     listener = TelegramBotListener(mcp_client=mcp_client, state_mgr=state_mgr)
     return listener.process_update(update)

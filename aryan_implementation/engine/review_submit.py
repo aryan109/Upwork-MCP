@@ -77,41 +77,114 @@ class ReviewSubmitManager:
 
         return "\n".join(lines)
 
+    def _resolve_job_key(self, jobs: Dict[str, Dict[str, Any]], job_id: str) -> Optional[str]:
+        if job_id in jobs:
+            return job_id
+        clean = str(job_id).lstrip("~")
+        if clean in jobs:
+            return clean
+        tilde = f"~{clean}"
+        if tilde in jobs:
+            return tilde
+        for k, v in jobs.items():
+            if str(k).lstrip("~") == clean or str(v.get("job_id", "")).lstrip("~") == clean:
+                return k
+        return None
+
     def prepare_submission(self, job_id: str, run_id: str) -> Dict[str, Any]:
         """
         Step 1 of Two-Step Confirmation:
         Calls manage_proposals create to generate a preview.
         Does NOT submit.
         """
+        from .draft import sanitize_no_em_dash
+
         state = self.state_mgr.load_state()
         if state.get("kill_switch", False):
             return {"ok": False, "message": "Submission blocked: kill switch is active"}
 
         jobs = self.state_mgr.load_jobs()
-        if job_id not in jobs:
+        resolved_key = self._resolve_job_key(jobs, job_id)
+        if not resolved_key:
             return {"ok": False, "message": f"Job {job_id} not found in state"}
 
-        job = jobs[job_id]
+        job = jobs[resolved_key]
 
         draft = job.get("draft")
         if not draft:
             return {"ok": False, "message": f"No draft exists for job {job_id}"}
 
         terms = draft.get("terms", {})
-        params = {
-            "job_reference": job_id,
-            "cover_letter": draft.get("cover_letter"),
-            "charged_amount": terms.get("charged_amount") or terms.get("hourly_bid"),
-            "boost_connects": terms.get("boost_connects", 0),
-            "answers": [a.get("answer") for a in draft.get("answers", [])],
-        }
+        cover_letter = sanitize_no_em_dash(draft.get("cover_letter", ""))
+        draft["cover_letter"] = cover_letter
+
+        raw_answers = draft.get("answers", []) or []
+        sanitized_answers = [
+            {
+                "question": sanitize_no_em_dash(a.get("question", "")),
+                "answer": sanitize_no_em_dash(a.get("answer", "")),
+            }
+            for a in raw_answers
+            if isinstance(a, dict) and a.get("answer")
+        ]
+        draft["answers"] = sanitized_answers
+
+        charged_raw = terms.get("charged_amount") or terms.get("hourly_bid") or 65.0
+        try:
+            charged_amount = float(charged_raw)
+        except Exception:
+            charged_amount = 65.0
+
+        boost_val = int(terms.get("boost_connects", 0) or 0)
+
+        if self.mcp.mock_mode:
+            params: Dict[str, Any] = {
+                "job_reference": job_id,
+                "cover_letter": cover_letter,
+                "charged_amount": charged_amount,
+                "boost_connects": boost_val,
+                "answers": [a.get("answer") for a in sanitized_answers],
+            }
+        else:
+            # Mandatory Upwork MCP pre-check guard before manage_proposals.create
+            try:
+                self.mcp.call_tool("list_freelancer_proposals", "invitations", {}, run_id=run_id, state=state)
+                self.mcp.call_tool("list_freelancer_proposals", "list", {}, run_id=run_id, state=state)
+            except Exception as e:
+                logger.debug(f"Pre-check guard note before manage_proposals.create: {e}")
+
+            numeric_ref = str(job.get("job_id") or job_id).lstrip("~")
+            params = {
+                "job_reference": numeric_ref,
+                "cover_letter": cover_letter,
+                "charged_amount": charged_amount,
+            }
+            if boost_val > 0:
+                params["boost_connects"] = boost_val
+            if sanitized_answers:
+                params["answers"] = sanitized_answers
+            job_type = str(terms.get("type") or job.get("type") or "").lower()
+            if "fixed" in job_type and job_type != "fixed_alternative":
+                params["payment_mode"] = "by_project"
+                params["estimated_duration"] = "1_to_3_months"
 
         # Step 1: create preview
         res = self.mcp.call_tool("manage_proposals", "create", params, run_id=run_id, state=state)
+        if not res.get("ok") and not self.mcp.mock_mode and "boost_connects" in params:
+            # Retry without boost_connects if boost bidding is unavailable or below floor
+            retry_params = {k: v for k, v in params.items() if k != "boost_connects"}
+            logger.info(f"Retrying manage_proposals.create for {job_id} without boost_connects...")
+            res = self.mcp.call_tool("manage_proposals", "create", retry_params, run_id=run_id, state=state)
+
         if not res.get("ok"):
             return {"ok": False, "message": f"Failed to create preview: {res.get('message')}"}
 
-        preview_id = res.get("data", {}).get("preview_id")
+        res_data = res.get("data", {}) if isinstance(res.get("data"), dict) else {}
+        preview_id = (
+            res_data.get("preview_id")
+            or (res_data.get("preview") or {}).get("preview_id")
+            or res_data.get("draft_id")
+        )
         job["status"] = "in_review"
         job["submission_preview"] = {
             "preview_id": preview_id,
@@ -123,7 +196,7 @@ class ReviewSubmitManager:
         return {
             "ok": True,
             "preview_id": preview_id,
-            "job_id": job_id,
+            "job_id": resolved_key,
             "terms": terms,
             "action_required": "Human must review preview and explicitly confirm submission",
         }
@@ -146,10 +219,11 @@ class ReviewSubmitManager:
             }
 
         jobs = self.state_mgr.load_jobs()
-        if job_id not in jobs:
+        resolved_key = self._resolve_job_key(jobs, job_id)
+        if not resolved_key:
             return {"ok": False, "message": f"Job {job_id} not found"}
 
-        job = jobs[job_id]
+        job = jobs[resolved_key]
         state = self.state_mgr.load_state()
 
         if state.get("kill_switch", False):
@@ -164,9 +238,13 @@ class ReviewSubmitManager:
             self.state_mgr.save_jobs(jobs)
             return {"ok": False, "message": f"Failed to confirm submission: {res.get('message')}"}
 
-        data = res.get("data", {})
-        proposal_id = data.get("proposal_id", f"prop_{job_id}")
-        connects_spent = data.get("connects_spent", 16)
+        data = res.get("data", {}) if isinstance(res.get("data"), dict) else {}
+        proposal_id = (
+            data.get("proposal_id")
+            or (data.get("proposal") or {}).get("id")
+            or f"prop_{resolved_key}"
+        )
+        connects_spent = int(data.get("connects_spent") or data.get("connectsSpent") or 16)
 
         now_iso = datetime.now(timezone.utc).isoformat()
         job["status"] = "submitted"
@@ -209,10 +287,11 @@ class ReviewSubmitManager:
     def reject_draft(self, job_id: str, reason: str) -> Dict[str, Any]:
         """Mark a drafted proposal as rejected by Aryan."""
         jobs = self.state_mgr.load_jobs()
-        if job_id not in jobs:
+        resolved_key = self._resolve_job_key(jobs, job_id)
+        if not resolved_key:
             return {"ok": False, "message": f"Job {job_id} not found"}
 
-        job = jobs[job_id]
+        job = jobs[resolved_key]
         job["status"] = "rejected_by_aryan"
         job["review"] = {
             "reviewed_at": datetime.now(timezone.utc).isoformat(),
@@ -224,7 +303,7 @@ class ReviewSubmitManager:
         # Permanently blacklist job in JobLedger so it NEVER reappears
         try:
             self.ledger.record_job(job, status="rejected_by_aryan", decision="SKIP", rejection_reason=reason)
-            self.ledger.add_to_rejected(job_id, reason=reason, title=job.get("title", ""))
+            self.ledger.add_to_rejected(resolved_key, reason=reason, title=job.get("title", ""))
         except Exception as e:
             logger.warning(f"Ledger blacklist rejection note: {e}")
 

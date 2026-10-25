@@ -137,6 +137,10 @@ class AIJobAnalyzer:
                         res_json = json.loads(resp.read().decode("utf-8"))
                         text_out = res_json["candidates"][0]["content"]["parts"][0]["text"]
                         parsed = json.loads(text_out)
+                        from .draft import sanitize_no_em_dash
+                        for k in ("fit_reasoning", "key_winning_hook", "scope_archetype"):
+                            if k in parsed:
+                                parsed[k] = sanitize_no_em_dash(parsed[k])
                         parsed["evaluator"] = f"gemini ({g_model.split('/')[-1]})"
                         logger.info(
                             f"AI Job Vetting completed via Gemini ({g_model}): "
@@ -180,6 +184,10 @@ class AIJobAnalyzer:
                         res_json = json.loads(resp.read().decode("utf-8"))
                         text_out = res_json["choices"][0]["message"]["content"]
                         parsed = json.loads(text_out)
+                        from .draft import sanitize_no_em_dash
+                        for k in ("fit_reasoning", "key_winning_hook", "scope_archetype"):
+                            if k in parsed:
+                                parsed[k] = sanitize_no_em_dash(parsed[k])
                         parsed["evaluator"] = f"groq ({q_model})"
                         logger.info(
                             f"AI Job Vetting completed via Groq ({q_model}): "

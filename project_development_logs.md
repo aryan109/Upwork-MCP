@@ -890,3 +890,27 @@
     - Updated `web_report.py` with 3-Hour First-Mover window metrics (`analysed_last_3h`, `selected_last_3h`, `rejected_last_3h`) and new signal labels.
   - `aryan_implementation/tests/test_vet_rubric.py`:
     - Updated `D8` and rubric tests and added `test_concise_job_from_high_quality_client_scores_apply` and `test_three_hour_reporting_cadence`.
+
+## [2026-10-25 20:42 IST] - Telegram "View Draft" & "Approve & Submit" Button Fix + Strict Zero Em-Dash Enforcement
+
+- **User Feedback & Requirements**:
+  1. Ensure the `"📖 View Draft"` and `"✅ Approve & Submit"` ("Accept approval") inline buttons on Telegram work reliably end-to-end.
+  2. Never include em dashes (`—`), en dashes (`–`), or double hyphens (`--`) in any proposal, screening question answer, or output — ever.
+  3. Mark job `2114366496356934763` (`Build a semi-autonomous AI sales agent with Claude Code`) as `submitted` after manual application.
+
+- **Root Causes Identified & Fixed**:
+  1. **Telegram Inbound Webhook Not Registered**:
+     - `state.json` had `inbound_mode: "polling:railway"` while Railway was decommissioned and Telegram's `setWebhook` URL was empty (`""`), so inline button taps (`callback_query`) never reached any server.
+     - Registered the live Vercel webhook (`https://upwork-engine-blush.vercel.app/api/telegram`) with Telegram's `setWebhook` API (`allowed_updates=["message", "callback_query"]`) and set `state["inbound_mode"] = "webhook"`.
+  2. **`"📖 View Draft"` HTML Escaping & Action Buttons (`aryan_implementation/engine/telegram_bot.py`)**:
+     - Previously, `handle_callback_query` (`action == "view"`) interpolated raw cover letters and screening answers into `<blockquote>{cl}</blockquote>` with `parse_mode="HTML"` without `html.escape()`, causing Telegram `HTTP 400` entity parse errors whenever `<`, `>`, or `&` appeared in a draft.
+     - Fixed `action == "view"` to sanitize (`sanitize_no_em_dash`) and `html.escape()` the title, cover letter, and every screening question/answer, include proposed terms (`Hourly $X` / `Fixed $Y`), attach inline `✅ Approve & Submit`, `❌ Skip / Reject`, and `🌐 View on Upwork` buttons directly to the draft preview message, and include a plain-text fallback so `View Draft` can never fail silently.
+  3. **`"✅ Approve & Submit"` Live Upwork MCP Compatibility (`aryan_implementation/engine/review_submit.py` & `aryan_implementation/engine/mcp_client.py`)**:
+     - Mapped `manage_proposals.confirm_preview` in `UpworkMCPClient._call_remote_mcp()` to the live `upwork__confirm_preview` tool (`action="confirm"`, `params={"type": "proposal", "preview_id": ...}`).
+     - Updated `ReviewSubmitManager.prepare_submission()` to execute Upwork MCP's mandatory pre-check guard (`list_freelancer_proposals` `invitations` + `list`), pass numeric `job_reference`, format `answers` as `[{"question": ..., "answer": ...}]` when present, automatically retry without `boost_connects` if boost bidding is rejected, and sanitize all text before creating the Upwork preview.
+     - Enabled `lease_held=True` in `process_telegram_update()` so 1-click webhook approvals can refresh the Upwork OAuth token if stale.
+  4. **Absolute Zero Em-Dash Rule Across All Proposals, Answers & Outputs (`aryan_implementation/engine/draft.py`, `UPWORK_PROPOSAL_CRAFTING_GUIDE.md`, `SKILL.md`, `ai_job_analyzer.py`, `web_report.py`)**:
+     - Implemented `sanitize_no_em_dash()` and `extract_required_opener()` in `draft.py` to strip all Unicode em/en dashes (`\u2014`, `\u2013`, `\u2015`, `\u2012`, `--`) and automatically detect/prepend client-mandated secret opener phrases (e.g., `"Glenso agent"`).
+     - Enforced `no_em_dash` check across both `cover_letter` and all `answers` in `ProposalDrafter.self_check_draft()`.
+     - Sanitized all 36 stored drafts in `jobs.json`, marked job `2114366496356934763` as `submitted`, and added unit tests (`test_sanitize_no_em_dash_and_zero_em_dash_guarantee` and `test_telegram_view_draft_and_approve_callback_buttons`) in `test_monthly_strategy.py`.
+

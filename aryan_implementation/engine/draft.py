@@ -33,6 +33,49 @@ FORBIDDEN_PHRASES = [
     r"my automation engine",
 ]
 
+EM_DASH_CHARS = ("\u2014", "\u2013", "\u2015", "\u2012", "\u2e3a", "\u2e3b", "\ufe58", "\ufe63", "\uff0d")
+
+
+def sanitize_no_em_dash(text: Any) -> str:
+    """
+    Strictly eliminate all em dashes (—), en dashes (–), horizontal bars (―),
+    and double/triple hyphens (--) from any proposal, question answer, or output.
+    """
+    if text is None:
+        return ""
+    s = str(text)
+    # Normalize non-breaking hyphen and minus sign to standard hyphen
+    s = s.replace("\u2011", "-").replace("\u2010", "-").replace("\u2212", "-")
+    # Replace numeric or alphanumeric ranges using en/em dashes (e.g. 19–35 or $19–$35 -> 19-35 / $19-$35)
+    s = re.sub(r"(?<=[A-Za-z0-9%])[\u2012\u2013\u2014\u2015]+(?=[$€£¥₹]?[A-Za-z0-9])", "-", s)
+    # Replace spaced em/en dashes or double hyphens with a comma + space
+    s = re.sub(r"[ \t]*[\u2012\u2013\u2014\u2015\u2e3a\u2e3b\ufe58]+(?:[ \t]*)", ", ", s)
+    s = re.sub(r"[ \t]+--+[ \t]+", ", ", s)
+    s = re.sub(r"--+", "-", s)
+    # Final hard sweep for any remaining unicode dash variants
+    for ch in EM_DASH_CHARS:
+        s = s.replace(ch, "-")
+    # Clean up punctuation artifacts resulting from dash replacement
+    s = re.sub(r",\s*,+", ",", s)
+    s = re.sub(r"([.:;])\s*,\s*", r"\1 ", s)
+    s = re.sub(r"[ \t]{2,}", " ", s)
+    return s.strip()
+
+
+def extract_required_opener(description: str) -> Optional[str]:
+    """Extract client-mandated secret opener phrase (e.g. 'Start your proposal with \"Glenso agent\"')."""
+    if not description:
+        return None
+    patterns = [
+        r"(?:start|begin)\s+your\s+(?:proposal|application|cover\s+letter)\s+with\s+(?:the\s+(?:words?|phrase)\s+)?[\"'\u201c\u2018]([^\"'\u201d\u2019\n]{2,50})[\"'\u201d\u2019]",
+        r"include\s+(?:the\s+(?:words?|phrase)\s+)?[\"'\u201c\u2018]([^\"'\u201d\u2019\n]{2,50})[\"'\u201d\u2019]\s+at\s+the\s+(?:very\s+)?(?:start|beginning|top)",
+    ]
+    for pat in patterns:
+        m = re.search(pat, description, re.IGNORECASE)
+        if m:
+            return sanitize_no_em_dash(m.group(1).strip())
+    return None
+
 
 class ProposalDrafter:
     """Generates and self-checks Upwork proposal drafts."""
@@ -88,12 +131,16 @@ class ProposalDrafter:
 
     def build_cover_letter(self, job: Dict[str, Any], score_data: Dict[str, Any]) -> str:
         """Construct a 4-part cover letter following 07_PROPOSAL_SYSTEM.md."""
-        title = job.get("title", "your workflow")
+        title = sanitize_no_em_dash(job.get("title", "your workflow"))
+        desc = str(job.get("description") or job.get("description_snippet") or "")
+        opener = extract_required_opener(desc)
         proof_id, proof_text = self.select_proof_item(job)
         risk_text = self.identify_risk(job)
 
         # 1. Understanding & Desired Outcome
         p1 = f"I reviewed your requirements for {title}. The goal is to establish a reliable, maintainable system that your team can trust without fragile manual intervention."
+        if opener:
+            p1 = f"{opener}.\n\n{p1}"
 
         # 2. Architecture & Technical Steps
         p2 = "My approach is to structure this in three clear phases: first, map the integration points and establish data contracts; second, build the core logic with robust error-handling; and third, deliver recorded walkthrough documentation alongside the production handoff."
@@ -104,13 +151,14 @@ class ProposalDrafter:
         # 4. Risk & Calm CTA
         p4 = f"{risk_text}\n\nIf helpful, I am available for a brief 15-minute scoping call this week to review your architecture and provide an exact implementation roadmap.\n\nAryan"
 
-        return f"{p1}\n\n{p2}\n\n{p3}\n\n{p4}"
+        return sanitize_no_em_dash(f"{p1}\n\n{p2}\n\n{p3}\n\n{p4}")
 
     def answer_screening_questions(self, questions: List[str], job: Dict[str, Any]) -> List[Dict[str, str]]:
         """Generate concise, direct answers to client screening questions."""
         answers = []
         for q in questions:
-            q_lower = q.lower()
+            q_clean = sanitize_no_em_dash(q)
+            q_lower = q_clean.lower()
             if "experience" in q_lower or "similar" in q_lower:
                 ans = "I have built and maintained production AI workflows, MCP connectors, and automation pipelines with human approval gates and full audit logging."
             elif "timeline" in q_lower or "how long" in q_lower:
@@ -119,7 +167,7 @@ class ProposalDrafter:
                 ans = "I begin with an architecture review to define schema contracts, implement the core workflow with error boundaries, and conclude with handover documentation."
             else:
                 ans = "I focus on reliable business workflows with human-in-the-loop safeguards, structured milestones, and complete documentation."
-            answers.append({"question": q, "answer": ans})
+            answers.append({"question": q_clean, "answer": sanitize_no_em_dash(ans)})
         return answers
 
     def determine_proposed_terms(self, job: Dict[str, Any], score_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -192,10 +240,11 @@ class ProposalDrafter:
         issues = []
         checks = {}
 
-        # 1. Word count (120-220, or up to 330 with questions)
+        # 1. Word count (120-220, or up to 350 with questions / numbered items)
         words = cover_letter.split()
         word_count = len(words)
-        max_words = 220 if not answers else 330
+        has_numbered_items = bool(re.search(r"(?:^|\n)\s*[1-5][\.\)]\s+", cover_letter))
+        max_words = 350 if (answers or has_numbered_items) else 220
         checks["word_count"] = word_count
         if word_count < 110:
             issues.append(f"Word count ({word_count}) is below minimum (120 words)")
@@ -203,7 +252,7 @@ class ProposalDrafter:
             issues.append(f"Word count ({word_count}) exceeds maximum ({max_words} words)")
 
         # 2. Risk identified
-        risk_keywords = ["risk", "pitfall", "challenge", "mitigate", "boundary", "stale", "drift"]
+        risk_keywords = ["risk", "pitfall", "challenge", "mitigate", "boundary", "stale", "drift", "guardrail", "approval"]
         has_risk = any(rk in cover_letter.lower() for rk in risk_keywords)
         checks["risk_stated"] = has_risk
         if not has_risk:
@@ -224,11 +273,14 @@ class ProposalDrafter:
         if has_exclamation:
             issues.append("Letter contains exclamation marks")
 
-        # 5. No em dashes (—)
-        has_em_dash = "—" in cover_letter
+        # 5. No em dashes (—), en dashes (–), or double hyphens (--) in cover letter OR answers
+        combined_text = cover_letter + " " + " ".join(
+            f"{a.get('question', '')} {a.get('answer', '')}" for a in (answers or [])
+        )
+        has_em_dash = any(ch in combined_text for ch in EM_DASH_CHARS) or ("--" in combined_text)
         checks["no_em_dash"] = not has_em_dash
         if has_em_dash:
-            issues.append("Letter contains em dash (—); use commas or hyphens")
+            issues.append("Draft or screening answer contains forbidden em dash or en dash; use commas or single hyphens")
 
         # 6. Starts with outcome/pain, not "I am" or "My name is"
         first_sentence = cover_letter.strip().split(".")[0].lower()
@@ -273,7 +325,7 @@ class ProposalDrafter:
                         if "```text" in part:
                             prompt_body = part.split("```text", 1)[1].split("```", 1)[0].strip()
                             if len(prompt_body) > 100:
-                                return prompt_body
+                                return sanitize_no_em_dash(prompt_body)
                 except Exception as e:
                     logger.debug(f"Failed to read prompt guide from {p}: {e}")
 
@@ -282,18 +334,50 @@ class ProposalDrafter:
             "You are an expert proposal drafting AI for Aryan, a Top Rated Upwork consultant with a 100% Job Success Score.\n"
             "Your objective is to draft a personalized, highly persuasive 4-part Upwork cover letter and concise answers to any client screening questions.\n\n"
             "CRITICAL RULES:\n"
-            "1. Four concise paragraphs strictly:\n"
+            "1. If the job description specifies a required starting word/phrase (e.g., 'Start your proposal with ...') or numbered questions inside the post, you MUST place that exact phrase at the very beginning of line 1 and directly answer every numbered question.\n"
+            "2. Four concise sections:\n"
             "   - Paragraph 1: Understanding & Desired Outcome (1-2 sentences establishing clear grasp of their goal).\n"
-            "   - Paragraph 2: Technical Approach (3 clear, concrete phases).\n"
+            "   - Paragraph 2: Technical Approach (3 clear, concrete phases or direct answers to the client's numbered questions).\n"
             "   - Paragraph 3: Verifiable Proof (Reference building a production agent system on an official MCP server with human approval gates, or production document pipelines).\n"
             "   - Paragraph 4: Exactly one specific technical or operational risk warning + calm CTA (15-min scoping call).\n"
-            "2. Total word count of cover letter MUST be strictly between 130 and 190 words.\n"
-            "3. Plain, calm, direct style. NO self-congratulatory adjectives ('passionate', 'exceptional', 'expert developer').\n"
-            "4. NO exclamation marks. NO em-dashes ('--' or '—'); use commas or hyphens instead.\n"
-            "5. NO buzzwords or unverified claims ('8+ years', 'decade', 'enterprise-grade', 'guaranteed').\n"
-            "6. Sign off strictly with:\nAryan\n"
-            "7. Return JSON ONLY with keys: 'cover_letter' (string) and 'answers' (list of dicts with 'question' and 'answer')."
+            "3. Total word count of cover letter MUST be between 130 and 190 words (or up to 320 words if answering numbered questions inside the post).\n"
+            "4. Plain, calm, direct style. NO self-congratulatory adjectives ('passionate', 'exceptional', 'expert developer').\n"
+            "5. NEVER include an em dash (—), en dash (–), or double hyphen (--) anywhere in the cover letter or question answers. Use commas, periods, or single hyphens instead.\n"
+            "6. NO exclamation marks. NO buzzwords or unverified claims ('8+ years', 'decade', 'enterprise-grade', 'guaranteed').\n"
+            "7. Sign off strictly with:\nAryan\n"
+            "8. Return JSON ONLY with keys: 'cover_letter' (string) and 'answers' (list of dicts with 'question' and 'answer')."
         )
+
+    @staticmethod
+    def _post_process_llm_output(
+        cl_raw: str,
+        ans_raw: Any,
+        description: str,
+    ) -> Tuple[str, List[Dict[str, str]]]:
+        """Sanitize LLM cover letter and screening answers to guarantee zero em-dashes and required opener."""
+        cl = sanitize_no_em_dash(cl_raw).replace("!", ".").strip()
+        opener = extract_required_opener(description)
+        if opener and opener.lower() not in cl[: max(len(opener) + 40, 80)].lower():
+            cl = f"{opener}.\n\n{cl}"
+        if cl and not cl.endswith("Aryan"):
+            cl = f"{cl}\n\nAryan"
+        cl = sanitize_no_em_dash(cl)
+
+        answers: List[Dict[str, str]] = []
+        if isinstance(ans_raw, list):
+            for a in ans_raw:
+                if isinstance(a, dict) and "question" in a and "answer" in a:
+                    answers.append({
+                        "question": sanitize_no_em_dash(a["question"]),
+                        "answer": sanitize_no_em_dash(str(a["answer"]).replace("!", ".")),
+                    })
+        elif isinstance(ans_raw, dict):
+            for q_k, a_v in ans_raw.items():
+                answers.append({
+                    "question": sanitize_no_em_dash(q_k),
+                    "answer": sanitize_no_em_dash(str(a_v).replace("!", ".")),
+                })
+        return cl, answers
 
     def generate_with_groq_llm(
         self, job: Dict[str, Any], score_data: Dict[str, Any]
@@ -308,15 +392,19 @@ class ProposalDrafter:
         if not groq_key:
             return None
 
-        title = job.get("title", "Project")
-        description = job.get("description") or job.get("description_snippet", "")
+        title = sanitize_no_em_dash(job.get("title", "Project"))
+        description = str(job.get("description") or job.get("description_snippet", ""))
         questions = job.get("screening_questions", [])
+        opener = extract_required_opener(description)
 
         system_prompt = self.load_system_prompt_from_guide()
 
-        user_prompt = f"Job Title: {title}\nJob Description:\n{description[:2500]}\n"
+        user_prompt = f"Job Title: {title}\nJob Description:\n{description[:3000]}\n"
+        if opener:
+            user_prompt += f"\nCRITICAL CLIENT INSTRUCTION: Start line 1 of the cover_letter with '{opener}'.\n"
         if questions:
-            user_prompt += f"\nScreening Questions to answer:\n" + "\n".join(f"- {q}" for q in questions)
+            user_prompt += "\nScreening Questions to answer:\n" + "\n".join(f"- {sanitize_no_em_dash(q)}" for q in questions)
+        user_prompt += "\nREMINDER: Never use em dashes (—), en dashes (–), or double hyphens (--) in cover_letter or answers."
 
         models = [
             os.environ.get("GROQ_MODEL", "openai/gpt-oss-120b"),
@@ -348,22 +436,11 @@ class ProposalDrafter:
                     res_data = json.loads(resp.read().decode("utf-8"))
                     content = res_data["choices"][0]["message"]["content"]
                     parsed = json.loads(content)
-                    cl = parsed.get("cover_letter", "").strip()
-                    # Sanitize em-dashes and exclamations
-                    cl = cl.replace("—", "-").replace("–", "-").replace("!", ".")
-                    if not cl.endswith("Aryan"):
-                        cl = f"{cl}\n\nAryan"
-
-                    ans_raw = parsed.get("answers", [])
-                    answers: List[Dict[str, str]] = []
-                    if isinstance(ans_raw, list):
-                        for a in ans_raw:
-                            if isinstance(a, dict) and "question" in a and "answer" in a:
-                                answers.append({"question": str(a["question"]), "answer": str(a["answer"])})
-                    elif isinstance(ans_raw, dict):
-                        for q_k, a_v in ans_raw.items():
-                            answers.append({"question": str(q_k), "answer": str(a_v)})
-
+                    cl, answers = self._post_process_llm_output(
+                        parsed.get("cover_letter", ""),
+                        parsed.get("answers", []),
+                        description,
+                    )
                     if cl:
                         logger.info(f"Successfully generated proposal via Groq LLM ({model})")
                         return cl, answers
@@ -386,17 +463,21 @@ class ProposalDrafter:
         if not google_key:
             return None
 
-        title = job.get("title", "Project")
-        description = job.get("description") or job.get("description_snippet", "")
+        title = sanitize_no_em_dash(job.get("title", "Project"))
+        description = str(job.get("description") or job.get("description_snippet", ""))
         questions = job.get("screening_questions", [])
         ai_analysis = job.get("ai_analysis") or {}
+        opener = extract_required_opener(description)
 
         system_prompt = self.load_system_prompt_from_guide()
         user_prompt = f"Job Title: {title}\nJob Description:\n{description[:3000]}\n"
+        if opener:
+            user_prompt += f"\nCRITICAL CLIENT INSTRUCTION: Start line 1 of the cover_letter with '{opener}'.\n"
         if ai_analysis.get("key_winning_hook"):
-            user_prompt += f"\nRecommended Technical Winning Angle:\n{ai_analysis['key_winning_hook']}\n"
+            user_prompt += f"\nRecommended Technical Winning Angle:\n{sanitize_no_em_dash(ai_analysis['key_winning_hook'])}\n"
         if questions:
-            user_prompt += f"\nScreening Questions to answer:\n" + "\n".join(f"- {q}" for q in questions)
+            user_prompt += "\nScreening Questions to answer:\n" + "\n".join(f"- {sanitize_no_em_dash(q)}" for q in questions)
+        user_prompt += "\nREMINDER: Never use em dashes (—), en dashes (–), or double hyphens (--) in cover_letter or answers."
 
         gemini_models = ["models/gemini-3.5-flash-lite", "models/gemini-3.5-flash", "models/gemini-3.8-flash"]
         for g_model in gemini_models:
@@ -417,21 +498,11 @@ class ProposalDrafter:
                     res_json = json.loads(resp.read().decode("utf-8"))
                     text_out = res_json["candidates"][0]["content"]["parts"][0]["text"]
                     parsed = json.loads(text_out)
-                    cl = parsed.get("cover_letter", "").strip()
-                    cl = cl.replace("—", "-").replace("–", "-").replace("!", ".")
-                    if not cl.endswith("Aryan"):
-                        cl = f"{cl}\n\nAryan"
-
-                    ans_raw = parsed.get("answers", [])
-                    answers: List[Dict[str, str]] = []
-                    if isinstance(ans_raw, list):
-                        for a in ans_raw:
-                            if isinstance(a, dict) and "question" in a and "answer" in a:
-                                answers.append({"question": str(a["question"]), "answer": str(a["answer"])})
-                    elif isinstance(ans_raw, dict):
-                        for q_k, a_v in ans_raw.items():
-                            answers.append({"question": str(q_k), "answer": str(a_v)})
-
+                    cl, answers = self._post_process_llm_output(
+                        parsed.get("cover_letter", ""),
+                        parsed.get("answers", []),
+                        description,
+                    )
                     if cl:
                         logger.info(f"Successfully generated proposal via Gemini ({g_model})")
                         return cl, answers
@@ -444,6 +515,8 @@ class ProposalDrafter:
     def generate_full_draft(self, job: Dict[str, Any], score_data: Dict[str, Any]) -> Dict[str, Any]:
         """Produce a complete draft package ready for review."""
         terms = self.determine_proposed_terms(job, score_data)
+        if "note" in terms:
+            terms["note"] = sanitize_no_em_dash(terms["note"])
 
         # 1. Attempt Gemini or Groq LLM synthesis
         llm_res = None
@@ -461,6 +534,14 @@ class ProposalDrafter:
 
         if llm_res:
             cover_letter, answers = llm_res
+            cover_letter = sanitize_no_em_dash(cover_letter)
+            answers = [
+                {
+                    "question": sanitize_no_em_dash(a.get("question", "")),
+                    "answer": sanitize_no_em_dash(a.get("answer", "")),
+                }
+                for a in (answers or [])
+            ]
             self_check = self.self_check_draft(cover_letter, answers, terms)
             if self_check["passed"]:
                 return {
@@ -473,7 +554,7 @@ class ProposalDrafter:
                 }
 
         # 2. Deterministic heuristic fallback
-        cover_letter = self.build_cover_letter(job, score_data)
+        cover_letter = sanitize_no_em_dash(self.build_cover_letter(job, score_data))
         questions = job.get("screening_questions", [])
         answers = self.answer_screening_questions(questions, job)
         self_check = self.self_check_draft(cover_letter, answers, terms)
@@ -486,3 +567,4 @@ class ProposalDrafter:
             "status": "drafted" if self_check["passed"] else "needs_edit",
             "generator": "heuristic_fallback",
         }
+
