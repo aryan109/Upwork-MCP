@@ -40,7 +40,7 @@ class DailyReportEngine:
         self.workspace_report = PROJECT_ROOT / "daily_report.md"
         self.write_to_repo = (not os.environ.get("UPWORK_TEST_MODE")) if write_to_repo is None else write_to_repo
 
-    def generate_daily_report(self, date_str: Optional[str] = None) -> Dict[str, Any]:
+    def generate_daily_report(self, date_str: Optional[str] = None, notify: bool = True) -> Dict[str, Any]:
         """
         Compile the full 4-part daily report.
         Writes to daily_report.md, daily_report_{date}.html, and stores in the historical archive.
@@ -221,22 +221,23 @@ class DailyReportEngine:
         except Exception as e:
             logger.warning(f"Error writing daily report files: {e}")
 
-        # Sync with Notion
-        try:
-            notion_pub = NotionPublisher()
-            notion_pub.sync_daily_report(report_md)
-            notion_pub.sync_master_hub()
-            logger.info("Daily report successfully synced to Notion.")
-        except Exception as e:
-            logger.debug(f"Notion sync note: {e}")
+        if notify:
+            # Sync with Notion
+            try:
+                notion_pub = NotionPublisher()
+                notion_pub.sync_daily_report(report_md)
+                notion_pub.sync_master_hub()
+                logger.info("Daily report successfully synced to Notion.")
+            except Exception as e:
+                logger.debug(f"Notion sync note: {e}")
 
-        # Trigger desktop and Telegram notification with rich metrics
-        notify_daily_report_ready(
-            target_date,
-            metrics["selected_count"],
-            report_text=report_md,
-            metrics=metrics,
-        )
+            # Trigger desktop and Telegram notification with rich metrics
+            notify_daily_report_ready(
+                target_date,
+                metrics["selected_count"],
+                report_text=report_md,
+                metrics=metrics,
+            )
 
         return {
             "date": target_date,

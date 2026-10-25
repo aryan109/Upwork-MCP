@@ -56,6 +56,17 @@ class StateManager:
         backend: Optional[Any] = None,
     ):
         self.state_dir = Path(state_dir) if state_dir else STATE_DIR
+        if (
+            backend is None
+            and not os.environ.get("UPWORK_TEST_MODE")
+            and not os.environ.get("PYTEST_CURRENT_TEST")
+            and (state_dir is None or Path(state_dir).resolve() == STATE_DIR.resolve())
+        ):
+            try:
+                from .state_backend import get_default_backend
+                backend = get_default_backend()
+            except Exception:
+                backend = None
         self.backend = backend
         self.jobs_file = self.state_dir / "jobs.json"
         self.state_file = self.state_dir / "state.json"
@@ -210,9 +221,12 @@ class StateManager:
             try:
                 data, _ = self.backend.read_json("jobs.json")
                 if data:
-                    if isinstance(data, list):
-                        return {job["job_id"]: job for job in data if "job_id" in job}
-                    return data
+                    normalized = {job["job_id"]: job for job in data if "job_id" in job} if isinstance(data, list) else data
+                    try:
+                        self._atomic_write(self.jobs_file, normalized)
+                    except Exception:
+                        pass
+                    return normalized
             except Exception as e:
                 logger.debug(f"Backend load_jobs error: {e}")
 
@@ -224,8 +238,8 @@ class StateManager:
             return {job["job_id"]: job for job in data if "job_id" in job}
         return data
 
-    def save_jobs(self, jobs: Dict[str, Dict[str, Any]]) -> None:
-        # Enforce conflict rule: newest updated_at wins; status may only move forward
+    def save_jobs(self, jobs: Dict[str, Dict[str, Any]], allow_status_reset: bool = False) -> None:
+        # Enforce conflict rule: newest updated_at wins; status may only move forward (unless allow_status_reset=True)
         existing = {}
         if self.backend:
             try:
@@ -251,14 +265,15 @@ class StateManager:
                 old_status = old_job.get("status", "discovered")
                 new_status = new_job.get("status", old_status)
 
-                # Monotonic rule: terminal states cannot regress to active
-                if old_status in self.TERMINAL_STATUSES and new_status not in self.TERMINAL_STATUSES:
-                    new_job["status"] = old_status
-
-                # Monotonic rule: active states may only move forward
-                elif old_status in self.STATUS_RANK and new_status in self.STATUS_RANK:
-                    if self.STATUS_RANK[new_status] < self.STATUS_RANK[old_status]:
+                if not allow_status_reset:
+                    # Monotonic rule: terminal states cannot regress to active
+                    if old_status in self.TERMINAL_STATUSES and new_status not in self.TERMINAL_STATUSES:
                         new_job["status"] = old_status
+
+                    # Monotonic rule: active states may only move forward
+                    elif old_status in self.STATUS_RANK and new_status in self.STATUS_RANK:
+                        if self.STATUS_RANK[new_status] < self.STATUS_RANK[old_status]:
+                            new_job["status"] = old_status
 
                 # Timestamps & merge
                 merged[jid] = {**old_job, **new_job}
@@ -276,6 +291,10 @@ class StateManager:
             try:
                 data, _ = self.backend.read_json("state.json")
                 if data:
+                    try:
+                        self._atomic_write(self.state_file, data)
+                    except Exception:
+                        pass
                     return data
             except Exception as e:
                 logger.debug(f"Backend load_state error: {e}")
@@ -433,6 +452,13 @@ class StateManager:
             logger.warning(f"Volume merge skipped: {e}")
         state = self.load_state()
         jobs = self.load_jobs()
+        if self.backend:
+            try:
+                intel_data, _ = self.backend.read_json("market_intelligence.json")
+                if isinstance(intel_data, dict) and intel_data.get("records") is not None:
+                    self._atomic_write(self.state_dir / "market_intelligence.json", intel_data)
+            except Exception as e:
+                logger.debug(f"Market intelligence pull note: {e}")
         return state, jobs
 
     def push(self) -> bool:
@@ -443,6 +469,14 @@ class StateManager:
             if self.backend:
                 ok_s, _ = self.backend.write_json("state.json", state, message="push state")
                 ok_j, _ = self.backend.write_json("jobs.json", jobs, message="push jobs")
+                intel_file = self.state_dir / "market_intelligence.json"
+                if intel_file.exists():
+                    try:
+                        with open(intel_file, "r", encoding="utf-8") as f:
+                            intel_data = json.load(f)
+                        self.backend.write_json("market_intelligence.json", intel_data, message="push market intelligence")
+                    except Exception as e:
+                        logger.debug(f"Market intelligence push note: {e}")
                 return ok_s and ok_j
             return True
         except Exception as e:
@@ -454,6 +488,10 @@ class StateManager:
             try:
                 data, _ = self.backend.read_json("campaigns.json")
                 if isinstance(data, dict) and data.get("campaigns"):
+                    try:
+                        self._atomic_write(self.campaigns_file, data)
+                    except Exception:
+                        pass
                     return data
             except Exception as e:
                 logger.debug(f"Backend load_campaigns error: {e}")

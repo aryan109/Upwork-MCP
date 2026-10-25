@@ -112,12 +112,14 @@ def main():
         })
 
     print("invoking vercel deploy (npx)...")
+    import shutil
+    npx_bin = shutil.which("npx") or "npx.cmd"
     env = os.environ.copy()
     env["VERCEL_ORG_ID"] = uid or ""
     env["VERCEL_PROJECT_ID"] = project_id
     proc = subprocess.run(
         [
-            "npx", "--yes", "vercel@latest",
+            npx_bin, "--yes", "vercel@latest",
             "--token", TOKEN,
             "--yes",
             "--prod",

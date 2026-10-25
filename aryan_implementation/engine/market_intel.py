@@ -196,12 +196,15 @@ class MarketIntelEngine:
         Extract market signals and catalog the job into the knowledge base.
         Works for both open and filled/closed jobs.
         """
+        from .vet import normalize_job_record
+        job = normalize_job_record(job)
+
         jid = str(job.get("job_id") or job.get("id", ""))
         if not jid:
             return {}
 
         title = str(job.get("title", ""))
-        desc = str(job.get("description", ""))
+        desc = str(job.get("description") or "")
         full_text = f"{title}\n{desc}"
 
         tech_stack = extract_tech_stack(full_text)
@@ -246,9 +249,9 @@ class MarketIntelEngine:
             },
             "client": {
                 "country": client.get("country", "Unknown"),
-                "total_spent": client.get("total_spent", 0.0),
-                "hire_rate": client.get("hire_rate_percent", client.get("hire_rate", 0)),
-                "rating": client.get("rating", 5.0),
+                "total_spent": self._safe_float(client.get("total_spent", 0.0)),
+                "hire_rate": self._safe_float(client.get("hire_rate_percent", client.get("hire_rate", 0))),
+                "rating": self._safe_float(client.get("rating", 5.0), default=5.0),
             },
             "tech_stack": tech_stack,
             "client_pain_point": pain_point,
@@ -263,6 +266,41 @@ class MarketIntelEngine:
         self.generate_digest(intel)
 
         return record
+
+    @staticmethod
+    def _safe_float(val: Any, default: float = 0.0) -> float:
+        if val is None or isinstance(val, bool):
+            return default
+        if isinstance(val, (int, float)):
+            return float(val)
+        s = re.sub(r"[^0-9.\-]", "", str(val))
+        try:
+            return float(s) if s else default
+        except (ValueError, TypeError):
+            return default
+
+    @staticmethod
+    def _format_budget_info(b: Dict[str, Any]) -> str:
+        if not isinstance(b, dict):
+            return "Rate: TBD"
+        btype = str(b.get("type") or "hourly").lower()
+        if btype == "hourly":
+            h_min = b.get("hourly_min")
+            h_max = b.get("hourly_max")
+            if h_min is not None and h_max is not None:
+                return f"${h_min:g}–${h_max:g}/hr"
+            elif h_max is not None:
+                return f"Up to ${h_max:g}/hr"
+            elif h_min is not None:
+                return f"From ${h_min:g}/hr"
+            return "Hourly (rate open)"
+        else:
+            f_amt = b.get("fixed_amount")
+            if isinstance(f_amt, (int, float)) and f_amt > 0:
+                return f"${f_amt:,.0f} fixed"
+            elif f_amt:
+                return f"${f_amt} fixed"
+            return "Fixed (budget open)"
 
     def generate_digest(self, intel_data: Optional[Dict[str, Any]] = None) -> str:
         """
@@ -290,17 +328,13 @@ class MarketIntelEngine:
         filled_jobs = [r for r in records if r.get("status") == "FILLED" or r.get("total_hired", 0) > 0]
         if filled_jobs:
             for r in filled_jobs:
-                budget_info = ""
-                b = r.get("budget", {})
-                if b.get("type") == "hourly":
-                    budget_info = f"${b.get('hourly_min', 0)}–${b.get('hourly_max', 0)}/hr"
-                else:
-                    budget_info = f"${b.get('fixed_amount', 0)} fixed"
+                budget_info = self._format_budget_info(r.get("budget", {}))
 
                 c = r.get("client", {})
+                spent_val = self._safe_float(c.get("total_spent"))
                 lines.append(f"### ⚡ [{r.get('title')}]({r.get('url')})")
                 lines.append(f"- **Status**: `FILLED` ({r.get('total_hired')}/{r.get('persons_to_hire')} hired)")
-                lines.append(f"- **Client Profile**: {c.get('country')} | ${c.get('total_spent', 0):,.2f} spent | {c.get('hire_rate', 0)}% hire rate | Rate: {budget_info}")
+                lines.append(f"- **Client Profile**: {c.get('country')} | ${spent_val:,.2f} spent | {c.get('hire_rate') or 0}% hire rate | Rate: {budget_info}")
                 lines.append(f"- **Archetype**: {r.get('archetype')}")
                 lines.append(f"- **Tech Stack**: `{', '.join(r.get('tech_stack', [])) or 'General AI'}`")
                 lines.append(f"- **Core Friction / Pain Point**: *\"{r.get('client_pain_point')}\"*")
@@ -323,12 +357,12 @@ class MarketIntelEngine:
         open_jobs = [r for r in records if r not in filled_jobs]
         if open_jobs:
             for r in open_jobs:
-                b = r.get("budget", {})
-                budget_info = f"${b.get('hourly_min', 0)}–${b.get('hourly_max', 0)}/hr" if b.get("type") == "hourly" else f"${b.get('fixed_amount', 0)} fixed"
+                budget_info = self._format_budget_info(r.get("budget", {}))
                 c = r.get("client", {})
+                spent_val = self._safe_float(c.get("total_spent"))
                 lines.append(f"### 🎯 [{r.get('title')}]({r.get('url')})")
-                lines.append(f"- **Status**: `{r.get('status')}` | Rate: {budget_info} | Client: {c.get('country')}")
-                lines.append(f"- **Tech Stack**: `{', '.join(r.get('tech_stack', []))}`")
+                lines.append(f"- **Status**: `{r.get('status')}` | Rate: {budget_info} | Client: {c.get('country')} (${spent_val:,.0f} spent)")
+                lines.append(f"- **Tech Stack**: `{', '.join(r.get('tech_stack', [])) or 'General AI'}`")
                 lines.append(f"- **Core Friction**: *\"{r.get('client_pain_point')}\"*")
                 lines.append(f"- **Tags**: {' '.join(r.get('engagement_tags', []))}")
                 angles = r.get("content_angles", {})

@@ -817,3 +817,47 @@
   - Ran local engine tick: 37/37 searches passed, 38 candidates discovered, alert `W8` resolved and cleared from active alerts in `alerts.json`.
   - All 76 tests in pytest passed cleanly.
 
+## [2026-10-25 17:40 IST] — Full Local & Hosted Pipeline Audit: Discovery Search Fix, Upwork MCP Schema Normalization (100% False-Positive D6 Elimination), State Sync & Vercel Redeployment
+
+- **Comprehensive Log & State Audit (Local + Hosted Tiers)**:
+  - Audited local logs (`%USERPROFILE%\upwork_engine\logs\local_tick.log`, `runs.jsonl`), local state files (`state.json`, `jobs.json`, `job_ledger.json`, `rejected_jobs.json`, `market_intelligence.json`, `campaigns.json`), raw payload archives (`payloads/*.json`), GitHub distributed state store (`aryan109/upwork-engine-state`), GitHub Actions (`vercel-standby-tick`), Vercel production tier (`https://upwork-engine-blush.vercel.app`), and Railway (`upwork-engine-production-16dc.up.railway.app`).
+  - **Root Cause 1 — 83.8% of Discovery Searches Failing Silently (`hunt.py` & `logger.py`)**:
+    - `hunt.py` invoked `find_jobs.smart_search` for all 31 campaign keyword queries with `{"mode": "most_recent", "query": q, "from_date": ..., "days_posted": 1}`.
+    - Per Upwork MCP's `upwork__find_jobs` schema, `smart_search` is strictly a profile-feed action (does not accept `query`) and forbids combining `days_posted` with `from_date`/`to_date`. Every single `smart_search` call returned `{"status": "error", "error_code": "CLIENT", "reason": "days_posted cannot be combined with from_date/to_date"}`.
+    - `execute_with_audit()` in `logger.py` only checked `filters_rejected` and treated tool-level error dicts (`status == "error"`) as `ok: True`, falsely reporting `searches_ok=37, failed=0`.
+    - Only the 6 `title_filters` (`find_jobs.search` with `title=...`) ever returned jobs, and firing 31 invalid `smart_search` calls first triggered Upwork's `SENSITIVE_RATE_LIMIT_EXCEEDED` (~12 req/min limit) on subsequent `search` and `get` calls.
+    - 15 of 109 files in `payloads/` were 389-byte `SENSITIVE_RATE_LIMIT_EXCEEDED` error JSONs saved as job payloads.
+  - **Root Cause 2 — 100% False-Positive `D6` Disqualifications & Missing Job Descriptions (`vet.py`)**:
+    - All 76 `D6` ("ghost client") disqualifications in `jobs.json` were false positives (including verified clients with \$1.36M, \$312k, \$258k, \$104k, and \$48k spent).
+    - `find_jobs.get` returns `client_record` with `spend_total` (not `total_spent`), `jobs_with_hires` (not `totalHired`), `feedback_score` (not `rating`), and places `verification_status: "VERIFIED"` on `summary["client"]` rather than `payment_verified: True` on `client_record`. `vet.py` selected `client_record` over `client`, saw `payment_verified=False, total_spent=0, totalHired=0`, and disqualified every job with a `client_record` as `D6`.
+    - Furthermore, `find_jobs.get` nests `description`, `activityStat`, and `contractTerms` inside `data.marketplaceJobPosting`, leaving `job.get("description") == None` on stored jobs and penalizing scores by 15–25 points across `A2`, `A4`, `B5`, `C1`, `D1` (which defaulted unavailable `proposals_tier` to `pile_on`), and `E3`.
+    - `D4` used bare `r"telegram"` and `r"whatsapp"` regexes, falsely disqualifying legitimate Telegram/WhatsApp bot automation jobs.
+  - **Root Cause 3 — Stale State Overwrites & Hosted/Local Desynchronization (`hourly_runner.py`, `state_manager.py`, `tick.py`, `watchdog.py`)**:
+    - `hourly_runner.py` loaded `state` before `hunter.run_hunt()` and saved that stale dict at the end of the pass, clobbering `last_run_at` (stuck at `2026-10-06`), `runs_today` (stuck at `15`), `search_cursor` (reset to `0` every pass), and `connects_balance` (stuck at `118` vs actual `74`).
+    - `StateManager(STATE_DIR)` defaulted `backend=None` and did not persist backend pulls to local disk (`state.json`, `jobs.json`), causing Vercel's `/api/report` and `cli status` to read stale/empty disk files (`connects_balance: 110, total_analysed: 0, last_activity_at: Never`).
+    - `ping_vercel_standby()` in `tick.py` did not load `VERCEL_TICK_URL` / `TICK_SECRET` from `.env` fallback, and Vercel was still running an Oct 11 deployment (`b2545a14`).
+
+- **Implemented Solutions**:
+  - `aryan_implementation/engine/logger.py`:
+    - Updated `execute_with_audit()` to detect Upwork MCP error payloads (`status == "error"` or `error_code`), honor `retry_after_seconds` on `SENSITIVE_RATE_LIMIT_EXCEEDED`, and return `ok: False` with accurate `error_class` classification.
+  - `aryan_implementation/engine/vet.py`:
+    - Added `parse_money_range()`, `clean_untrusted_tags()`, and `normalize_job_record(job, detail_data)` to unify `find_jobs.search`, `find_jobs.smart_search`, and `find_jobs.get` schemas (`data.marketplaceJobPosting.content.description`, `activityStat`, `contractTerms`, `spend_total`/`total_spent`, `verification_status == "VERIFIED"`/`payment_verified`, `feedback_score`/`rating`, `jobs_with_hires`, computed `hire_rate_percent`, and string budget ranges).
+    - Refined `D3`, `D4`, and `D6` disqualifiers and `score_job()` (`A1`–`E3`, neutral `D1` when `proposals_tier` is unavailable).
+  - `aryan_implementation/engine/hunt.py` & `config.py`:
+    - Replaced invalid `smart_search` keyword calls with `find_jobs.search` (`query`, `sort="recency"`, `include_full_details=True`) + `title` searches + 2 valid profile-feed `smart_search` calls (`mode="most_recent", days_posted=2` and `mode="best_match"`).
+    - Prioritized `find_jobs.get` detail calls for non-disqualified candidates (`score >= 55`), blocked saving error payloads to `payloads/`, and updated `state["connects_balance"]` from live detail responses.
+  - `aryan_implementation/engine/hourly_runner.py`, `state_manager.py`, `daily_report.py`, `market_intel.py`, `web_report.py`, `tick.py`, `watchdog.py`:
+    - Reloaded `state` after `hunter.run_hunt()` in `hourly_runner.py` so `last_run_at`, `runs_today`, `search_cursor`, and `connects_balance` are preserved.
+    - Auto-attached `get_default_backend()` in `StateManager(STATE_DIR)` outside test mode and cached backend `state.json`, `jobs.json`, `campaigns.json`, and `market_intelligence.json` to local disk during `load_*`/`pull()`.
+    - Added `_safe_float()` and `_format_budget_info()` in `MarketIntelEngine` to prevent `ValueError` on formatted currency strings and `$None` rate rendering.
+    - Added `.env` fallback in `ping_vercel_standby()`, Vercel URL resolution in `get_public_service_url()`, and `decommissioned` tier handling in `watchdog.py`.
+  - `campaigns.json` & `aryan_implementation/templates/campaigns.example.json`:
+    - Broadened search queries and title filters across all 7 campaigns to high-volume 1–3 word marketplace terms.
+
+- **Verification & Live Production Results**:
+  - Deleted 15 rate-limit error files from `payloads/`, re-normalized and re-vetted the job database (150 jobs total: 85 `scored`, 13 `drafted` in review queue, 13 `ai_rejected`, 39 `skipped`), rebuilt `market_intelligence.json`, `market_intelligence_digest.md`, and `daily_report.md`, and synced all state to `aryan109/upwork-engine-state`.
+  - Live local tick (`hourly_20261025_114411` & `115921`) executed with `searches_ok=39, failed=0`, discovering 226 candidates and automatically staging high-fit `APPLY` proposals (`97.5`, `95.5`, `94.9`, `84.7`, `84.5`, `83.8`, `81.1`, `81.0` pts) with Telegram notifications and Notion sync.
+  - Redeployed Vercel production tier (`https://upwork-engine-blush.vercel.app`) and verified `/api/health` (`status: healthy`) and `/api/report?format=json` (`total_analysed: 63, selected_count: 13, total_tracked_cumulative: 150, connects_balance: 74, is_downtime: false`).
+  - Added 3 new unit tests in `aryan_implementation/tests/test_vet_rubric.py`; all **79 passed** in `pytest`.
+
+

@@ -77,13 +77,22 @@ def get_public_service_url() -> str:
         except Exception:
             pass
 
+    vercel_tick = os.environ.get("VERCEL_TICK_URL") or env_vars.get("VERCEL_TICK_URL") or ""
+    if vercel_tick and "/api/tick" in vercel_tick:
+        vercel_base = vercel_tick.split("/api/tick")[0].strip()
+    else:
+        vercel_base = ""
+
     domain = (
-        os.environ.get("RAILWAY_PUBLIC_DOMAIN")
-        or env_vars.get("RAILWAY_PUBLIC_DOMAIN")
+        os.environ.get("VERCEL_PROJECT_PRODUCTION_URL")
+        or env_vars.get("VERCEL_PROJECT_PRODUCTION_URL")
+        or vercel_base
         or os.environ.get("SERVICE_URL")
         or env_vars.get("SERVICE_URL")
         or os.environ.get("PUBLIC_URL")
         or env_vars.get("PUBLIC_URL")
+        or os.environ.get("RAILWAY_PUBLIC_DOMAIN")
+        or env_vars.get("RAILWAY_PUBLIC_DOMAIN")
         or os.environ.get("RAILWAY_STATIC_URL")
         or env_vars.get("RAILWAY_STATIC_URL")
     )

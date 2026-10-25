@@ -155,6 +155,39 @@ def execute_with_audit(
             res = func(tool, {"action": action, **params} if action else params)
             duration_ms = int((time.time() - t0) * 1000)
 
+            # Check for tool-level error payload returned by Upwork MCP (e.g. CLIENT or SENSITIVE_RATE_LIMIT_EXCEEDED)
+            if isinstance(res, dict) and (res.get("status") == "error" or res.get("error_code")):
+                err_code = str(res.get("error_code") or "ERROR")
+                reason = str(res.get("reason") or res.get("message") or err_code)
+                is_rate_limit = (
+                    err_code == "SENSITIVE_RATE_LIMIT_EXCEEDED"
+                    or "rate limit" in reason.lower()
+                )
+                err_class = "rate_limit" if is_rate_limit else classify_error(f"{err_code}: {reason}")
+                err_info = {
+                    "class": err_class,
+                    "error_code": err_code,
+                    "msg": reason[:500],
+                    "attempt": attempt,
+                }
+                log_event(
+                    run_id=run_id,
+                    step=step_name,
+                    campaign=campaign,
+                    inputs=inputs,
+                    state_before=state,
+                    result={"ok": False, "error_code": err_code, "reason": reason[:200]},
+                    error=err_info,
+                    duration_ms=duration_ms,
+                    log_path=log_path,
+                )
+                if is_rate_limit and attempt < retries:
+                    wait_s = min(10.0, float(res.get("retry_after_seconds") or (2 ** attempt)))
+                    logger.info(f"[RATE_LIMIT] {step_name} rate-limited; sleeping {wait_s:.1f}s before retry {attempt + 1}/{retries}")
+                    time.sleep(wait_s)
+                    continue
+                return {"ok": False, "error_class": err_class, "message": reason, "data": res}
+
             # Check for filter rejections reported in payload
             if isinstance(res, dict) and res.get("filters_rejected"):
                 err_info = {

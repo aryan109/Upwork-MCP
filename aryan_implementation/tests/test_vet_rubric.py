@@ -213,3 +213,110 @@ def test_worked_example_5_n8n_automation() -> None:
     res = score_job(job, campaign_threshold=70)
     assert res["score"] >= 75.0
     assert res["decision"] == "APPLY"
+
+
+def test_normalize_upwork_mcp_nested_schema_prevents_false_d6() -> None:
+    from aryan_implementation.engine.vet import normalize_job_record
+
+    summary = {
+        "job_id": "2114233276906784853",
+        "title": "AI Platform Integration & Account Risk Research Engineer (Claude)",
+        "type": "fixed",
+        "budget": "5,000.00",
+        "client": {
+            "country": "United States",
+            "feedback_score": 5.0,
+            "reviews_count": 12,
+            "jobs_posted": 23,
+            "jobs_with_hires": 15,
+            "spend_total": 4492.42,
+            "verification_status": "VERIFIED",
+        },
+    }
+    detail = {
+        "status": "ok",
+        "connects_balance": 74,
+        "client_record": {
+            "country": "United States",
+            "feedback_score": 5.0,
+            "reviews_count": 12,
+            "jobs_posted": 23,
+            "jobs_with_hires": 15,
+            "spend_total": 4492.42,
+        },
+        "data": {
+            "marketplaceJobPosting": {
+                "content": {
+                    "title": "<untrusted_data>AI Platform Integration & Account Risk Research Engineer (Claude)</untrusted_data>",
+                    "description": "<untrusted_data>We need an engineer to build our Claude API integration, webhook pipeline, and production monitoring dashboard.</untrusted_data>",
+                },
+                "activityStat": {
+                    "jobActivity": {
+                        "totalApplicants": 7,
+                        "totalHired": 0,
+                        "totalInvitedToInterview": 2,
+                    }
+                },
+                "contractTerms": {
+                    "contractType": "FIXED",
+                    "personsToHire": 1,
+                    "fixedPriceContractTerms": {"amount": {"displayValue": "5,000.00"}},
+                },
+            }
+        },
+    }
+
+    norm = normalize_job_record(summary, detail)
+    assert norm["budget_fixed"] == 5000.0
+    assert norm["client_record"]["payment_verified"] is True
+    assert norm["client_record"]["total_spent"] == 4492.42
+    assert norm["client_record"]["hire_rate_percent"] > 60.0
+    assert "<untrusted_data>" not in norm["description"]
+
+    disq, d_id, _ = check_disqualifiers(norm)
+    assert disq is False, f"Unexpectedly disqualified by {d_id}"
+
+    res = score_job(norm, campaign_threshold=70)
+    assert res["decision"] == "APPLY"
+    assert res["score"] >= 80.0
+
+
+def test_d4_allows_legitimate_telegram_whatsapp_automation_jobs() -> None:
+    job = {
+        "title": "Build n8n AI Agent with Telegram and WhatsApp Business API notifications",
+        "description": "Connect our FastAPI backend to WhatsApp Business API and a Telegram bot for automated customer support.",
+        "type": "hourly",
+        "budget": "40.00–75.00/hr",
+        "client": {
+            "spend_total": 12000.0,
+            "verification_status": "VERIFIED",
+            "jobs_posted": 10,
+            "jobs_with_hires": 8,
+            "feedback_score": 4.95,
+        },
+    }
+    disq, d_id, _ = check_disqualifiers(job)
+    assert disq is False, f"Legitimate bot integration job falsely disqualified by {d_id}"
+
+
+def test_execute_with_audit_detects_mcp_error_payloads(tmp_path) -> None:
+    from aryan_implementation.engine.logger import execute_with_audit
+
+    def failing_tool(tool_name, payload):
+        return {
+            "status": "error",
+            "error_code": "CLIENT",
+            "reason": "days_posted cannot be combined with from_date/to_date",
+        }
+
+    res = execute_with_audit(
+        func=failing_tool,
+        tool="find_jobs",
+        action="smart_search",
+        params={"mode": "most_recent"},
+        run_id="test_run",
+        log_path=tmp_path / "runs.jsonl",
+    )
+    assert res["ok"] is False
+    assert res["error_class"] == "validation"
+

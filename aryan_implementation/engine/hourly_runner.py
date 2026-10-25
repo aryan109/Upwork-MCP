@@ -23,7 +23,7 @@ from .market_intel import MarketIntelEngine
 from .mcp_client import UpworkMCPClient
 from .notifier import notify_proposal_ready
 from .state_manager import StateManager
-from .vet import check_disqualifiers, score_job
+from .vet import check_disqualifiers, normalize_job_record, score_job
 
 if not logging.getLogger().handlers:
     logging.basicConfig(
@@ -77,6 +77,9 @@ def run_single_pass(
         f"auth_ok={hunt_res.get('auth_ok')} errors={hunt_res.get('error_classes')}"
     )
 
+    # Reload state after hunt so last_run_at, last_run_id, runs_today, search_cursor, and connects_balance are preserved
+    state = state_mgr.load_state()
+
     # 2. Vet all newly discovered or refreshed jobs
     jobs = state_mgr.load_jobs()
     ledger = JobLedger(state_mgr.state_dir)
@@ -91,7 +94,8 @@ def run_single_pass(
     skipped_count = 0
 
     for jid in discovered_ids:
-        job = jobs[jid]
+        job = normalize_job_record(jobs[jid])
+        jobs[jid] = job
         jtitle = job.get("title", "")
 
         # Block any test jobs from vetting or alerts
@@ -171,6 +175,14 @@ def run_single_pass(
                     logger.info(
                         f"🛑 [AI VETTING] Bad client intercepted: '{job.get('title')}' "
                         f"(Risk: {ai_eval.get('client_risk_level')}) - {ai_eval.get('fit_reasoning')}"
+                    )
+                elif float(ai_eval.get("fit_score", 75) or 0) < 55.0:
+                    job["status"] = "scored"
+                    job["decision"] = "REVIEW"
+                    ledger.record_job(job, status="scored", decision="REVIEW", score=score_res["score"])
+                    logger.info(
+                        f"🔍 [AI REVIEW] '{job.get('title')}' downgraded to REVIEW "
+                        f"(Rubric: {score_res['score']}, AI Fit: {ai_eval.get('fit_score')}) - {ai_eval.get('fit_reasoning')}"
                     )
                 else:
                     draft = drafter.generate_full_draft(job, score_res)
@@ -319,15 +331,17 @@ def run_single_pass(
     except Exception as e:
         logger.warning(f"Digest generation warning: {e}")
 
-    # Once-a-day daily comprehensive report compilation
+    # Once-a-day daily comprehensive report compilation (and silent refresh on new activity)
     today_str = now_utc.strftime("%Y-%m-%d")
-    if state.get("last_daily_report_date") != today_str:
+    should_notify_report = state.get("last_daily_report_date") != today_str
+    if should_notify_report or vetted_count > 0:
         try:
             report_eng = DailyReportEngine(state_mgr.state_dir)
-            report_eng.generate_daily_report(today_str)
-            state["last_daily_report_date"] = today_str
-            state_mgr.save_state(state)
-            logger.info(f"Daily intelligence and improvement report compiled for {today_str}.")
+            report_eng.generate_daily_report(today_str, notify=should_notify_report)
+            if should_notify_report:
+                state["last_daily_report_date"] = today_str
+                state_mgr.save_state(state)
+            logger.info(f"Daily intelligence and improvement report compiled for {today_str} (notify={should_notify_report}).")
         except Exception as e:
             logger.warning(f"Failed to auto-generate daily report: {e}")
 

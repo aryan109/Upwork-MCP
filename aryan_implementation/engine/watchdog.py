@@ -70,6 +70,8 @@ class WatchdogEvaluator:
         missing_tiers = []
         for t_name, threshold_hours in [("railway", 1.0), ("vercel", 1.0), ("local", 48.0)]:
             hb, _ = self.backend.read_json(f"heartbeats/{t_name}.json")
+            if hb and (hb.get("decommissioned") or hb.get("disabled")):
+                continue
             if hb and hb.get("seen_at"):
                 try:
                     dt = datetime.fromisoformat(hb["seen_at"].replace("Z", "+00:00"))
@@ -119,6 +121,8 @@ class WatchdogEvaluator:
         commits_seen = {}
         for t_name in ["railway", "vercel", "local"]:
             hb, _ = self.backend.read_json(f"heartbeats/{t_name}.json")
+            if hb and (hb.get("decommissioned") or hb.get("disabled")):
+                continue
             if hb and hb.get("commit_sha"):
                 commits_seen[t_name] = hb["commit_sha"]
 

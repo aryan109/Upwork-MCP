@@ -27,7 +27,7 @@ from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional
 
 from .alerts import AlertManager, dead_man_ping
-from .config import STATE_DIR
+from .config import PROJECT_ROOT, STATE_DIR
 from .daily_report import DailyReportEngine
 from .hourly_runner import run_single_pass
 from .lease import LeaseManager
@@ -41,6 +41,25 @@ from .watchdog import WatchdogEvaluator
 logger = logging.getLogger("upwork_tick")
 
 
+def _read_env_fallback(key: str) -> str:
+    val = os.environ.get(key, "").strip()
+    if val:
+        return val
+    env_file = PROJECT_ROOT / ".env"
+    if env_file.exists():
+        try:
+            with open(env_file, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith("#") and "=" in line:
+                        k, v = line.split("=", 1)
+                        if k.strip() == key:
+                            return v.strip().strip("'\"")
+        except Exception:
+            pass
+    return ""
+
+
 def ping_vercel_standby(from_tier: str) -> bool:
     """
     Wake the Vercel standby tick. Railway and local call this after their own tick
@@ -49,10 +68,10 @@ def ping_vercel_standby(from_tier: str) -> bool:
     """
     if from_tier.lower() == "vercel":
         return False
-    if os.environ.get("UPWORK_TEST_MODE"):
+    if os.environ.get("UPWORK_TEST_MODE") or os.environ.get("PYTEST_CURRENT_TEST"):
         return False
-    url = os.environ.get("VERCEL_TICK_URL", "").strip()
-    secret = os.environ.get("TICK_SECRET", "").strip()
+    url = _read_env_fallback("VERCEL_TICK_URL")
+    secret = _read_env_fallback("TICK_SECRET")
     if not url:
         logger.debug("VERCEL_TICK_URL unset; skipping Vercel standby ping")
         return False
@@ -273,6 +292,11 @@ def build_proof_of_life_message(
     connects = state.get("connects_balance", "Unknown")
     staged = state.get("staged_proposals") or []
     queue_count = len([j for j in staged if isinstance(j, dict)]) if isinstance(staged, list) else 0
+    if queue_count == 0 and jobs:
+        queue_count = sum(
+            1 for j in jobs.values()
+            if isinstance(j, dict) and j.get("status") in ("drafted", "preview_ready")
+        )
     funnel = summarize_jobs_for_proof(jobs or {}, today_ist, now_utc=now)
 
     health_label = "HEALTHY" if last_pass.get("healthy") else "WARNING"

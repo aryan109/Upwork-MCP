@@ -15,7 +15,7 @@ from .config import MAX_SEARCHES_PER_PASS, MAX_DETAIL_FETCHES_PER_PASS, PAYLOADS
 from .job_ledger import JobLedger, extract_job_timestamps, is_test_job
 from .mcp_client import UpworkMCPClient
 from .state_manager import StateManager
-from .vet import CAPABILITY_DISQUALIFIERS
+from .vet import CAPABILITY_DISQUALIFIERS, check_disqualifiers, normalize_job_record, score_job
 
 logger = logging.getLogger("upwork_engine")
 
@@ -46,19 +46,7 @@ class JobHunter:
 
         # Check kill switch
         kill_switch_active = state.get("kill_switch", False)
-
-        # 1. Lookback window
-        last_run_str = state.get("last_run_at")
         now_utc = datetime.now(timezone.utc)
-        if last_run_str:
-            try:
-                last_dt = datetime.fromisoformat(last_run_str.replace("Z", "+00:00"))
-                from_dt = max(now_utc - timedelta(hours=72), last_dt - timedelta(minutes=15))
-            except Exception:
-                from_dt = now_utc - timedelta(hours=24)
-        else:
-            from_dt = now_utc - timedelta(hours=24)
-        from_date_iso = from_dt.strftime("%Y-%m-%dT%H:%M:%SZ")
 
         searches_used = 0
         searches_ok = 0
@@ -80,34 +68,40 @@ class JobHunter:
         )
 
         search_tasks: List[Tuple[str, str, Dict[str, Any]]] = []
+        # 1. Profile-matched smart_search feeds (no query param; days_posted without from_date)
+        lead_camp = active_campaigns[0].get("id", "claude-implementation") if active_campaigns else "claude-implementation"
+        search_tasks.append((
+            lead_camp,
+            "smart_search",
+            {"mode": "most_recent", "days_posted": 2},
+        ))
+        if include_best_match or len(active_campaigns) > 0:
+            search_tasks.append((
+                lead_camp,
+                "smart_search",
+                {"mode": "best_match"},
+            ))
+
+        # 2. Campaign keyword & title searches via action="search" with full descriptions
         for camp in active_campaigns:
             camp_id = camp.get("id", "default")
-            for q in camp.get("queries", []):
-                search_tasks.append((
-                    camp_id,
-                    "smart_search",
-                    {
-                        "mode": "most_recent",
-                        "query": q,
-                        "from_date": from_date_iso,
-                        "days_posted": 1,
-                    },
-                ))
-            if include_best_match:
-                for q in camp.get("queries", [])[:2]:
-                    search_tasks.append((
-                        camp_id,
-                        "smart_search",
-                        {"mode": "best_match", "query": q},
-                    ))
             for tf in camp.get("title_filters", []) or []:
                 search_tasks.append((
                     camp_id,
                     "search",
                     {
                         "title": tf,
-                        "verified_payment_only": True,
-                        "days_posted": 2,
+                        "include_full_details": True,
+                    },
+                ))
+            for q in camp.get("queries", []):
+                search_tasks.append((
+                    camp_id,
+                    "search",
+                    {
+                        "query": q,
+                        "sort": "recency",
+                        "include_full_details": True,
                     },
                 ))
 
@@ -144,14 +138,22 @@ class JobHunter:
             if res.get("ok"):
                 searches_ok += 1
                 data = res.get("data", {})
+                if not isinstance(data, dict):
+                    data = {}
                 ignored = data.get("filters_ignored", [])
                 if ignored:
                     mismatches_observed.extend(ignored)
                 jobs_found = data.get("jobs", [])
-                for j in jobs_found:
-                    jid = j.get("job_id") or j.get("id")
+                if not isinstance(jobs_found, list):
+                    jobs_found = []
+                for raw_j in jobs_found:
+                    if not isinstance(raw_j, dict):
+                        continue
+                    jid = raw_j.get("job_id") or raw_j.get("id")
                     if not jid:
                         continue
+                    j = normalize_job_record(raw_j)
+                    j["job_id"] = jid
                     jtitle = j.get("title", "")
                     if is_test_job(jid, jtitle):
                         continue
@@ -201,26 +203,24 @@ class JobHunter:
                 pre_filtered_count += 1
                 continue
 
-            # Obvious capability gate check
+            # Obvious capability gate check on title
             if any(re.search(pat, title) for pat in CAPABILITY_DISQUALIFIERS):
                 pre_filtered_count += 1
                 continue
 
-            # Low budget check
-            raw_b = job_summary.get("budget_fixed") or job_summary.get("budget")
-            budget = raw_b.get("amount") if isinstance(raw_b, dict) else raw_b
+            # Low budget check using normalized fields
+            jtype = str(job_summary.get("type") or job_summary.get("job_type") or "").lower()
+            budget = job_summary.get("budget_fixed")
+            hourly_max = job_summary.get("hourly_max")
 
-            raw_h = job_summary.get("hourly_max") or job_summary.get("hourly_budget")
-            hourly_max = raw_h.get("max") if isinstance(raw_h, dict) else raw_h
-
-            if budget is not None:
+            if jtype == "fixed" and budget is not None:
                 try:
                     if float(budget) < 100.0:
                         pre_filtered_count += 1
                         continue
                 except (ValueError, TypeError):
                     pass
-            if hourly_max is not None:
+            if jtype == "hourly" and hourly_max is not None:
                 try:
                     if float(hourly_max) < 25.0:
                         pre_filtered_count += 1
@@ -237,43 +237,73 @@ class JobHunter:
             survivors.append((jid, job_summary))
             new_count += 1
 
-        # 3. Detail fetching capped at max_details
+        # 3. Detail fetching capped at max_details (prioritizing viable candidates and falling back to full search summary)
         details_fetched = 0
         final_discovered_records: List[Dict[str, Any]] = []
 
-        for jid, summary in survivors[:max_details]:
-            detail_res = self.mcp.call_tool("find_jobs", "get", {"job_id": jid}, run_id=run_id, state=state)
-            details_fetched += 1
+        for idx, (jid, summary) in enumerate(survivors):
+            has_full_summary = bool(summary.get("description") and (summary.get("client") or summary.get("client_record")))
+            need_detail_call = True
+            if has_full_summary:
+                is_disq_pre, _, _ = check_disqualifiers(summary)
+                if is_disq_pre:
+                    need_detail_call = False
+                else:
+                    pre_score = score_job(summary).get("score", 0.0)
+                    if pre_score < 55.0:
+                        need_detail_call = False
 
-            if detail_res.get("ok"):
-                detail_data = detail_res.get("data", {})
-                # Merge summary and detail
-                merged = {**summary, **detail_data}
-                merged["job_id"] = jid
+            if need_detail_call and details_fetched < max_details and not _budget_exhausted():
+                detail_res = self.mcp.call_tool("find_jobs", "get", {"job_id": jid}, run_id=run_id, state=state)
+                if detail_res.get("ok"):
+                    detail_data = detail_res.get("data", {})
+                    if isinstance(detail_data, dict) and detail_data.get("status") != "error" and "error_code" not in detail_data:
+                        details_fetched += 1
+                        if detail_data.get("connects_balance") is not None:
+                            try:
+                                state["connects_balance"] = int(detail_data["connects_balance"])
+                            except (ValueError, TypeError):
+                                pass
+                        # Save valid raw payload to payloads dir
+                        try:
+                            payload_path = PAYLOADS_DIR / f"{jid.replace('~', '_')}.json"
+                            with open(payload_path, "w", encoding="utf-8") as pf:
+                                json.dump(detail_data, pf, indent=2, ensure_ascii=False)
+                        except Exception as e:
+                            logger.warning(f"Could not persist raw payload: {e}")
+                        merged = normalize_job_record(summary, detail_data)
+                    else:
+                        merged = normalize_job_record(summary)
+                elif has_full_summary:
+                    merged = normalize_job_record(summary)
+                else:
+                    continue
+            elif has_full_summary:
+                merged = normalize_job_record(summary)
+            else:
+                if idx >= max_details or _budget_exhausted():
+                    break
+                continue
 
-                # Extract and persist accurate Upwork timestamps
-                posted_at, scraped_at, age_mins = extract_job_timestamps(merged)
-                merged["posted_at"] = posted_at
-                merged["scraped_at"] = scraped_at
-                merged["first_seen_at"] = merged.get("first_seen_at") or scraped_at
-                merged["last_checked_at"] = now_utc.isoformat()
-                merged["age_when_scraped_minutes"] = age_mins
-                merged["status"] = "discovered"
-                merged["campaign"] = summary.get("matched_campaign", "claude-implementation")
+            merged["job_id"] = jid
 
-                # Record into master ledger
-                self.ledger.record_job(merged, status="discovered")
+            # Extract and persist accurate Upwork timestamps
+            posted_at, scraped_at, age_mins = extract_job_timestamps(merged)
+            merged["posted_at"] = posted_at
+            merged["scraped_at"] = scraped_at
+            merged["first_seen_at"] = merged.get("first_seen_at") or scraped_at
+            merged["last_checked_at"] = now_utc.isoformat()
+            merged["age_when_scraped_minutes"] = age_mins
+            if age_mins is not None:
+                merged["posted_age_hours"] = round(float(age_mins) / 60.0, 2)
+            merged["status"] = "discovered"
+            merged["campaign"] = summary.get("matched_campaign", "claude-implementation")
 
-                # Save raw payload to payloads dir
-                try:
-                    payload_path = PAYLOADS_DIR / f"{jid.replace('~', '_')}.json"
-                    with open(payload_path, "w", encoding="utf-8") as pf:
-                        json.dump(detail_data, pf, indent=2, ensure_ascii=False)
-                except Exception as e:
-                    logger.warning(f"Could not persist raw payload: {e}")
+            # Record into master ledger
+            self.ledger.record_job(merged, status="discovered")
 
-                existing_jobs[jid] = merged
-                final_discovered_records.append(merged)
+            existing_jobs[jid] = merged
+            final_discovered_records.append(merged)
 
         # 4. Save updated jobs and state
         self.state_mgr.save_jobs(existing_jobs)

@@ -12,7 +12,8 @@ from typing import Any, Dict, List, Optional, Tuple, Set
 CAPABILITY_DISQUALIFIERS = [
     r"\bios\b",
     r"\bandroid\b",
-    r"\bunity\b",
+    r"\bunity(?:3d)?\b",
+    r"\bunreal(?:\s+engine)?\b",
     r"\bsap\b",
     r"\bsalesforce apex\b",
     r"\bsolidity\b",
@@ -27,11 +28,23 @@ CAPABILITY_DISQUALIFIERS = [
     r"\bseo writing\b",
 ]
 
+HARD_NON_AI_CAPABILITY_DISQUALIFIERS = [
+    r"\bunity(?:3d)?\b",
+    r"\bunreal(?:\s+engine)?\b",
+    r"\bsap\b",
+    r"\bsalesforce apex\b",
+    r"\bsolidity\b",
+    r"\bblockchain\b",
+    r"\bvoice over\b",
+    r"\blogo design\b",
+]
+
 POLICY_DISQUALIFIERS = [
     r"pay outside upwork",
+    r"payment outside upwork",
     r"communicate outside upwork",
-    r"telegram",
-    r"whatsapp",
+    r"(?:contact|message|reach|chat|dm|ping|pay|payment|communicate)\b[^.\n]{0,50}\b(?:telegram|whatsapp)\b",
+    r"\b(?:telegram|whatsapp)\b[^.\n]{0,50}\b(?:outside upwork|off[- ]platform)\b",
     r"write my essay",
     r"academic paper",
     r"post fake review",
@@ -73,11 +86,215 @@ def parse_number(val: Any, default: Optional[float] = None) -> Optional[float]:
     s = str(val).strip()
     if not s:
         return default
+    # Extract numbers (supports ranges like "15.00–25.00/hr" by returning the upper bound)
+    nums = [float(x.replace(",", "")) for x in re.findall(r"\d+(?:,\d{3})*(?:\.\d+)?", s)]
+    if nums:
+        return nums[-1]
     cleaned = re.sub(r"[^\d.]", "", s)
     try:
         return float(cleaned) if cleaned else default
     except (ValueError, TypeError):
         return default
+
+
+def parse_money_range(val: Any) -> Tuple[Optional[float], Optional[float], Optional[str]]:
+    """
+    Parse Upwork budget/rate values like '5,000.00', '$7,346.41', '15.00–25.00/hr', '30.00/hr',
+    or dict {'amount': 500} / {'min': 20, 'max': 40}.
+    Returns (min_val, max_val, inferred_type).
+    """
+    if val is None:
+        return None, None, None
+    if isinstance(val, (int, float)):
+        v = float(val)
+        return v, v, "fixed"
+    if isinstance(val, dict):
+        amt = val.get("amount") if val.get("amount") is not None else (val.get("rawValue") if val.get("rawValue") is not None else val.get("displayValue"))
+        if amt is not None:
+            f, _, _ = parse_money_range(amt)
+            return f, f, "fixed"
+        mn = parse_number(val.get("min"))
+        mx = parse_number(val.get("max"))
+        return mn, (mx if mx is not None else mn), "hourly"
+    s = str(val).strip()
+    if not s:
+        return None, None, None
+    is_hourly = "/hr" in s.lower() or "hourly" in s.lower() or "–" in s or " - " in s
+    nums = [float(x.replace(",", "")) for x in re.findall(r"\d+(?:,\d{3})*(?:\.\d+)?", s)]
+    if not nums:
+        return None, None, None
+    if len(nums) >= 2:
+        return nums[0], nums[1], "hourly"
+    return nums[0], nums[0], ("hourly" if is_hourly else "fixed")
+
+
+def clean_untrusted_tags(text: Any) -> str:
+    """Strip <untrusted_participant_content> and <untrusted_data> wrapper tags injected by Upwork MCP."""
+    if not text:
+        return ""
+    cleaned = re.sub(r"</?untrusted_[a-z_]+>", "", str(text))
+    return cleaned.strip()
+
+
+def normalize_job_record(job: Dict[str, Any], detail_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """
+    Normalize a job record across Upwork MCP `find_jobs.search`, `find_jobs.smart_search`,
+    and `find_jobs.get` schemas so disqualifiers, scoring, AI vetting, and reporting
+    always see unified fields (`description`, `client_record`, `activityStat`, `contractTerms`,
+    `type`, `budget_fixed`, `hourly_min`, `hourly_max`, `posted_age_hours`).
+    """
+    if not isinstance(job, dict):
+        return {}
+    j: Dict[str, Any] = dict(job)
+
+    if isinstance(detail_data, dict) and detail_data.get("status") != "error" and "error_code" not in detail_data:
+        for k, v in detail_data.items():
+            if k == "status":
+                continue
+            if v is not None:
+                j[k] = v
+
+    data_obj = j.get("data") if isinstance(j.get("data"), dict) else {}
+    mjp = data_obj.get("marketplaceJobPosting") if isinstance(data_obj.get("marketplaceJobPosting"), dict) else {}
+
+    # 1. Title & Description extraction + tag cleanup
+    content = mjp.get("content") if isinstance(mjp.get("content"), dict) else {}
+    raw_title = j.get("title") or content.get("title") or ""
+    if raw_title:
+        j["title"] = clean_untrusted_tags(raw_title)
+
+    raw_desc = (
+        content.get("description")
+        or j.get("description")
+        or j.get("description_snippet")
+        or j.get("snippet")
+        or ""
+    )
+    j["description"] = clean_untrusted_tags(raw_desc)
+    if j.get("description_snippet"):
+        j["description_snippet"] = clean_untrusted_tags(j["description_snippet"])
+
+    if isinstance(j.get("screening_questions"), list):
+        j["screening_questions"] = [
+            clean_untrusted_tags(q.get("question") if isinstance(q, dict) else q)
+            for q in j["screening_questions"]
+            if q
+        ]
+
+    # 2. Promote activityStat and contractTerms from marketplaceJobPosting
+    if mjp.get("activityStat") and not isinstance(j.get("activityStat"), dict):
+        j["activityStat"] = mjp["activityStat"]
+    if mjp.get("contractTerms") and not isinstance(j.get("contractTerms"), dict):
+        j["contractTerms"] = mjp["contractTerms"]
+
+    # 3. Unify client & client_record
+    c_sum = j.get("client") if isinstance(j.get("client"), dict) else {}
+    c_rec = j.get("client_record") if isinstance(j.get("client_record"), dict) else {}
+    c_pub = mjp.get("clientCompanyPublic") if isinstance(mjp.get("clientCompanyPublic"), dict) else {}
+
+    if c_sum or c_rec or c_pub:
+        has_spend_key = any(k in c_rec or k in c_sum for k in ("spend_total", "total_spent"))
+        spent_raw = (
+            c_rec.get("spend_total")
+            if c_rec.get("spend_total") is not None
+            else (c_sum.get("total_spent") if c_sum.get("total_spent") is not None else c_rec.get("total_spent"))
+        )
+        spent_val = parse_number(spent_raw, 0.0 if has_spend_key else None)
+
+        hires_val = int(
+            c_rec.get("jobs_with_hires")
+            or c_rec.get("contracts_total")
+            or c_sum.get("total_hires")
+            or 0
+        )
+
+        ver_status = str(c_sum.get("verification_status") or c_rec.get("verification_status") or "").upper()
+        if "payment_verified" in c_rec:
+            payment_verified = bool(c_rec["payment_verified"]) or ver_status == "VERIFIED"
+        elif "payment_verified" in c_sum:
+            payment_verified = bool(c_sum["payment_verified"]) or ver_status == "VERIFIED"
+        else:
+            payment_verified = ver_status == "VERIFIED"
+
+        rating_val = (
+            c_rec.get("feedback_score")
+            if c_rec.get("feedback_score") is not None
+            else (c_sum.get("rating") if c_sum.get("rating") is not None else c_rec.get("rating"))
+        )
+        hire_rate_val = (
+            c_rec.get("hire_rate_percent")
+            if c_rec.get("hire_rate_percent") is not None
+            else (c_sum.get("hire_rate_percent") if c_sum.get("hire_rate_percent") is not None else c_sum.get("hire_rate"))
+        )
+        jobs_posted_val = int(c_rec.get("jobs_posted") or c_sum.get("jobs_posted") or 0)
+        if hire_rate_val is None and jobs_posted_val > 0 and hires_val >= 0:
+            hire_rate_val = round(min(100.0, (hires_val / float(jobs_posted_val)) * 100.0), 1)
+        country_val = (
+            c_sum.get("country")
+            or c_rec.get("country")
+            or ((c_pub.get("country") or {}).get("name") if isinstance(c_pub.get("country"), dict) else None)
+        )
+
+        unified_client: Dict[str, Any] = {
+            **c_sum,
+            **c_rec,
+            "payment_verified": payment_verified,
+            "verification_status": "VERIFIED" if payment_verified else (ver_status or "UNKNOWN"),
+            "jobs_with_hires": hires_val,
+        }
+        if spent_val is not None:
+            unified_client["total_spent"] = spent_val
+        if rating_val is not None:
+            unified_client["rating"] = rating_val
+        if hire_rate_val is not None:
+            unified_client["hire_rate_percent"] = hire_rate_val
+        if country_val:
+            unified_client["country"] = country_val
+
+        j["client_record"] = unified_client
+        j["client"] = unified_client
+
+    # 4. Normalize job type and budget / hourly rate fields
+    ct = j.get("contractTerms") if isinstance(j.get("contractTerms"), dict) else {}
+    raw_type = str(j.get("type") or j.get("job_type") or ct.get("contractType") or "").lower()
+    b_min, b_max, inferred_type = parse_money_range(j.get("budget"))
+    if raw_type in ("fixed", "hourly"):
+        jtype = raw_type
+    elif "fixed" in raw_type:
+        jtype = "fixed"
+    elif "hourly" in raw_type:
+        jtype = "hourly"
+    else:
+        jtype = inferred_type or ""
+
+    if jtype:
+        j["type"] = jtype
+        j["job_type"] = jtype
+
+    if jtype == "fixed":
+        fp_amt = ((ct.get("fixedPriceContractTerms") or {}).get("amount") or {}).get("rawValue")
+        fb = parse_number(j.get("budget_fixed"))
+        if fb is None:
+            fb = parse_number(fp_amt) if fp_amt is not None else b_max
+        if fb is not None:
+            j["budget_fixed"] = fb
+    elif jtype == "hourly":
+        hm = parse_number(j.get("hourly_max") if j.get("hourly_max") is not None else j.get("hourly_budget"))
+        if hm is None:
+            hm = b_max
+        if hm is not None:
+            j["hourly_max"] = hm
+        if b_min is not None and j.get("hourly_min") is None:
+            j["hourly_min"] = b_min
+
+    # 5. Normalize posted_age_hours from age_when_scraped_minutes
+    if j.get("posted_age_hours") is None and j.get("age_when_scraped_minutes") is not None:
+        try:
+            j["posted_age_hours"] = round(float(j["age_when_scraped_minutes"]) / 60.0, 2)
+        except Exception:
+            pass
+
+    return j
 
 
 def check_disqualifiers(
@@ -88,9 +305,9 @@ def check_disqualifiers(
     Check hard disqualifiers D1–D11.
     Returns (is_disqualified, disqualifier_id, reason_str).
     """
+    job = normalize_job_record(job)
     title = str(job.get("title", "")).lower()
     desc = str(job.get("description", "")).lower()
-    full_text = f"{title} {desc}"
 
     # D1: Already applied or cannot apply
     if job.get("applied") is True or job.get("can_apply") is False:
@@ -108,9 +325,17 @@ def check_disqualifiers(
             return True, "D2", f"Location required and India not eligible: {allowed_locs}"
 
     # D3: Capability gate
+    # Always check title; only check description for hard non-AI gates or when title has no AI/automation signal
+    core_ai_title = any(
+        k in title
+        for k in ("claude", "mcp", "n8n", "rag", "agent", "llm", "automation", "openai", "langchain", "cursor", "lovable")
+    )
     for pattern in CAPABILITY_DISQUALIFIERS:
-        if re.search(pattern, title) or re.search(pattern, desc[:500]):
+        if re.search(pattern, title):
             return True, "D3", f"Capability gate triggered: {pattern}"
+        if not core_ai_title or pattern in HARD_NON_AI_CAPABILITY_DISQUALIFIERS:
+            if re.search(pattern, desc[:500]):
+                return True, "D3", f"Capability gate triggered: {pattern}"
 
     # D4: Policy / ToS violation
     for pattern in POLICY_DISQUALIFIERS:
@@ -127,18 +352,23 @@ def check_disqualifiers(
     act_stat = job.get("activityStat") if isinstance(job.get("activityStat"), dict) else {}
     activity = act_stat.get("jobActivity") if isinstance(act_stat.get("jobActivity"), dict) else (job.get("activity") if isinstance(job.get("activity"), dict) else {})
     if client:
-        verified = client.get("payment_verified", False)
+        verified = bool(client.get("payment_verified", False))
         total_spent = parse_number(client.get("total_spent"), 0.0) or 0.0
-        total_hired = int(activity.get("totalHired", 0) or 0)
-        if not verified and total_spent == 0.0 and total_hired == 0:
+        client_hires = int(
+            client.get("jobs_with_hires", 0)
+            or client.get("contracts_total", 0)
+            or activity.get("totalHired", 0)
+            or 0
+        )
+        if not verified and total_spent == 0.0 and client_hires == 0:
             return True, "D6", "Payment unverified AND $0 spend AND 0 hires"
 
     # D7: Fixed budget < $100 or hourly max < $25
     job_type = str(job.get("type") or job.get("job_type") or "").lower()
-    raw_b = job.get("budget_fixed") or job.get("budget")
+    raw_b = job.get("budget_fixed") if job.get("budget_fixed") is not None else job.get("budget")
     budget_fixed = raw_b.get("amount") if isinstance(raw_b, dict) else raw_b
 
-    raw_h = job.get("hourly_max") or job.get("hourly_budget")
+    raw_h = job.get("hourly_max") if job.get("hourly_max") is not None else job.get("hourly_budget")
     hourly_max = raw_h.get("max") if isinstance(raw_h, dict) else raw_h
 
     b_val = parse_number(budget_fixed)
@@ -174,6 +404,7 @@ def check_disqualifiers(
         job.get("persons_to_hire")
         or contract_terms.get("personsToHire")
         or job.get("personsToHire")
+        or job.get("freelancers_to_hire")
         or 1
     )
     raw_hired = (
@@ -207,8 +438,10 @@ def score_job(
     Computes weighted score (0–100) across categories A–E and modifiers.
     Returns dictionary with score, breakdown, decision, reasons, rung, and pricing hint.
     """
+    job = normalize_job_record(job)
     title = str(job.get("title", "")).lower()
     desc = str(job.get("description", "")).lower()
+    skills_str = " ".join(str(s).lower() for s in (job.get("skills") or []))
     client = job.get("client_record") if isinstance(job.get("client_record"), dict) else (job.get("client") if isinstance(job.get("client"), dict) else {})
     act_stat = job.get("activityStat") if isinstance(job.get("activityStat"), dict) else {}
     activity = act_stat.get("jobActivity") if isinstance(act_stat.get("jobActivity"), dict) else (job.get("activity") if isinstance(job.get("activity"), dict) else {})
@@ -218,12 +451,25 @@ def score_job(
 
     # Category A: Fit to Aryan's positioning (35 pts)
     # A1: Title match (15 pts)
-    strong_terms = ["claude", "claude code", "anthropic", "ai agent", "n8n", "mcp", "rag"]
-    adjacent_terms = ["automation", "integration", "llm", "chatbot", "make.com", "make", "zapier", "workflow", "api", "gpt"]
+    strong_terms = [
+        "claude", "claude code", "anthropic", "ai agent", "agentic", "n8n", "mcp",
+        "model context protocol", "rag", "langchain", "langgraph", "crewai", "cursor",
+        "lovable", "eval", "evals", "llm engineer", "ai engineer", "ai automation",
+        "ai developer", "ai consultant", "ai solutions", "ai architect", "multi-agent",
+        "voice ai",
+    ]
+    adjacent_terms = [
+        "automation", "integration", "llm", "chatbot", "make.com", "make", "zapier",
+        "workflow", "api", "gpt", "openai", "supabase", "pgvector", "python",
+        "fastapi", "vector", "orchestrator", "assistant", "copilot", "ai",
+    ]
     if any(term in title for term in strong_terms):
         a1 = 15.0
         reasons.append("title_strong_match")
     elif any(term in title for term in adjacent_terms):
+        a1 = 15.0 * 0.6  # 9.0
+        reasons.append("title_adjacent")
+    elif any(term in skills_str or term in desc[:500] for term in strong_terms):
         a1 = 15.0 * 0.6  # 9.0
         reasons.append("title_adjacent")
     else:
@@ -232,7 +478,11 @@ def score_job(
     breakdown["A1_title_match"] = round(a1, 2)
 
     # A2: Business workflow clarity (8 pts)
-    workflow_indicators = ["workflow", "automate", "sync", "pipeline", "connect", "hubspot", "slack", "notion", "crm", "lead"]
+    workflow_indicators = [
+        "workflow", "automate", "automation", "sync", "pipeline", "connect", "hubspot",
+        "slack", "notion", "crm", "lead", "production", "webhook", "api", "supabase",
+        "postgres", "fastapi", "endpoint", "retrieval", "agent",
+    ]
     model_research = ["train a model", "fine-tuning llama", "research paper", "reproduce paper"]
     if any(term in desc for term in model_research):
         a2 = 8.0 * 0.2
@@ -244,15 +494,15 @@ def score_job(
     breakdown["A2_workflow_clarity"] = round(a2, 2)
 
     # A3: Offer ladder match (7 pts)
-    if "audit" in title or "review" in title:
+    if "audit" in title or "review" in title or "troubleshoot" in title or "fix" in title:
         a3 = 7.0
         reasons.append("rung_audit")
         rung_suggested = "audit"
-    elif "sprint" in title or "quick" in title or "setup" in title:
+    elif "sprint" in title or "quick" in title or "setup" in title or "set up" in title or "connect" in title:
         a3 = 7.0
         reasons.append("rung_sprint")
         rung_suggested = "sprint"
-    elif "build" in title or "develop" in title or "system" in title:
+    elif "build" in title or "develop" in title or "system" in title or "engineer" in title or "specialist" in title or "architect" in title:
         a3 = 7.0
         reasons.append("rung_impl")
         rung_suggested = "implementation"
@@ -262,10 +512,10 @@ def score_job(
     breakdown["A3_rung_match"] = round(a3, 2)
 
     # A4: Proof match (5 pts)
-    if any(k in title or k in desc for k in ["chatbot", "scraping", "warehouse", "mcp", "n8n"]):
+    if any(k in title or k in desc for k in ["chatbot", "scraping", "warehouse", "mcp", "model context protocol", "n8n", "claude code", "supabase", "pgvector", "eval", "evals", "lovable", "cursor", "fastapi"]):
         a4 = 5.0
         reasons.append("proof_direct")
-    elif any(k in title or k in desc for k in ["rag", "agent", "integration"]):
+    elif any(k in title or k in desc for k in ["rag", "agent", "integration", "claude", "openai", "automation", "webhook"]):
         a4 = 2.5
         reasons.append("proof_adjacent")
     else:
@@ -428,9 +678,12 @@ def score_job(
         d1 = 7.0 * 0.5
     elif "20 to 50" in prop_tier:
         d1 = 7.0 * 0.25
-    else:
+    elif "50+" in prop_tier or "more than 50" in prop_tier:
         d1 = 7.0 * 0.05
         reasons.append("pile_on")
+    else:
+        # Unknown / unavailable proposals tier -> neutral score rather than assuming 50+ pile-on
+        d1 = 7.0 * 0.6
     breakdown["D1_competition"] = round(d1, 2)
 
     # D2: Freshness (4 pts)
@@ -489,7 +742,7 @@ def score_job(
     breakdown["E2_red_flags"] = round(e2, 2)
 
     # E3: Scope clarity (2 pts)
-    if len(desc) > 300 and any(w in desc for w in ["deliverable", "requirement", "goal", "scope", "phase"]):
+    if len(desc) > 300 and any(w in desc for w in ["deliverable", "requirement", "goal", "scope", "phase", "responsibilities", "architecture", "workflow", "integration"]):
         e3 = 2.0 * 1.0
     elif len(desc) < 150:
         e3 = 2.0 * 0.2
@@ -514,7 +767,7 @@ def score_job(
     # Modifiers
     modifier_score = 0.0
     # +5 open related jobs/contracts
-    if client.get("open_jobs", 0) > 0 or client.get("active_contracts", 0) > 0:
+    if (client.get("open_jobs", 0) or 0) > 0 or (client.get("active_contracts", 0) or client.get("contracts_active", 0) or 0) > 0:
         modifier_score += 5.0
         reasons.append("open_related_jobs")
 
