@@ -960,3 +960,23 @@
      - Executed full test suite (`python -m pytest aryan_implementation/tests/ -v`): 83 passed in 10.74s.
      - Verified child page creation on Notion via REST API (Page ID `40697b4f-8610-8137-a88e-c05b0b6a7a8f` successfully published).
 
+## [2026-10-27 07:42 IST] - Automated Daily Scheduling: Optimal Market Timing & Auto-Sync to Notion
+
+- **User Request**:
+  - Make the system automated so that it runs daily automatically at the appropriate time when marketplace data has accumulated.
+
+- **Cadence & Market Timing Design**:
+  1. **Continuous Real-Time Ingestion (Every 15-60 min)**:
+     - The local Windows background scheduler (`AryanUpworkLocalTier`, every 15 min) and Railway/Vercel cron runners continuously discover newly posted jobs, capturing both fresh opportunities and missed/high-competition jobs into `market_intelligence.json`.
+  2. **Every-3-Hours Rolling Briefing (`REPORT_INTERVAL_HOURS = 3`)**:
+     - Whenever 3 hours elapse or new jobs are vetted, `hourly_runner.py` compiles the operational intelligence and regenerates the web dashboard and Notion daily demand pages.
+  3. **Daily 09:00 IST Macro Briefing & Automatic Notion Publish**:
+     - 09:00 IST corresponds to the close of US business hours (17:30-20:30 PT / 20:30-23:30 ET) when the day's peak US client postings and requirements have been fully logged.
+     - Updated `send_proof_of_life` in `aryan_implementation/engine/tick.py` to trigger `DailyReportEngine.generate_daily_report(today_ist, notify=True)` automatically at 09:00 IST.
+     - This automatically produces the publication-grade `📊 Market Demand & Trends — {date}` report, updates the live Notion Knowledge Base (`3f197b4f-8610-81a7-b919-f430b7816837`), creates/updates the dated child page in Notion (`3f197b4f-8610-81a1-ac3e-d59e9c8bf7d7`), and updates the Master Command Hub (`3f197b4f-8610-816e-8ab0-cf54ac7b3a3e`).
+  4. **Telegram Link Enrichment (`aryan_implementation/engine/web_report.py`)**:
+     - Updated `render_telegram_summary_message` to directly embed the 1-click links to the Notion Daily Demand & Trends Report, the Notion Market Intelligence Knowledge Base, and the Upwork OS Command Center.
+
+- **Verification**:
+  - Full test suite passed: 83 tests passed in 44.99s (`python -m pytest aryan_implementation/tests/ -v`).
+

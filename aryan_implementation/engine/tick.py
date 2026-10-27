@@ -404,6 +404,15 @@ def send_proof_of_life(
             now_utc=now_utc,
         )
         sent = send_telegram_message(msg, parse_mode="HTML")
+
+        # Also trigger the publication-grade Daily Intelligence & Market Demand report sync to Notion
+        try:
+            report_eng = DailyReportEngine(getattr(state_mgr, "state_dir", None))
+            report_eng.generate_daily_report(today_ist, notify=True)
+            logger.info(f"Daily Demand & Trends report automatically synced to Notion and Telegram at 09:00 IST for {today_ist}.")
+        except Exception as dr_err:
+            logger.warning(f"09:00 IST Daily report compilation / Notion sync note: {dr_err}")
+
         if sent:
             persist_proof_of_life_date(state, today_ist, state_mgr=state_mgr)
         return bool(sent)

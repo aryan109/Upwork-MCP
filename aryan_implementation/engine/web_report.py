@@ -604,8 +604,10 @@ def render_telegram_summary_message(metrics: Dict[str, Any]) -> str:
     lines.append("")
 
     # 8. Links
-    lines.append("<b>8. Live Report & Command Links:</b>")
+    lines.append("<b>8. Live Reports & Command Center:</b>")
     lines.append(f"🌐 <a href=\"{web_link}\"><b>Open Dynamic Web Report Dashboard</b></a>")
+    lines.append(f"📊 <a href=\"https://app.notion.com/p/Daily-Intelligence-Action-Reports-3f197b4f861081a1ac3ed59e9c8bf7d7\"><b>Daily Demand & Trends Report on Notion</b></a>")
+    lines.append(f"🧠 <a href=\"https://app.notion.com/p/Market-Intelligence-Demand-Knowledge-Base-3f197b4f861081a7b919f430b7816837\">Market Intelligence Knowledge Base</a>")
     lines.append("💼 <a href=\"https://app.notion.com/p/Upwork-Acquisition-Market-Intelligence-OS-3f197b4f8610816e8ab0cf54ac7b3a3e\">Command Center</a> • 🤖 Send <b>/hunt</b> or <b>/queue</b>")
 
     return "\n".join(lines)
