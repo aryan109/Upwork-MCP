@@ -1008,4 +1008,38 @@
   - Ran `python -m aryan_implementation.engine.cli setup-webhook`: returned `✅ Success: Webhook already properly set`.
   - All **84 tests** in pytest passed cleanly.
 
+## [2026-10-27 16:45 IST] — Notion Proposal Staging & Editing Desk Integration
+
+- **User Request**:
+  - Instead of only viewing cramped proposals on Telegram, write the staged draft to a dedicated text-based service (Notion) where Aryan can review, edit the cover letter and screening answers freely on desktop/mobile, and have the engine read those finalized edits back from Notion when "Approve & Submit" is triggered before submitting to Upwork.
+  - Explain the 3-tier architecture (Railway, Vercel, Local PC) and how they work in sync.
+
+- **Implemented Changes**:
+  1. **Notion Proposal Staging & Review Desk Hub (`aryan_implementation/engine/notion_publisher.py`)**:
+     - Created dedicated Notion Hub subpage: `📝 Proposal Staging & Review Desk` (`40697b4f-8610-81d2-a7d6-d2b5ee0851b8`) under Master Page (`3f197b4f-8610-816e-8ab0-cf54ac7b3a3e`).
+     - Added `parse_staged_markdown(markdown: str)`: Deterministically parses cover letter text and question/answer pairs from standard markdown headers (`## Cover Letter`, `## Screening Answers`, `### Q: ...`, `**Answer:** ...`), enforcing zero em-dashes.
+     - Added `publish_staged_proposal(job, score_res)`: Creates or updates an editable Notion review subpage under the Staging Desk with job metadata, direct Upwork link, match score, proposed terms, and clearly marked editable sections for the cover letter and screening questions.
+     - Added `fetch_staged_proposal(page_id)`: Fetches live markdown from Notion REST API (`GET /v1/pages/{id}/markdown`) and parses Aryan's latest edits.
+     - Added `update_proposal_status(page_id, new_status, title)`: Dynamically renames Notion page titles upon completion (`✅ [Submitted] ...` or `❌ [Skipped] ...`) via `PATCH /v1/pages/{id}`.
+     - Updated Master Hub `sync_master_hub()` to link to the new Proposal Staging Desk.
+  2. **Telegram Bot 1-Click Notion Link & Round-Trip Sync (`aryan_implementation/engine/telegram_bot.py`)**:
+     - In `send_interactive_proposal`: Automatically publishes proposal drafts to Notion if not yet published, records `notion_page_id` and `notion_url` in draft, and adds `📝 Edit Draft in Notion` directly to the Telegram inline keyboard.
+     - In `handle_callback_query` (`action == "approve"`): Before confirming submission, pulls latest edits from Notion via `fetch_staged_proposal`, updates `draft["cover_letter"]` and `draft["answers"]`, clears outdated previews, and then prepares/confirms submission. Upon success, updates Notion page title to `✅ [Submitted]`.
+     - In `handle_callback_query` (`action == "reject"`): Updates Notion page title to `❌ [Skipped]`.
+     - In `handle_callback_query` (`action == "view"`): Includes direct link to edit the draft in Notion.
+     - In `process_telegram_update`: Automatically invokes `state_mgr.push()` to ensure state updates from Vercel webhook handlers sync to the remote GitHub state repository.
+  3. **Review & Submit Manager Notion Edits Hook (`aryan_implementation/engine/review_submit.py`)**:
+     - Updated `prepare_submission`: Automatically checks if `notion_page_id` exists on draft; if so, pulls latest Notion edits before building Upwork submission parameters.
+     - Updated `confirm_submission` and `reject_draft`: Syncs status updates back to Notion.
+  4. **Active Queue Backfill**:
+     - Migrated the 2 active queued jobs in `jobs.json` to Notion:
+       - `2115016827180425053` (*Claude Subscription Gateway Engineer*): `https://app.notion.com/p/40697b4f8610814baa5fecee6e95516f`
+       - `2115029365344507610` (*Social Posts via Buffer + Content*): `https://app.notion.com/p/40697b4f861081adb597cc5ecc691891`
+  5. **Testing & Verification**:
+     - Added 3 unit tests in `aryan_implementation/tests/test_telegram_and_notion.py`:
+       - `test_parse_staged_markdown`: Validates cover letter, question, answer parsing and zero em-dash enforcement.
+       - `test_notion_publish_and_fetch_staged_proposal`: Validates page creation, markdown patch, markdown fetch, and status updates.
+       - `test_telegram_approval_syncs_notion_edits`: Validates that user edits in Notion are retrieved upon Telegram "Approve" button press and submitted to Upwork.
+     - Executed full pytest test suite: **87 tests passed** (100% green).
+
 

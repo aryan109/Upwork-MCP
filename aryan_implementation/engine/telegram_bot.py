@@ -103,28 +103,57 @@ def send_interactive_proposal(
     b_rate = terms.get("charged_amount") or terms.get("charge_rate") or terms.get("hourly_bid") or "TBD"
     boost = terms.get("boost_connects", 0)
 
+    # Ensure draft is published to Notion Proposal Staging Desk
+    notion_url = draft.get("notion_url")
+    if not notion_url:
+        try:
+            from .notion_publisher import publish_staged_proposal
+            ok_notion, pid, p_url = publish_staged_proposal(job, score_res)
+            if ok_notion and p_url:
+                draft["notion_page_id"] = pid
+                draft["notion_url"] = p_url
+                notion_url = p_url
+                if state_mgr:
+                    try:
+                        state_mgr.save_jobs({job.get("job_id", ""): job})
+                    except Exception:
+                        pass
+        except Exception as e:
+            logger.warning(f"Failed to publish staged proposal to Notion for job {job.get('job_id')}: {e}")
+
+    notion_note = f"\n📝 <b>Notion Desk:</b> <a href=\"{notion_url}\">Edit Draft in Notion</a>" if notion_url else ""
     text = (
         f"🎯 <b>Action Required: Upwork Proposal Staged</b>\n\n"
         f"<b>Title:</b> <a href=\"{job_url}\">{title}</a>\n"
         f"<b>Score:</b> <code>{score:.1f} / 100</code> (APPLY)\n"
         f"<b>Terms:</b> {b_type.capitalize()} <b>${b_rate}</b> (Boost: {boost} Connects)\n"
-        f"<b>Matched Signals:</b> <i>{reasons}</i>\n\n"
-        f"👇 <i>Review draft or tap below to submit directly to Upwork:</i>"
+        f"<b>Matched Signals:</b> <i>{reasons}</i>{notion_note}\n\n"
+        f"👇 <i>Review/edit in Notion or tap below to submit directly to Upwork:</i>"
     )
 
-    # Inline Keyboard with callback data
-    reply_markup = {
-        "inline_keyboard": [
-            [
-                {"text": "✅ Approve & Submit", "callback_data": f"approve:{jid}"},
-                {"text": "📖 View Draft", "callback_data": f"view:{jid}"},
-            ],
-            [
-                {"text": "❌ Skip / Reject", "callback_data": f"reject:{jid}"},
-                {"text": "🌐 View on Upwork", "url": job_url},
-            ],
-        ]
-    }
+    # Inline Keyboard with callback data & direct Notion link
+    keyboard = []
+    if notion_url:
+        keyboard.append([
+            {"text": "📝 Edit Draft in Notion", "url": notion_url},
+            {"text": "✅ Approve & Submit", "callback_data": f"approve:{jid}"},
+        ])
+        keyboard.append([
+            {"text": "📖 View Draft", "callback_data": f"view:{jid}"},
+            {"text": "❌ Skip / Reject", "callback_data": f"reject:{jid}"},
+        ])
+    else:
+        keyboard.append([
+            {"text": "✅ Approve & Submit", "callback_data": f"approve:{jid}"},
+            {"text": "📖 View Draft", "callback_data": f"view:{jid}"},
+        ])
+        keyboard.append([
+            {"text": "❌ Skip / Reject", "callback_data": f"reject:{jid}"},
+        ])
+    keyboard.append([
+        {"text": "🌐 View on Upwork", "url": job_url},
+    ])
+    reply_markup = {"inline_keyboard": keyboard}
 
     res = telegram_api_call("sendMessage", {
         "chat_id": target_chat,
@@ -199,6 +228,25 @@ class TelegramBotListener:
 
             run_id = f"tg_{int(time.time())}"
             target_job_id = str(job.get("job_id") or clean_jid)
+
+            # Step 0: Sync latest edits from Notion Proposal Staging Desk if available
+            notion_pid = (job.get("draft") or {}).get("notion_page_id")
+            if notion_pid:
+                try:
+                    from .notion_publisher import fetch_staged_proposal
+                    staged_data = fetch_staged_proposal(notion_pid)
+                    if staged_data:
+                        if staged_data.get("cover_letter"):
+                            job["draft"]["cover_letter"] = staged_data["cover_letter"]
+                        if staged_data.get("answers"):
+                            job["draft"]["answers"] = staged_data["answers"]
+                        # Invalidate existing preview to force fresh regeneration with Aryan's Notion edits
+                        job.pop("submission_preview", None)
+                        self.state_mgr.save_jobs({job.get("job_id", target_job_id): job})
+                        logger.info(f"Synchronized latest Notion edits for job {target_job_id}")
+                except Exception as e:
+                    logger.warning(f"Failed to fetch staged edits from Notion for job {target_job_id}: {e}")
+
             # Step 1: Prepare preview if needed
             preview_id = (job.get("submission_preview") or {}).get("preview_id")
             if not preview_id:
@@ -252,6 +300,12 @@ class TelegramBotListener:
                     f"<b>Status:</b> Live on Upwork (Approved by Aryan)\n\n"
                     f"<i>Submission confirmed via 1-click Telegram authorization.</i>"
                 )
+                if notion_pid:
+                    try:
+                        from .notion_publisher import update_proposal_status
+                        update_proposal_status(notion_pid, "submitted", job.get("title", ""))
+                    except Exception as e:
+                        logger.warning(f"Failed to update Notion status to submitted: {e}")
             else:
                 err_msg = html.escape(sanitize_no_em_dash(conf.get("message") or "Submission error"))
                 updated_text = (
@@ -291,6 +345,7 @@ class TelegramBotListener:
             b_type = str(terms.get("type", job.get("type", "hourly"))).capitalize()
             b_rate = terms.get("charged_amount") or terms.get("charge_rate") or terms.get("hourly_bid") or 65.0
             boost = terms.get("boost_connects", 0)
+            notion_url = draft.get("notion_url")
 
             answers = draft.get("answers") or []
             ans_text = ""
@@ -302,24 +357,25 @@ class TelegramBotListener:
                     ans_lines.append(f"• <i>{q_str}</i>\n  👉 {a_str}")
                 ans_text = "\n\n<b>Screening Answers:</b>\n" + "\n".join(ans_lines)
 
+            notion_header = f" | <a href=\"{notion_url}\">Edit in Notion</a>" if notion_url else ""
             preview_msg = (
-                f"📝 <b>Cover Letter Preview</b>\n"
+                f"📝 <b>Cover Letter Preview</b>{notion_header}\n"
                 f"<b>Job:</b> <a href=\"{job_url}\">{title}</a>\n"
                 f"<b>Terms:</b> {html.escape(b_type)} <b>${b_rate}</b> (Boost: {boost} Connects)\n\n"
                 f"<blockquote>{escaped_cl}</blockquote>{ans_text}\n\n"
-                f"<i>Tap below to approve &amp; submit or open on Upwork:</i>"
+                f"<i>Tap below to approve &amp; submit or edit on Notion:</i>"
             )
-            view_markup = {
-                "inline_keyboard": [
-                    [
-                        {"text": "✅ Approve & Submit", "callback_data": f"approve:{clean_jid}"},
-                        {"text": "❌ Skip / Reject", "callback_data": f"reject:{clean_jid}"},
-                    ],
-                    [
-                        {"text": "🌐 View on Upwork", "url": job_url},
-                    ],
-                ]
-            }
+            view_keyboard = [
+                [
+                    {"text": "✅ Approve & Submit", "callback_data": f"approve:{clean_jid}"},
+                    {"text": "❌ Skip / Reject", "callback_data": f"reject:{clean_jid}"},
+                ],
+            ]
+            if notion_url:
+                view_keyboard.append([{"text": "📝 Edit Draft in Notion", "url": notion_url}])
+            view_keyboard.append([{"text": "🌐 View on Upwork", "url": job_url}])
+
+            view_markup = {"inline_keyboard": view_keyboard}
             send_res = telegram_api_call("sendMessage", {
                 "chat_id": chat_id,
                 "text": preview_msg,
@@ -341,6 +397,14 @@ class TelegramBotListener:
                 "callback_query_id": cb_id,
                 "text": "Lead rejected.",
             })
+            notion_pid = (job.get("draft") or {}).get("notion_page_id")
+            if notion_pid:
+                try:
+                    from .notion_publisher import update_proposal_status
+                    update_proposal_status(notion_pid, "skipped", job.get("title", ""))
+                except Exception as e:
+                    logger.warning(f"Failed to update Notion status to skipped: {e}")
+
             self.review_mgr.reject_proposal(job["job_id"], reason="Rejected via Telegram 1-click button")
             updated_text = (
                 f"❌ <b>PROPOSAL SKIPPED</b>\n\n"
@@ -635,4 +699,10 @@ def process_telegram_update(
         mcp_client = UpworkMCPClient(auth_token=token, oauth_manager=oauth, lease_held=True)
 
     listener = TelegramBotListener(mcp_client=mcp_client, state_mgr=state_mgr)
-    return listener.process_update(update)
+    res = listener.process_update(update)
+    if state_mgr and state_mgr.backend:
+        try:
+            state_mgr.push()
+        except Exception as e:
+            logger.debug(f"State backend push note: {e}")
+    return res

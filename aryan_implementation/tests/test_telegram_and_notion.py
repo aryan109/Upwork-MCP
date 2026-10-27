@@ -261,4 +261,178 @@ def test_ensure_telegram_webhook_registration():
             assert "successfully registered" in msg
 
 
+def test_parse_staged_markdown():
+    from aryan_implementation.engine.notion_publisher import parse_staged_markdown
+
+    sample_md = """# 📝 Proposal Review: Claude Gateway Engineer
+
+> 💡 **Proposal Staging Desk**:
+> Edit the Cover Letter below directly.
+
+---
+
+### Job Overview
+- **Job ID**: `~12345`
+- **Score**: `95.0 / 100`
+
+---
+
+## Cover Letter
+Hi there,
+
+I noticed your project requiring Claude API integration.
+I have built high-throughput token proxies with Redis caching.
+
+Looking forward to connecting: let us discuss your architecture.
+
+Best,
+Aryan
+
+---
+
+## Screening Answers
+
+### Q: Have you deployed Anthropic models to production?
+
+**Answer:**
+Yes, multiple pipelines with prompt caching and fallback providers.
+
+### Q: What is your timezone?
+
+**Answer:**
+IST, overlapping 4 hours with US mornings.
+"""
+
+    parsed = parse_staged_markdown(sample_md)
+    assert "Claude API integration" in parsed["cover_letter"]
+    assert "High-throughput" in parsed["cover_letter"] or "high-throughput" in parsed["cover_letter"]
+    # Verify Zero Em-Dash rule
+    assert "—" not in parsed["cover_letter"]
+    assert "–" not in parsed["cover_letter"]
+
+    answers = parsed["answers"]
+    assert len(answers) == 2
+    assert answers[0]["question"] == "Have you deployed Anthropic models to production?"
+    assert "Yes, multiple pipelines" in answers[0]["answer"]
+    assert answers[1]["question"] == "What is your timezone?"
+    assert "IST" in answers[1]["answer"]
+
+
+def test_notion_publish_and_fetch_staged_proposal():
+    from aryan_implementation.engine.notion_publisher import (
+        NotionPublisher,
+        NOTION_STAGING_DESK_PAGE_ID,
+    )
+
+    pub = NotionPublisher(token="mock_notion_token")
+
+    # 1. Mock page creation + markdown update
+    mock_create_resp = MagicMock()
+    mock_create_resp.status = 200
+    mock_create_resp.read.return_value = json.dumps({"id": "mock_page_123"}).encode()
+    mock_create_resp.__enter__.return_value = mock_create_resp
+
+    mock_patch_resp = MagicMock()
+    mock_patch_resp.status = 200
+    mock_patch_resp.read.return_value = b"{}"
+    mock_patch_resp.__enter__.return_value = mock_patch_resp
+
+    job = {
+        "job_id": "~98765",
+        "title": "Fullstack AI Engineer",
+        "draft": {
+            "cover_letter": "Original drafted cover letter.",
+            "answers": [{"question": "Can you start now?", "answer": "Yes"}],
+            "terms": {"type": "hourly", "charged_amount": 75.0, "boost_connects": 8},
+        },
+    }
+    score_res = {"score": 94.0, "reasons": ["spend_high", "verified_payment"]}
+
+    with patch("urllib.request.urlopen", side_effect=[mock_create_resp, mock_patch_resp]):
+        ok, page_id, page_url = pub.publish_staged_proposal(job, score_res)
+        assert ok is True
+        assert page_id == "mock_page_123"
+        assert "mock_page_123" in page_url
+
+    # 2. Mock fetch staged proposal
+    mock_get_resp = MagicMock()
+    mock_get_resp.status = 200
+    mock_get_resp.read.return_value = json.dumps({
+        "markdown": "## Cover Letter\n\nEdited cover letter from Aryan.\n\n## Screening Answers\n\n### Q: Can you start now?\n\n**Answer:**\nAbsolutely tomorrow morning."
+    }).encode()
+    mock_get_resp.__enter__.return_value = mock_get_resp
+
+    with patch("urllib.request.urlopen", return_value=mock_get_resp):
+        staged = pub.fetch_staged_proposal("mock_page_123")
+        assert staged is not None
+        assert staged["cover_letter"] == "Edited cover letter from Aryan."
+        assert staged["answers"][0]["answer"] == "Absolutely tomorrow morning."
+
+    # 3. Mock status update
+    mock_status_resp = MagicMock()
+    mock_status_resp.status = 200
+    mock_status_resp.read.return_value = b"{}"
+    mock_status_resp.__enter__.return_value = mock_status_resp
+
+    with patch("urllib.request.urlopen", return_value=mock_status_resp):
+        ok = pub.update_proposal_status("mock_page_123", "submitted", "Fullstack AI Engineer")
+        assert ok is True
+
+
+def test_telegram_approval_syncs_notion_edits(tmp_path):
+    from aryan_implementation.engine.telegram_bot import TelegramBotListener
+    from aryan_implementation.engine.mcp_client import UpworkMCPClient
+    from aryan_implementation.engine.state_manager import StateManager
+
+    state_mgr = StateManager(tmp_path)
+    state_mgr.init_state_directory(force=True)
+
+    job_id = "~112233"
+    job = {
+        "job_id": job_id,
+        "title": "Cloud AI Pipeline Engineer",
+        "status": "drafted",
+        "score": 95.0,
+        "draft": {
+            "cover_letter": "Original machine-generated cover letter.",
+            "answers": [{"question": "Available?", "answer": "Yes"}],
+            "notion_page_id": "test_notion_page_abc",
+            "notion_url": "https://app.notion.com/p/test_notion_page_abc",
+            "terms": {"type": "fixed", "charged_amount": 1200.0, "boost_connects": 10},
+        },
+    }
+    state_mgr.save_jobs({job_id: job})
+
+    mcp_client = UpworkMCPClient(mock_mode=True)
+    listener = TelegramBotListener(mcp_client=mcp_client, state_mgr=state_mgr)
+
+    # Mock Notion returning Aryan's updated text
+    mock_notion_get = MagicMock()
+    mock_notion_get.status = 200
+    mock_notion_get.read.return_value = json.dumps({
+        "markdown": "## Cover Letter\n\nAryan's personalized and refined cover letter.\n\n## Screening Answers\n\n### Q: Available?\n\n**Answer:**\nReady immediately for full-time."
+    }).encode()
+    mock_notion_get.__enter__.return_value = mock_notion_get
+
+    cb_query = {
+        "id": "cb_approve_notion_test",
+        "data": f"approve:{job_id.lstrip('~')}",
+        "message": {"chat": {"id": 12345}, "message_id": 999},
+    }
+
+    with patch("urllib.request.urlopen", return_value=mock_notion_get):
+        with patch("aryan_implementation.engine.telegram_bot.telegram_api_call") as mock_tg:
+            mock_tg.return_value = {"ok": True}
+            listener.handle_callback_query(cb_query)
+
+    # Verify that the job was submitted with Aryan's Notion edits
+    updated_jobs = state_mgr.load_jobs()
+    updated_job = updated_jobs.get(job_id)
+    assert updated_job is not None
+    assert updated_job["status"] == "submitted"
+    assert updated_job["draft"]["cover_letter"] == "Aryan's personalized and refined cover letter."
+    assert updated_job["draft"]["answers"][0]["answer"] == "Ready immediately for full-time."
+
+
+
 

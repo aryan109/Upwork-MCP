@@ -114,6 +114,20 @@ class ReviewSubmitManager:
         if not draft:
             return {"ok": False, "message": f"No draft exists for job {job_id}"}
 
+        # Sync latest edits from Notion Proposal Staging Desk if available
+        notion_pid = draft.get("notion_page_id")
+        if notion_pid:
+            try:
+                from .notion_publisher import fetch_staged_proposal
+                staged = fetch_staged_proposal(notion_pid)
+                if staged:
+                    if staged.get("cover_letter"):
+                        draft["cover_letter"] = staged["cover_letter"]
+                    if staged.get("answers"):
+                        draft["answers"] = staged["answers"]
+            except Exception as e:
+                logger.debug(f"Notion pre-fetch in prepare_submission note: {e}")
+
         terms = draft.get("terms", {})
         cover_letter = sanitize_no_em_dash(draft.get("cover_letter", ""))
         draft["cover_letter"] = cover_letter
@@ -277,6 +291,15 @@ class ReviewSubmitManager:
         except Exception as e:
             logger.debug(f"Ledger record approval note: {e}")
 
+        # Update Notion proposal status if staged on Notion
+        notion_pid = job.get("draft", {}).get("notion_page_id")
+        if notion_pid:
+            try:
+                from .notion_publisher import update_proposal_status
+                update_proposal_status(notion_pid, "submitted", job.get("title", ""))
+            except Exception as e:
+                logger.debug(f"Notion status update in confirm_submission note: {e}")
+
         return {
             "ok": True,
             "proposal_id": proposal_id,
@@ -306,6 +329,15 @@ class ReviewSubmitManager:
             self.ledger.add_to_rejected(resolved_key, reason=reason, title=job.get("title", ""))
         except Exception as e:
             logger.warning(f"Ledger blacklist rejection note: {e}")
+
+        # Update Notion proposal status if staged on Notion
+        notion_pid = job.get("draft", {}).get("notion_page_id")
+        if notion_pid:
+            try:
+                from .notion_publisher import update_proposal_status
+                update_proposal_status(notion_pid, "skipped", job.get("title", ""))
+            except Exception as e:
+                logger.debug(f"Notion status update in reject_draft note: {e}")
 
         # Record negative client pattern in continuous learner
         try:

@@ -10,12 +10,14 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 import urllib.request
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from .config import PROJECT_ROOT
+from .draft import sanitize_no_em_dash
 
 logger = logging.getLogger("notion_publisher")
 
@@ -23,6 +25,7 @@ logger = logging.getLogger("notion_publisher")
 NOTION_MASTER_PAGE_ID = "3f197b4f-8610-816e-8ab0-cf54ac7b3a3e"
 NOTION_DAILY_REPORTS_PAGE_ID = "3f197b4f-8610-81a1-ac3e-d59e9c8bf7d7"
 NOTION_MARKET_INTEL_PAGE_ID = "3f197b4f-8610-81a7-b919-f430b7816837"
+NOTION_STAGING_DESK_PAGE_ID = "40697b4f-8610-81d2-a7d6-d2b5ee0851b8"
 
 NOTION_API_VERSION = "2022-06-28"
 
@@ -211,6 +214,7 @@ class NotionPublisher:
             "# Upwork Autonomous Acquisition & Market Intelligence OS\n\n"
             "Welcome to the live Notion command center for Aryan's Upwork acquisition and positioning engine.\n\n"
             "### Hub Sections\n"
+            "<page url=\"https://app.notion.com/p/Proposal-Staging-Review-Desk-40697b4f861081d2a7d6d2b5ee0851b8\"/>\n\n"
             "<page url=\"https://app.notion.com/p/Daily-Intelligence-Action-Reports-3f197b4f861081a1ac3ed59e9c8bf7d7\"/>\n\n"
             "<page url=\"https://app.notion.com/p/Market-Intelligence-Demand-Knowledge-Base-3f197b4f861081a7b919f430b7816837\"/>\n\n"
             "---\n"
@@ -241,3 +245,289 @@ class NotionPublisher:
 
         res["master_hub"] = self.sync_master_hub()
         return res
+
+    def get_page_markdown(self, page_id: str) -> Optional[str]:
+        """
+        Fetch markdown content of a Notion page.
+        Endpoint: GET /v1/pages/{page_id}/markdown
+        """
+        if not self.token:
+            logger.warning("Notion get_page_markdown skipped: Notion token could not be resolved.")
+            return None
+
+        clean_page_id = page_id.replace("-", "")
+        url = f"https://api.notion.com/v1/pages/{clean_page_id}/markdown"
+        headers = {
+            "Authorization": f"Bearer {self.token}",
+            "Notion-Version": NOTION_API_VERSION,
+        }
+        try:
+            req = urllib.request.Request(url, headers=headers, method="GET")
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                if resp.status == 200:
+                    data = json.loads(resp.read().decode("utf-8"))
+                    return data.get("markdown", "")
+                else:
+                    logger.warning(f"Notion API GET returned HTTP {resp.status} for page {page_id}")
+                    return None
+        except urllib.error.HTTPError as e:
+            err = e.read().decode("utf-8", errors="replace")
+            logger.error(f"Notion API HTTP error {e.code} fetching markdown for page {page_id}: {err}")
+            return None
+        except Exception as e:
+            logger.error(f"Failed to fetch markdown for Notion page {page_id}: {e}")
+            return None
+
+    def get_or_create_staging_desk_page(self) -> Tuple[bool, Optional[str]]:
+        """
+        Returns the parent staging desk page ID, creating it under the master page if necessary.
+        """
+        return True, NOTION_STAGING_DESK_PAGE_ID
+
+    def publish_staged_proposal(
+        self,
+        job: Dict[str, Any],
+        score_res: Optional[Dict[str, Any]] = None,
+    ) -> Tuple[bool, Optional[str], Optional[str]]:
+        """
+        Publishes a proposal draft to a dedicated Notion review page under the Staging Desk.
+        Returns: (success, page_id, page_url)
+        """
+        if not self.token:
+            logger.warning("publish_staged_proposal skipped: missing Notion token.")
+            return False, None, None
+
+        draft = job.get("draft") or {}
+        cover_letter = sanitize_no_em_dash(draft.get("cover_letter") or "")
+        answers = draft.get("answers") or []
+        terms = draft.get("terms") or draft.get("proposed_terms") or {}
+        jid = str(job.get("job_id") or "").lstrip("~")
+        title = sanitize_no_em_dash(job.get("title") or "Untitled Job")
+        job_url = job.get("url") or job.get("job_url") or f"https://www.upwork.com/jobs/~{jid}"
+
+        score = float((score_res.get("score") if score_res else job.get("score")) or 0.0)
+        reasons_list = (score_res.get("reasons") if score_res else job.get("reasons")) or []
+        reasons = ", ".join(reasons_list[:4]) if reasons_list else "Strong semantic match"
+
+        b_type = str(terms.get("type", job.get("type", "hourly"))).capitalize()
+        b_rate = terms.get("charged_amount") or terms.get("charge_rate") or terms.get("hourly_bid") or 65.0
+        boost = int(terms.get("boost_connects", 0) or 0)
+
+        # Build Markdown content
+        now_str = datetime.now().strftime("%Y-%m-%d %H:%M IST")
+
+        # Format answers
+        if answers:
+            ans_blocks = []
+            for a in answers:
+                q_text = sanitize_no_em_dash(a.get("question", "")).strip()
+                a_text = sanitize_no_em_dash(a.get("answer", "")).strip()
+                ans_blocks.append(f"### Q: {q_text}\n\n**Answer:**\n{a_text}")
+            formatted_answers = "\n\n".join(ans_blocks)
+        else:
+            formatted_answers = "*No screening questions required for this job.*"
+
+        page_md = (
+            f"# 📝 Proposal Review: {title}\n\n"
+            f"> 💡 **Proposal Staging Desk**:\n"
+            f"> Edit the **Cover Letter** and **Screening Answers** below directly in Notion.\n"
+            f"> When you are ready, tap **✅ Approve & Submit** on Telegram to submit this exact version to Upwork!\n\n"
+            f"---\n\n"
+            f"### Job Overview\n"
+            f"- **Upwork Link**: [{job_url}]({job_url})\n"
+            f"- **Job ID**: `~{jid}`\n"
+            f"- **Fit Score**: `{score:.1f} / 100` (APPLY)\n"
+            f"- **Matched Signals**: {reasons}\n"
+            f"- **Proposed Terms**: {b_type} **${b_rate}** | **Boost Connects**: {boost}\n"
+            f"- **Staged At**: {now_str}\n\n"
+            f"---\n\n"
+            f"## Cover Letter\n\n"
+            f"{cover_letter}\n\n"
+            f"---\n\n"
+            f"## Screening Answers\n\n"
+            f"{formatted_answers}\n"
+        )
+
+        target_pid = draft.get("notion_page_id")
+
+        if not target_pid:
+            # Create a new child page under NOTION_STAGING_DESK_PAGE_ID
+            clean_parent = NOTION_STAGING_DESK_PAGE_ID.replace("-", "")
+            page_title = f"📝 [Review] {title[:80]} (~{jid})"
+            url = "https://api.notion.com/v1/pages"
+            headers = {
+                "Authorization": f"Bearer {self.token}",
+                "Notion-Version": NOTION_API_VERSION,
+                "Content-Type": "application/json",
+            }
+            body = {
+                "parent": {"page_id": clean_parent},
+                "properties": {
+                    "title": [{"text": {"content": page_title}}]
+                }
+            }
+            try:
+                data = json.dumps(body).encode("utf-8")
+                req = urllib.request.Request(url, data=data, headers=headers, method="POST")
+                with urllib.request.urlopen(req, timeout=15) as resp:
+                    if resp.status in (200, 201):
+                        created = json.loads(resp.read().decode("utf-8"))
+                        target_pid = created.get("id")
+                    else:
+                        logger.warning(f"Failed to create Notion proposal page: HTTP {resp.status}")
+                        return False, None, None
+            except Exception as e:
+                logger.error(f"Exception creating Notion proposal page: {e}")
+                return False, None, None
+
+        if target_pid:
+            ok = self.update_page_markdown(target_pid, page_md)
+            if ok:
+                clean_pid = target_pid.replace("-", "")
+                page_url = f"https://app.notion.com/p/{clean_pid}"
+                # Cache in draft
+                draft["notion_page_id"] = target_pid
+                draft["notion_url"] = page_url
+                return True, target_pid, page_url
+
+        return False, None, None
+
+    def fetch_staged_proposal(self, page_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Fetches the latest edited markdown from Notion and extracts
+        the updated cover letter and screening answers.
+        """
+        md = self.get_page_markdown(page_id)
+        if not md:
+            return None
+        parsed = parse_staged_markdown(md)
+        parsed["raw_markdown"] = md
+        return parsed
+
+    def update_proposal_status(self, page_id: str, new_status: str, title: str) -> bool:
+        """
+        Updates the Notion page title to reflect the new status:
+        - 'submitted': '✅ [Submitted] {title}'
+        - 'rejected' / 'skipped': '❌ [Skipped] {title}'
+        """
+        if not self.token or not page_id:
+            return False
+
+        clean_pid = page_id.replace("-", "")
+        clean_title = sanitize_no_em_dash(title or "Job")
+        if new_status == "submitted":
+            new_title = f"✅ [Submitted] {clean_title[:80]}"
+        elif new_status in ("rejected", "skipped"):
+            new_title = f"❌ [Skipped] {clean_title[:80]}"
+        else:
+            new_title = f"📝 [{new_status.capitalize()}] {clean_title[:80]}"
+
+        url = f"https://api.notion.com/v1/pages/{clean_pid}"
+        headers = {
+            "Authorization": f"Bearer {self.token}",
+            "Notion-Version": NOTION_API_VERSION,
+            "Content-Type": "application/json",
+        }
+        body = {
+            "properties": {
+                "title": [{"text": {"content": new_title}}]
+            }
+        }
+        try:
+            data = json.dumps(body).encode("utf-8")
+            req = urllib.request.Request(url, data=data, headers=headers, method="PATCH")
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                return resp.status == 200
+        except Exception as e:
+            logger.error(f"Failed to update Notion proposal status for {page_id}: {e}")
+            return False
+
+
+def parse_staged_markdown(markdown: str) -> Dict[str, Any]:
+    """
+    Parses staged proposal markdown exported from Notion.
+    Extracts:
+    - 'cover_letter': Text under '## Cover Letter' up to next section or end of text.
+    - 'answers': List of {'question': q, 'answer': a} from '## Screening Answers'.
+    Enforces zero em-dashes across all extracted text.
+    """
+    res: Dict[str, Any] = {
+        "cover_letter": "",
+        "answers": [],
+    }
+    if not markdown:
+        return res
+
+    text = markdown.replace("\r\n", "\n")
+
+    # 1. Extract Cover Letter
+    cl_match = re.search(r"##\s*Cover Letter\s*\n", text, re.IGNORECASE)
+    if cl_match:
+        start_idx = cl_match.end()
+        next_section = re.search(r"\n(?=##\s+|---\s*\n)", text[start_idx:])
+        if next_section:
+            cl_raw = text[start_idx : start_idx + next_section.start()]
+        else:
+            cl_raw = text[start_idx:]
+        res["cover_letter"] = sanitize_no_em_dash(cl_raw.strip())
+
+    # 2. Extract Screening Answers
+    sa_match = re.search(r"##\s*Screening Answers\s*\n", text, re.IGNORECASE)
+    if sa_match:
+        sa_start = sa_match.end()
+        next_sec = re.search(r"\n(?=##\s+|---\s*\n)", text[sa_start:])
+        sa_raw = text[sa_start : sa_start + next_sec.start()] if next_sec else text[sa_start:]
+
+        q_blocks = re.split(r"\n(?=###\s*(?:Q:)?\s*)", sa_raw.strip())
+        answers: List[Dict[str, str]] = []
+        for blk in q_blocks:
+            blk = blk.strip()
+            if not blk or blk.startswith("*No screening questions"):
+                continue
+            hdr_match = re.match(r"^###\s*(?:Q:)?\s*(.+?)(?:\n|$)", blk)
+            if hdr_match:
+                q_text = sanitize_no_em_dash(hdr_match.group(1).strip())
+                ans_body = blk[hdr_match.end():].strip()
+                ans_body = re.sub(r"^\*{0,2}Answer:\*{0,2}\s*", "", ans_body, flags=re.IGNORECASE).strip()
+                if q_text:
+                    answers.append({
+                        "question": q_text,
+                        "answer": sanitize_no_em_dash(ans_body)
+                    })
+            else:
+                bullet_match = re.search(r"[•\-\*]\s*(?:Q:)?\s*(.+?)(?:\n\s*(?:👉|A:|\*\*Answer:\*\*)\s*(.+)|$)", blk, re.DOTALL)
+                if bullet_match:
+                    q_text = sanitize_no_em_dash(bullet_match.group(1).strip())
+                    ans_text = sanitize_no_em_dash((bullet_match.group(2) or "").strip())
+                    if q_text:
+                        answers.append({
+                            "question": q_text,
+                            "answer": ans_text
+                        })
+
+        res["answers"] = answers
+
+    return res
+
+
+_default_publisher: Optional[NotionPublisher] = None
+
+
+def get_publisher() -> NotionPublisher:
+    global _default_publisher
+    if _default_publisher is None:
+        _default_publisher = NotionPublisher()
+    return _default_publisher
+
+
+def publish_staged_proposal(job: Dict[str, Any], score_res: Optional[Dict[str, Any]] = None) -> Tuple[bool, Optional[str], Optional[str]]:
+    return get_publisher().publish_staged_proposal(job, score_res)
+
+
+def fetch_staged_proposal(page_id: str) -> Optional[Dict[str, Any]]:
+    return get_publisher().fetch_staged_proposal(page_id)
+
+
+def update_proposal_status(page_id: str, new_status: str, title: str) -> bool:
+    return get_publisher().update_proposal_status(page_id, new_status, title)
+
