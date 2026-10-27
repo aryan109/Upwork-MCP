@@ -102,6 +102,11 @@ def main() -> None:
     p_intel.add_argument("--job-id", type=str, default=None, help="Catalog specific job into intelligence base")
     p_intel.add_argument("--notes", type=str, default="", help="Optional notes on the job")
 
+    # daily-demand
+    p_demand = subparsers.add_parser("daily-demand", help="Generate Daily Market Demand, Client Requests & Trends Report")
+    p_demand.add_argument("--date", type=str, default=None, help="Target date YYYY-MM-DD")
+    p_demand.add_argument("--sync-notion", action="store_true", default=True, help="Sync report to Notion (default: True)")
+
     # report
     p_rep = subparsers.add_parser("report", help="Generate or view 4-part Daily Intelligence & Improvement Report")
     p_rep.add_argument("--date", type=str, default=None, help="Target date YYYY-MM-DD")
@@ -389,6 +394,19 @@ def main() -> None:
         else:
             digest = intel_eng.generate_digest()
             print(digest)
+
+    elif args.command == "daily-demand":
+        intel_eng = MarketIntelEngine(state_mgr.state_dir)
+        target_d = args.date or datetime.now().strftime("%Y-%m-%d")
+        report = intel_eng.generate_daily_demand_report(target_date=target_d)
+        print("=== DAILY MARKET DEMAND & TRENDS REPORT ===")
+        print(f"Target Date: {target_d}")
+        print("Generated report saved to reports/ and market_intelligence_digest.md")
+        if args.sync_notion:
+            from .notion_publisher import NotionPublisher
+            notion_pub = NotionPublisher()
+            res = notion_pub.sync_daily_market_demand_report(target_d, report)
+            print(f"Notion Sync: Live Hub: {'✓' if res.get('main_intel') else '✗'} | Daily Page: {'✓' if res.get('daily_page') else '✗'} ({res.get('daily_page_id')})")
 
     elif args.command == "report":
         rep_eng = DailyReportEngine(state_mgr.state_dir)

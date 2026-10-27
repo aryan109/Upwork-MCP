@@ -224,10 +224,12 @@ class DailyReportEngine:
         if notify:
             # Sync with Notion
             try:
+                demand_report_md = self.intel_eng.generate_daily_demand_report(target_date)
                 notion_pub = NotionPublisher()
+                notion_pub.sync_daily_market_demand_report(target_date, demand_report_md)
                 notion_pub.sync_daily_report(report_md)
                 notion_pub.sync_master_hub()
-                logger.info("Daily report successfully synced to Notion.")
+                logger.info("Daily action report & market demand intelligence successfully synced to Notion.")
             except Exception as e:
                 logger.debug(f"Notion sync note: {e}")
 

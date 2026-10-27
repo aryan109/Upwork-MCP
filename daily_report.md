@@ -1,49 +1,37 @@
-# Daily Upwork Intelligence & Action Report — 2026-10-25
-*Generated: 2026-10-25 12:41:52 UTC*
+# Daily Upwork Intelligence & Action Report — 2026-10-26
+*Generated: 2026-10-26 21:46:25 UTC*
 
-> **Executive Summary**: Hourly background hunter is active. Analyzed **136** opportunities with strict D1–D11 and AI risk safeguards, preserving **~1088 Connects**. High-velocity market demand centers around hardening Claude MCP, Cursor/Lovable AI prototypes into production-grade RAG and Supabase pipelines.
+> **Executive Summary**: Hourly background hunter is active. Analyzed **46** opportunities with strict D1–D11 and AI risk safeguards, preserving **~368 Connects**. High-velocity market demand centers around hardening Claude MCP, Cursor/Lovable AI prototypes into production-grade RAG and Supabase pipelines.
 
 ---
 
 ## 1. What's Happened & Pipeline Activity
 
-- **Connects Status**: **74** available (Monthly Budget: 250)
-- **Total Opportunities Analysed**: **136** leads
+- **Connects Status**: **51** available (Monthly Budget: 250)
+- **Total Opportunities Analysed**: **46** leads
 - **Proposals Awaiting Your 1-Click Review**: **0**
-- **Disqualified Leads Filtered**: **131**
-- 🛡️ **Connects Preserved by Safeguards**: **~1088 Connects** (Est. Value: ~$163.20)
-- 🟢 **Runner Status**: Active & Healthy (last scan 0 mins ago).
-- ⚡ **Connects Saved by D11**: Successfully caught **5** already-filled jobs before proposal creation.
+- **Disqualified Leads Filtered**: **46**
+- 🛡️ **Connects Preserved by Safeguards**: **~368 Connects** (Est. Value: ~$55.20)
+- 🟢 **Runner Status**: Active & Healthy (last scan 1 mins ago).
 
 ### 🛑 Disqualification Breakdown & Why Rejected:
-- **`AI_REJECTED` (33 jobs)**: *AI Vetting intercepted toxic client / unrealistic scope trap*
-  - Example: *Advanced Claude & AI Coach Needed – 1-on-1 Training (Projects, Memory, Skills, Automatomations etc)*
-  - Example: *AI Engineer to Build Voice-Enabled Chat Assistant*
-- **`D8` (27 jobs)**: *Missed first-mover window (>1h old, 20+ proposals, or client already interviewing/inviting)*
-  - Example: *Help Me Set Up My App So I Can Build It with AI (Claude Code)*
-  - Example: *Bilingual (EN/ES) AI Video Toolkit Developer for Claude Code*
-- **`D6` (27 jobs)**: *Payment unverified AND $0 spend AND 0 hires (Ghost client filter)*
-  - Example: *AI AUTOMATION RAG Exert*
-  - Example: *E-commerce Automation Engineer: Multi-Account API Integration & AI Agent Setup*
-- **`SCORE_LOW` (25 jobs)**: *Score below minimum threshold (<70 pts; low relevance)*
-  - Example: *Senior AI Engineer needed for AI Agents, LLM, and RAG for Real Estate multi-tenant SaaS application*
-  - Example: *AI Voice Agent Developer for Client Projects*
-- **`D7` (7 jobs)**: *Fixed under $100 or hourly ceiling under $25 (Below rate floor)*
-  - Example: *Claude AI & Digital Marketing Automation Specialist*
-  - Example: *Claude MCP connect to Wordpress Elementor*
-- **`SKIP` (5 jobs)**: *Filtered by evaluation rubric*
-  - Example: *WhatsApp API Specialist Needed — Connect Existing WhatsApp Business Number*
-  - Example: *Ai, Automation & Integration Specialist for Digital Marketing Agency*
-- **`D11` (5 jobs)**: *Job already filled (hires reached limit; Connects preserved)*
-  - Example: *Automation Specialist: Zapier + AI-Powered Automations and Workflows*
-  - Example: *Full Stack Developer for Multi-Tenant Platform*
-- **`D3` (1 jobs)**: *Capability gate (native mobile, 3D, Solidity outside target stack)*
-  - Example: *Unity3D AI Desktop Game with Python/ML integration consultation*
+- **`D8` (28 jobs)**: *Missed first-mover window (>1h old, 20+ proposals, or client already interviewing/inviting)*
+  - Example: *Ecommerce Automation N8N Shopify Zoho Klaviyo Claude*
+  - Example: *Developer Advocate + Video Creator: AI Agent Demos in TypeScript*
+- **`D6` (13 jobs)**: *Payment unverified AND $0 spend AND 0 hires (Ghost client filter)*
+  - Example: *Click Up Project Intake form build*
+  - Example: *Systems Integration Specialist / Consultant Wanted – Short-Term Contract*
+- **`D3` (2 jobs)**: *Capability gate (native mobile, 3D, Solidity outside target stack)*
+  - Example: *Full-Stack Developer (React, Node.js & Sui Move) — Existing Loyalty Rewards dApp*
+  - Example: *Social Media Tutor*
+- **`AI_REJECTED` (2 jobs)**: *AI Vetting intercepted toxic client / unrealistic scope trap*
+  - Example: *Experienced AI Prompt Engineer for YouTube Channel – Full Time*
+  - Example: *Senior Business Analyst, IAM – Legal / Public Sector ( remote within EU region).*
 - **`D4` (1 jobs)**: *Terms of Service or policy violation (off-platform contact)*
-  - Example: *Retention & Churn Owner (PLG), AI-first operator, B2B SaaS, 20 h/week*
+  - Example: *pentesting audit - CREST accreditation required*
 
-### 🎯 Staged Proposals on 2026-10-25:
-- *0 new proposals were staged strictly on 2026-10-25.*
+### 🎯 Staged Proposals on 2026-10-26:
+- *0 new proposals were staged strictly on 2026-10-26.*
 
 ---
 
@@ -52,16 +40,16 @@
 ### Emerging Tech Stack Demand Matrix:
 | Tool / Framework | Mentions in Tracked Leads | Market Velocity |
 |---|---|---|
-| **Claude** | 80 | 🔥 High Velocity (<3h hire) |
-| **Python** | 48 | Active |
-| **OpenAI** | 47 | Active |
-| **Make.com** | 40 | Active |
-| **n8n** | 34 | Active |
-| **RAG** | 32 | 🔥 High Velocity (<3h hire) |
-| **MCP** | 31 | 🔥 High Velocity (<3h hire) |
-| **React** | 28 | Active |
+| **Claude** | 93 | 🔥 High Velocity (<3h hire) |
+| **Python** | 58 | Active |
+| **OpenAI** | 54 | Active |
+| **Make.com** | 47 | Active |
+| **n8n** | 36 | Active |
+| **RAG** | 34 | 🔥 High Velocity (<3h hire) |
+| **MCP** | 33 | 🔥 High Velocity (<3h hire) |
+| **React** | 30 | Active |
 
-- **Average Top Hourly Rate**: **$55/hr** (Ceiling: **$130/hr**) for fullstack AI / agent implementation roles.
+- **Average Top Hourly Rate**: **$54/hr** (Ceiling: **$130/hr**) for fullstack AI / agent implementation roles.
 - **Fastest Hiring Niche**: Founders who built prototypes in **Cursor** or **Lovable** needing an engineer to add automated **evals** and fix document **hallucinations**.
 
 ---
@@ -80,7 +68,7 @@
   - 3. Hardening Vector Retrieval: Hybrid search in Supabase (pgvector + full-text) and strict confidence thresholds keep your assistant trustworthy.
 
 ### C. Recommended Next Actions:
-- [ ] Connects balance: 74 Connects remaining (within 250/mo budget).
+- [ ] Connects balance: 51 Connects remaining (within 250/mo budget).
 
 ---
 

@@ -127,6 +127,83 @@ class NotionPublisher:
         """Syncs the market intelligence knowledge base markdown to Notion."""
         return self.update_page_markdown(NOTION_MARKET_INTEL_PAGE_ID, intel_md)
 
+    def sync_daily_market_demand_report(self, date_str: str, report_md: str) -> Dict[str, Any]:
+        """
+        Syncs the Daily Market Demand & Trends Report to Notion:
+        1. Updates the live 'Market Intelligence & Demand Knowledge Base' page.
+        2. Creates or updates a dated child page: '📊 Market Demand & Trends — {date_str}'
+           under NOTION_DAILY_REPORTS_PAGE_ID so daily history is preserved in Notion.
+        3. Updates the Master Command Center hub page.
+        """
+        res = {"main_intel": False, "daily_page": False, "daily_page_id": None, "master_hub": False}
+        if not self.token:
+            logger.warning("Notion sync skipped: Notion token could not be resolved.")
+            return res
+
+        # 1. Update live Market Intelligence page
+        res["main_intel"] = self.sync_market_intel(report_md)
+
+        # 2. Add or update daily dated subpage in Notion
+        try:
+            state_file = PROJECT_ROOT / "aryan_implementation" / "engine" / "notion_daily_pages.json"
+            daily_pages = {}
+            if state_file.exists():
+                try:
+                    with open(state_file, "r", encoding="utf-8") as sf:
+                        daily_pages = json.load(sf)
+                except Exception:
+                    daily_pages = {}
+
+            target_pid = daily_pages.get(date_str)
+            page_title = f"📊 Market Demand & Trends — {date_str}"
+
+            if target_pid:
+                ok = self.update_page_markdown(target_pid, report_md)
+                if ok:
+                    res["daily_page"] = True
+                    res["daily_page_id"] = target_pid
+                    logger.info(f"Updated existing Notion daily demand page {target_pid} for {date_str}")
+                else:
+                    target_pid = None
+
+            if not target_pid:
+                clean_parent = NOTION_DAILY_REPORTS_PAGE_ID.replace("-", "")
+                url = "https://api.notion.com/v1/pages"
+                headers = {
+                    "Authorization": f"Bearer {self.token}",
+                    "Notion-Version": NOTION_API_VERSION,
+                    "Content-Type": "application/json",
+                }
+                body = {
+                    "parent": {"page_id": clean_parent},
+                    "properties": {
+                        "title": [{"text": {"content": page_title}}]
+                    }
+                }
+                data = json.dumps(body).encode("utf-8")
+                req = urllib.request.Request(url, data=data, headers=headers, method="POST")
+                with urllib.request.urlopen(req, timeout=15) as resp:
+                    if resp.status in (200, 201):
+                        created = json.loads(resp.read().decode("utf-8"))
+                        new_pid = created.get("id")
+                        if new_pid:
+                            self.update_page_markdown(new_pid, report_md)
+                            daily_pages[date_str] = new_pid
+                            try:
+                                with open(state_file, "w", encoding="utf-8") as sf:
+                                    json.dump(daily_pages, sf, indent=2)
+                            except Exception:
+                                pass
+                            res["daily_page"] = True
+                            res["daily_page_id"] = new_pid
+                            logger.info(f"Created new Notion daily demand page {new_pid} for {date_str}")
+        except Exception as e:
+            logger.error(f"Error creating/updating Notion daily demand page: {e}")
+
+        # 3. Update master hub
+        res["master_hub"] = self.sync_master_hub()
+        return res
+
     def sync_master_hub(self) -> bool:
         """Syncs the top-level command center hub on Notion."""
         now_str = datetime.now().strftime("%Y-%m-%d %H:%M IST")

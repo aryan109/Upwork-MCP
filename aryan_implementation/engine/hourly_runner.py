@@ -156,6 +156,26 @@ def run_single_pass(
                 logger.info(f"⚡ [D11] Already-filled job caught: {job.get('title')} ({d_reason})")
                 # Even though filled, catalog into Market Intelligence!
                 intel_eng.record_job(job, status_override="FILLED")
+            elif d_id == "D8":
+                skipped_count += 1
+                # Check if this missed job represents valuable market demand to track
+                try:
+                    score_res = score_job(job)
+                    from .market_intel import extract_tech_stack
+                    has_tech = bool(extract_tech_stack(f"{job.get('title', '')} {job.get('description', '')}"))
+                    client_rec = job.get("client_record") or job.get("client") or {}
+                    has_client_cred = (float(client_rec.get("total_spent") or 0) > 0) or (float(client_rec.get("hire_rate") or client_rec.get("hire_rate_percent") or 0) > 0)
+                    if score_res.get("score", 0) >= 40.0 or has_tech or has_client_cred:
+                        status_tag = "MISSED_WINDOW"
+                        d_str = str(d_reason or "").lower()
+                        if "competition" in d_str:
+                            status_tag = "HIGH_COMPETITION"
+                        elif "interviewing" in d_str or "invites" in d_str:
+                            status_tag = "INTERVIEWING"
+                        intel_eng.record_job(job, status_override=status_tag)
+                        logger.info(f"📈 [D8 Trend Captured] '{jtitle}' cataloged as {status_tag}")
+                except Exception as intel_err:
+                    logger.debug(f"D8 intel capture note for {jid}: {intel_err}")
             else:
                 skipped_count += 1
         else:

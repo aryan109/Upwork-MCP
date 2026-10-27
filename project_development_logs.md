@@ -914,3 +914,49 @@
      - Enforced `no_em_dash` check across both `cover_letter` and all `answers` in `ProposalDrafter.self_check_draft()`.
      - Sanitized all 36 stored drafts in `jobs.json`, marked job `2114366496356934763` as `submitted`, and added unit tests (`test_sanitize_no_em_dash_and_zero_em_dash_guarantee` and `test_telegram_view_draft_and_approve_callback_buttons`) in `test_monthly_strategy.py`.
 
+## [2026-10-27 07:10 IST] - Daily Market Demand & Trends Intelligence Engine + Automated Notion Publishing
+
+- **User Request**:
+  1. Capture and retain details of high-signal jobs even when we missed the chance to apply (e.g. missed 1h window, high competition, interviewing) so we track macro market trends and what clients are actively requesting.
+  2. Build an automated system that compiles a comprehensive daily report detailing:
+     - What things are in demand (technologies, frameworks, frequency, market share, demand velocity, average hourly & median fixed pricing, primary use cases, surging keywords).
+     - What people are requesting (project archetypes, concrete deliverables, verbatim client pain points/friction quotes).
+     - Trends observed (macro shifts like prompt engineering -> tool-calling with MCP, prototype demo trap -> evaluation engineering, self-hosted n8n migration, hiring velocity).
+     - Strategic action plan for Aryan (recommended headline, active tags, proof asset/Loom to build today, 3 ready-to-use proposal hooks).
+  3. Publish this report daily to Notion (both the live Knowledge Base page and a dated daily subpage `📊 Market Demand & Trends — YYYY-MM-DD`).
+
+- **Architecture & Implementation Details**:
+  1. **High-Signal & Missed Opportunities Ingestion (`aryan_implementation/engine/hourly_runner.py`)**:
+     - Updated qualification loop: When a job is disqualified under rule `D8` (missed 1h first-mover window, high competition >= 20, or client already interviewing), it is evaluated for technical fit against Aryan's core tech stack.
+     - Automatically catalogs these qualified missed jobs into `MarketIntelEngine` with specific status overrides (`MISSED_WINDOW`, `HIGH_COMPETITION`, `INTERVIEWING`) instead of discarding them.
+     - Backfilled 23 high-value D8 jobs into `market_intelligence.json`.
+  2. **Expanded Tech Stack Tracking (`aryan_implementation/engine/market_intel.py`)**:
+     - Expanded `TECH_KEYWORDS` regex dictionary to capture: Claude Code, Vibe Coding, Voice AI (LiveKit, ElevenLabs, Vapi, Retell), LangGraph, DeepSeek, Local LLM / Ollama, WhatsApp, Telegram, Shopify, GoHighLevel, Docker, AWS, and Cloudflare.
+  3. **Market Demand & Trends Analytics Engine (`compile_market_demand_analytics`)**:
+     - Analyzes trailing 30 days of jobs across all statuses (`SELECTED`, `APPLIED`, `FILLED`, `MISSED_WINDOW`, `HIGH_COMPETITION`, `INTERVIEWING`).
+     - Computes technology frequency, market share %, and demand velocity (weekly acceleration).
+     - Calculates empirical rate metrics: average posted hourly rate, hourly ceiling, and median fixed-price budget.
+     - Groups verbatim client pain points into 5 thematic clusters:
+       - Reliability & Hallucinations (Evals, prompt drift, deterministic outputs).
+       - Tool-Calling & Integration Friction (MCP servers, REST APIs, OAuth, multi-turn contexts).
+       - Context Limits & State Management (Long documents, vector search, database schemas).
+       - Multi-Agent Orchestration & Loops (LangGraph, routing, handoffs, supervisor agents).
+       - Platform & Deployment Headaches (Self-hosted n8n, Docker, Cloudflare workers, Supabase).
+     - Extracts top concrete client deliverables and maps macro market shifts.
+  4. **Automated Daily Demand Report Generator (`generate_daily_demand_report`)**:
+     - Produces publication-grade markdown report including executive summary, tech demand matrix, project archetypes, verbatim client pain points, macro shifts, and Aryan's daily action plan.
+     - Preserves Section 5 ("High-Velocity / Rapid-Hire Niches") for backward compatibility with existing test suites.
+     - Added `record_jobs_batch()` to record jobs in bulk without redundant network calls per item.
+  5. **Automated Notion Publishing (`aryan_implementation/engine/notion_publisher.py`)**:
+     - Implemented `sync_daily_market_demand_report(date_str, report_md)`:
+       - Updates the live Market Intel Knowledge Base page (`3f197b4f-8610-81a7-b919-f430b7816837`).
+       - Creates or updates a dated child page in Notion under `NOTION_DAILY_REPORTS_PAGE_ID` (`3f197b4f-8610-81a1-ac3e-d59e9c8bf7d7`) titled `📊 Market Demand & Trends — {date_str}`.
+       - Persists daily page mappings in `aryan_implementation/engine/notion_daily_pages.json` to prevent duplicates.
+       - Updates Master Command Hub (`3f197b4f-8610-816e-8ab0-cf54ac7b3a3e`).
+  6. **Pipeline & CLI Integration**:
+     - Updated `aryan_implementation/engine/daily_report.py`: `generate_daily_report()` now triggers `generate_daily_demand_report()` and pushes both operational and market demand reports to Notion.
+     - Added CLI command `daily-demand` to `aryan_implementation/engine/cli.py` with `--date` and `--sync-notion` flags.
+  7. **Testing & Verification**:
+     - Executed full test suite (`python -m pytest aryan_implementation/tests/ -v`): 83 passed in 10.74s.
+     - Verified child page creation on Notion via REST API (Page ID `40697b4f-8610-8137-a88e-c05b0b6a7a8f` successfully published).
+
