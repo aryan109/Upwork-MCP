@@ -223,3 +223,42 @@ def test_telegram_polling_409_streak_and_recovery(tmp_path):
                 assert r_args[0] == "W9"
 
 
+def test_ensure_telegram_webhook_registration():
+    from aryan_implementation.engine.telegram_notifier import (
+        ensure_telegram_webhook,
+        DEFAULT_TELEGRAM_WEBHOOK_URL,
+    )
+
+    with patch.dict(os.environ, {"TELEGRAM_BOT_TOKEN": "123456:ABC-DEF"}):
+        # 1. When webhook is already set
+        mock_info = MagicMock()
+        mock_info.read.return_value = json.dumps({
+            "ok": True,
+            "result": {"url": DEFAULT_TELEGRAM_WEBHOOK_URL, "has_custom_certificate": False}
+        }).encode()
+        mock_info.__enter__.return_value = mock_info
+
+        with patch("urllib.request.urlopen", return_value=mock_info):
+            ok, msg = ensure_telegram_webhook()
+            assert ok is True
+            assert "already properly set" in msg
+
+        # 2. When webhook is empty and needs registration
+        mock_empty_info = MagicMock()
+        mock_empty_info.read.return_value = json.dumps({
+            "ok": True,
+            "result": {"url": ""}
+        }).encode()
+        mock_empty_info.__enter__.return_value = mock_empty_info
+
+        mock_set_ok = MagicMock()
+        mock_set_ok.read.return_value = json.dumps({"ok": True, "result": True}).encode()
+        mock_set_ok.__enter__.return_value = mock_set_ok
+
+        with patch("urllib.request.urlopen", side_effect=[mock_empty_info, mock_set_ok]):
+            ok, msg = ensure_telegram_webhook()
+            assert ok is True
+            assert "successfully registered" in msg
+
+
+

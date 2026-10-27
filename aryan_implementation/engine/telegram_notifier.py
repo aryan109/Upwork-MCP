@@ -198,6 +198,67 @@ def save_telegram_credentials(token: str, chat_id: str) -> None:
     logger.info("Saved Telegram credentials to .env and config.json")
 
 
+DEFAULT_TELEGRAM_WEBHOOK_URL = "https://upwork-engine-blush.vercel.app/api/telegram"
+
+
+def get_webhook_info(token: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    """Retrieve current Telegram webhook registration info from getWebhookInfo."""
+    bot_token = token or get_telegram_credentials()[0]
+    if not bot_token:
+        return None
+    url = f"https://api.telegram.org/bot{bot_token}/getWebhookInfo"
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            if data.get("ok"):
+                return data.get("result")
+    except Exception as e:
+        logger.debug(f"Error fetching webhook info: {e}")
+    return None
+
+
+def ensure_telegram_webhook(
+    target_url: Optional[str] = None,
+    token: Optional[str] = None,
+) -> Tuple[bool, str]:
+    """
+    Ensure Telegram Bot API webhook is registered and points to the target URL.
+    Returns (success, message).
+    """
+    bot_token = token or get_telegram_credentials()[0]
+    if not bot_token:
+        return False, "Missing TELEGRAM_BOT_TOKEN"
+
+    desired_url = target_url or os.environ.get("TELEGRAM_WEBHOOK_URL") or DEFAULT_TELEGRAM_WEBHOOK_URL
+    info = get_webhook_info(token=bot_token)
+    current_url = (info or {}).get("url", "")
+
+    if current_url == desired_url:
+        return True, f"Webhook already properly set to {desired_url}"
+
+    params = {
+        "url": desired_url,
+        "allowed_updates": json.dumps(["message", "callback_query"]),
+    }
+    secret = os.environ.get("TELEGRAM_WEBHOOK_SECRET")
+    if secret:
+        params["secret_token"] = secret
+
+    req_url = f"https://api.telegram.org/bot{bot_token}/setWebhook?{urllib.parse.urlencode(params)}"
+    try:
+        req = urllib.request.Request(req_url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            if data.get("ok"):
+                logger.info(f"Registered Telegram webhook -> {desired_url}")
+                return True, f"Webhook successfully registered to {desired_url}"
+            return False, f"setWebhook returned error: {data.get('description')}"
+    except Exception as e:
+        logger.error(f"Failed to set Telegram webhook: {e}")
+        return False, str(e)
+
+
 def send_telegram_message(
     text: str,
     parse_mode: str = "HTML",

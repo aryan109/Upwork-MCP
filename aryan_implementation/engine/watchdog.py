@@ -6,6 +6,7 @@ Returns evaluated condition dictionaries for AlertManager to sync.
 from __future__ import annotations
 
 import logging
+import os
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional
 
@@ -163,11 +164,29 @@ class WatchdogEvaluator:
 
         # W9: telegram_inbound_broken
         tg_broken = state.get("telegram_inbound_error", False)
+        inbound_mode = state.get("inbound_mode", "webhook")
+        w9_triggered = bool(tg_broken)
+        w9_msg = "Telegram inbound webhook/polling reports conflict or errors."
+        if not w9_triggered and inbound_mode == "webhook" and not os.environ.get("UPWORK_TEST_MODE") and not os.environ.get("PYTEST_CURRENT_TEST"):
+            from .telegram_notifier import get_webhook_info
+            try:
+                info = get_webhook_info()
+                if info is not None:
+                    if not info.get("url"):
+                        w9_triggered = True
+                        w9_msg = "Telegram webhook URL is empty; inline buttons cannot receive events."
+                    elif info.get("last_error_date"):
+                        last_err = info.get("last_error_message", "Webhook delivery error")
+                        w9_triggered = True
+                        w9_msg = f"Telegram webhook delivery error: {last_err}"
+            except Exception:
+                pass
+
         results["W9"] = {
-            "triggered": bool(tg_broken),
-            "message": "Telegram inbound webhook/polling reports conflict or errors.",
+            "triggered": w9_triggered,
+            "message": w9_msg,
             "severity": "WARNING",
-            "fix": "Check polling vs webhook conflict in Telegram bot settings.",
+            "fix": "Run 'python -m aryan_implementation.engine.cli setup-webhook' or check Vercel status.",
             "resolved_note": "Telegram inbound connection restored.",
         }
 

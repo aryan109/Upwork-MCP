@@ -156,6 +156,10 @@ def main() -> None:
     p_rel = subparsers.add_parser("release-lease", help="Force-release a distributed lease")
     p_rel.add_argument("resource", nargs="?", default="hunter", help="Lease resource (default: hunter)")
 
+    # setup-webhook
+    p_wh = subparsers.add_parser("setup-webhook", help="Register Telegram Webhook with Vercel endpoint")
+    p_wh.add_argument("--url", default=None, help="Custom webhook URL (default: Vercel production endpoint)")
+
     args = parser.parse_args()
 
     state_mgr = StateManager(args.state_dir)
@@ -575,6 +579,12 @@ def main() -> None:
         mgr = LeaseManager()
         ok = mgr.force_release(args.resource)
         print(f"Lease '{args.resource}' released: {ok}")
+
+    elif args.command == "setup-webhook":
+        from .telegram_notifier import ensure_telegram_webhook
+        ok, msg = ensure_telegram_webhook(target_url=args.url)
+        print(f"Telegram Webhook Registration: {'✅ Success' if ok else '❌ Failed'}")
+        print(f"Message: {msg}")
 
     elif args.command == "serve":
         try:

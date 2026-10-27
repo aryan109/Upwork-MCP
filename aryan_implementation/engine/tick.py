@@ -463,6 +463,14 @@ def run_tick(
     # 4. Synchronize alerts (raise / resend / resolve)
     alert_mgr.sync(conditions, tier=active_tier)
 
+    # 4b. Auto-heal Telegram inbound webhook registration if mode is webhook
+    if state.get("inbound_mode", "webhook") == "webhook" and not os.environ.get("UPWORK_TEST_MODE"):
+        try:
+            from .telegram_notifier import ensure_telegram_webhook
+            ensure_telegram_webhook()
+        except Exception as wh_err:
+            logger.debug(f"Webhook auto-heal check note: {wh_err}")
+
     # 5. Local tier cloud backup check (Part E)
     if active_tier == "local":
         try:

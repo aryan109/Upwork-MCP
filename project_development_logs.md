@@ -980,3 +980,32 @@
 - **Verification**:
   - Full test suite passed: 83 tests passed in 44.99s (`python -m pytest aryan_implementation/tests/ -v`).
 
+## [2026-10-27 16:30 IST] — Telegram Inbound Webhook Restoration, Automated Self-Healing & Inline Button Fix
+
+- **User Issue**:
+  - The "View draft", "Approve", and "Submit" inline keyboard buttons on the Telegram bot were unresponsive ("doing nothing").
+- **Investigation & Root Cause**:
+  - Queried Telegram Bot API `getWebhookInfo`:
+    - Result: `url: ""` (webhook was completely unset on Telegram's servers) and `pending_update_count: 2` (user button taps were stranded in Telegram's unhandled event queue).
+    - In `state.json`, `inbound_mode` was set to `"webhook"`.
+    - Because `inbound_mode == "webhook"`, the local scheduled runner deliberately skipped long-polling to avoid collisions, Railway was offline, and Telegram had no registered webhook URL. Consequently, incoming `callback_query` button taps were never forwarded to any server.
+  - Furthermore, there was no code in the engine that actively inspected or self-healed the Telegram webhook registration if it became cleared.
+- **Engine Resilience & Self-Healing Fixes**:
+  - `telegram_notifier.py`:
+    - Added `DEFAULT_TELEGRAM_WEBHOOK_URL = "https://upwork-engine-blush.vercel.app/api/telegram"`.
+    - Implemented `get_webhook_info(token)` and `ensure_telegram_webhook(target_url, token)` to inspect Telegram's registered webhook and automatically register/update it with `allowed_updates=["message", "callback_query"]` whenever it is missing or mismatched.
+  - `tick.py`:
+    - Added step 4b to `run_tick()`: when `inbound_mode == "webhook"`, automatically invokes `ensure_telegram_webhook()` on every 15-minute tick across local and cloud runners to self-heal any missing webhook registration.
+  - `watchdog.py`:
+    - Enhanced Watchdog invariant `W9` (`telegram_inbound_broken`): When `inbound_mode == "webhook"`, directly checks `get_webhook_info()`. If Telegram's webhook URL is empty or reports delivery errors (`last_error_date`), triggers `W9` with clear diagnostics.
+  - `cli.py`:
+    - Added CLI command `python -m aryan_implementation.engine.cli setup-webhook [--url URL]` to inspect and register the Telegram webhook on demand.
+  - `test_telegram_and_notion.py`:
+    - Added unit test `test_ensure_telegram_webhook_registration` covering both pre-existing and empty webhook registration states.
+- **Verification**:
+  - Registered `https://upwork-engine-blush.vercel.app/api/telegram` with Telegram Bot API (`result: true, description: "Webhook was set"`).
+  - Tested simulated `view:2115016827180425053` callback query against Vercel `/api/telegram`: returned HTTP 200 `{"ok": true, "result": {"type": "callback_query", "handled": true}}`, successfully delivering the full formatted cover letter preview with approval buttons to Telegram.
+  - Ran `python -m aryan_implementation.engine.cli setup-webhook`: returned `✅ Success: Webhook already properly set`.
+  - All **84 tests** in pytest passed cleanly.
+
+
