@@ -292,14 +292,38 @@ class TelegramBotListener:
             now_str = datetime.now().strftime("%Y-%m-%d %H:%M IST")
             if conf.get("ok"):
                 spent = conf.get("connects_spent", 16)
+                proposal_id = conf.get("proposal_id") or ""
+                if proposal_id and not str(proposal_id).startswith("prop_"):
+                    upwork_proposal_url = f"https://www.upwork.com/ab/proposals/{proposal_id}"
+                else:
+                    upwork_proposal_url = "https://www.upwork.com/ab/proposals/"
+
+                notion_url = (job.get("draft") or {}).get("notion_url")
+                notion_line = f"\n• 📝 <b>Notion Proposal Record:</b> <a href=\"{notion_url}\">Open Submitted Page</a>" if notion_url else ""
+
                 updated_text = (
                     f"✅ <b>PROPOSAL SUBMITTED ON UPWORK</b>\n\n"
                     f"<b>Job:</b> <a href=\"{job_url}\">{title}</a>\n"
                     f"<b>Submitted At:</b> {now_str}\n"
                     f"<b>Connects Spent:</b> {spent}\n"
                     f"<b>Status:</b> Live on Upwork (Approved by Aryan)\n\n"
-                    f"<i>Submission confirmed via 1-click Telegram authorization.</i>"
+                    f"🔗 <b>View Your Submission:</b>\n"
+                    f"• 🌐 <b>Upwork Active Proposals:</b> <a href=\"{upwork_proposal_url}\">Open Proposals on Upwork</a>\n"
+                    f"• 📄 <b>Original Upwork Job:</b> <a href=\"{job_url}\">Open Job Posting</a>"
+                    f"{notion_line}\n\n"
+                    f"<i>Submission confirmed &amp; live on Upwork.</i>"
                 )
+
+                confirm_keyboard = [
+                    [
+                        {"text": "🌐 View Proposal on Upwork", "url": upwork_proposal_url},
+                    ]
+                ]
+                if notion_url:
+                    confirm_keyboard[0].append({"text": "📝 View on Notion", "url": notion_url})
+                confirm_keyboard.append([{"text": "📄 Open Job Post", "url": job_url}])
+                submitted_markup = {"inline_keyboard": confirm_keyboard}
+
                 if notion_pid:
                     try:
                         from .notion_publisher import update_proposal_status
@@ -314,20 +338,46 @@ class TelegramBotListener:
                     f"<b>Error:</b> {err_msg}\n"
                     f"<i>Check console or open on Upwork.</i>"
                 )
+                submitted_markup = None
 
-            # Update original message to remove buttons
-            edit_res = telegram_api_call("editMessageText", {
+            # Update original message card in-place with submitted confirmation & direct links
+            payload: Dict[str, Any] = {
                 "chat_id": chat_id,
                 "message_id": message_id,
                 "text": updated_text,
                 "parse_mode": "HTML",
                 "disable_web_page_preview": True,
-            })
+            }
+            if submitted_markup:
+                payload["reply_markup"] = submitted_markup
+
+            edit_res = telegram_api_call("editMessageText", payload)
             if not edit_res and chat_id:
                 telegram_api_call("sendMessage", {
                     "chat_id": chat_id,
                     "text": updated_text,
                     "parse_mode": "HTML",
+                    "reply_markup": submitted_markup,
+                    "disable_web_page_preview": True,
+                })
+
+            # Also send an explicit confirmation alert to Telegram chat so phone rings with instant links
+            if conf.get("ok") and chat_id:
+                notion_part = f"👉 <a href=\"{notion_url}\">View Submitted Draft in Notion</a>\n" if notion_url else ""
+                confirmation_alert = (
+                    f"🎉 <b>Proposal Successfully Submitted to Upwork!</b>\n\n"
+                    f"<b>Job:</b> <a href=\"{job_url}\">{title}</a>\n"
+                    f"<b>Timestamp:</b> {now_str}\n\n"
+                    f"🔗 <b>Track Your Proposal:</b>\n"
+                    f"👉 <a href=\"{upwork_proposal_url}\">Open Active Proposals on Upwork</a>\n"
+                    f"{notion_part}"
+                    f"👉 <a href=\"{job_url}\">Open Original Job Posting</a>"
+                )
+                telegram_api_call("sendMessage", {
+                    "chat_id": chat_id,
+                    "text": confirmation_alert,
+                    "parse_mode": "HTML",
+                    "reply_markup": submitted_markup,
                     "disable_web_page_preview": True,
                 })
 

@@ -433,14 +433,40 @@ class NotionPublisher:
                 "title": [{"text": {"content": new_title}}]
             }
         }
+        ok_title = False
         try:
             data = json.dumps(body).encode("utf-8")
             req = urllib.request.Request(url, data=data, headers=headers, method="PATCH")
             with urllib.request.urlopen(req, timeout=15) as resp:
-                return resp.status == 200
+                ok_title = resp.status == 200
         except Exception as e:
             logger.error(f"Failed to update Notion proposal status for {page_id}: {e}")
             return False
+
+        # If submitted, also update the page content banner
+        if ok_title and new_status == "submitted":
+            try:
+                curr_md = self.get_page_markdown(clean_pid)
+                if curr_md:
+                    now_str = datetime.now().strftime("%Y-%m-%d %H:%M IST")
+                    banner = (
+                        f"> ✅ **PROPOSAL SUBMITTED TO UPWORK**\n"
+                        f"> **Submitted At:** {now_str}\n"
+                        f"> **Upwork Status:** Live & Active in Upwork proposals dashboard\n"
+                    )
+                    # Replace staging instructions callout block if present
+                    updated_md = re.sub(
+                        r"> 💡 \*\*Proposal Staging Desk\*\*:[^\n]*\n(?:>[^\n]*\n)*",
+                        banner,
+                        curr_md
+                    )
+                    if updated_md == curr_md:
+                        updated_md = f"{banner}\n---\n\n{curr_md}"
+                    self.update_page_markdown(clean_pid, updated_md)
+            except Exception as e:
+                logger.debug(f"Notion submission banner update note: {e}")
+
+        return ok_title
 
 
 def parse_staged_markdown(markdown: str) -> Dict[str, Any]:

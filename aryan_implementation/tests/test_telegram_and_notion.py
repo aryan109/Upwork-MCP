@@ -433,6 +433,23 @@ def test_telegram_approval_syncs_notion_edits(tmp_path):
     assert updated_job["draft"]["cover_letter"] == "Aryan's personalized and refined cover letter."
     assert updated_job["draft"]["answers"][0]["answer"] == "Ready immediately for full-time."
 
+    # Verify that Telegram confirmation calls were made with links to Upwork and Notion
+    edit_calls = [c for c in mock_tg.call_args_list if c[0][0] == "editMessageText"]
+    send_calls = [c for c in mock_tg.call_args_list if c[0][0] == "sendMessage"]
+    assert len(edit_calls) >= 1
+    assert len(send_calls) >= 1
+
+    edit_payload = edit_calls[0][0][1]
+    assert "https://www.upwork.com/ab/proposals" in edit_payload["text"]
+    assert "test_notion_page_abc" in edit_payload["text"]
+    assert edit_payload.get("reply_markup") is not None
+
+    send_payload = send_calls[0][0][1]
+    assert "Proposal Successfully Submitted" in send_payload["text"]
+    assert "https://www.upwork.com/ab/proposals" in send_payload["text"]
+    assert "test_notion_page_abc" in send_payload["text"]
+
+
 
 
 

@@ -1042,4 +1042,22 @@
        - `test_telegram_approval_syncs_notion_edits`: Validates that user edits in Notion are retrieved upon Telegram "Approve" button press and submitted to Upwork.
      - Executed full pytest test suite: **87 tests passed** (100% green).
 
+## [2026-10-27 16:50 IST] — Telegram 1-Click Submission Confirmation & Tracking Links
+
+- **User Request**:
+  - When "Approve and Submit" is clicked, it should approve and submit, give a confirmation in Telegram that the job has been submitted, along with a link to the page where Aryan can see that the job has been submitted.
+- **Implemented Changes**:
+  1. **Telegram Confirmation Delivery & Tracking Links (`aryan_implementation/engine/telegram_bot.py`)**:
+     - Updated `handle_callback_query` (`action == "approve"`):
+       - Modifies the original card in-place with `editMessageText`, removing outdated action buttons and replacing them with direct URL buttons:
+         - `[🌐 View Proposal on Upwork]`: Links to the submitted proposal (`https://www.upwork.com/ab/proposals/{proposal_id}` or `https://www.upwork.com/ab/proposals/`).
+         - `[📝 View on Notion]`: Links to the finalized submitted draft on Notion (`notion_url`).
+         - `[📄 Open Job Post]`: Links directly to the Upwork job posting (`https://www.upwork.com/jobs/~{clean_jid}`).
+       - Dispatches an explicit fresh confirmation message to the Telegram chat (`🎉 Proposal Successfully Submitted to Upwork!`) containing timestamp, Connects spent, and clickable tracking hyperlinks so the user's mobile device sounds a push notification.
+  2. **Notion Submitted Banner Auto-Update (`aryan_implementation/engine/notion_publisher.py`)**:
+     - Enhanced `update_proposal_status(page_id, new_status, title)`: When `new_status == "submitted"`, updates the page title to `✅ [Submitted] {title}` and replaces the top staging instructions block on the Notion page with a prominent confirmation banner (`> ✅ STATUS: PROPOSAL SUBMITTED TO UPWORK`).
+  3. **Testing & Verification**:
+     - Enhanced `test_telegram_approval_syncs_notion_edits` in `test_telegram_and_notion.py` to assert that Telegram confirmation payload includes Upwork proposal tracking URLs (`https://www.upwork.com/ab/proposals`), the Notion link, and the inline keyboard markup.
+     - All **87 unit tests** passing 100% green.
+
 
