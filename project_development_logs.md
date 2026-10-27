@@ -1061,3 +1061,28 @@
      - All **87 unit tests** passing 100% green.
 
 
+
+
+## [2026-10-27 17:12 IST] — Proposal Draft & Screening Answers Update for NEXMEN YouTube Producer
+
+- **User Request**:
+  - Update the proposal draft and screening questions for job post ~022115039526636170385 (*Claude Code Video Producer for Faceless YouTube Compilation Channel (NEXMEN) - 4 videos/week*).
+  - Include the YouTube sample video link (https://youtu.be/X3uv8QfuxGw?si=5ifGTbIxnl9J-QWk) in the response where long-form video links are requested.
+  - Explicitly inform the client that we will create a customized workflow based on their channel's exact style and content type.
+  - Set screening question answers according to instructions:
+    - *Provide links to faceless long-form videos you've made*: Include sample link and customized workflow statement alongside experience with long-form compilation workflows.
+    - *How you use Claude*: Claude Code via CLI to orchestrate topic research, compliant transformation scripts, and metadata generation.
+    - *How fast you can deliver*: Upload-ready videos within 24 hours of assignment, hitting the 4 videos/week target.
+- **Implemented Changes & State Synchronization**:
+  1. **Proposal Draft & Self-Check Validation (ryan_implementation/engine/draft.py & State)**:
+     - Updated the cover letter to reference the sample faceless long-form video link (https://youtu.be/X3uv8QfuxGw?si=5ifGTbIxnl9J-QWk), the customized workflow tailored to NEXMEN's style, and 24-hour turnaround within the 154-word ceiling.
+     - Enforced all 12 self-check rules: passed with 0 issues, 0 forbidden phrases, 0 em-dashes, and 0 exclamation marks.
+  2. **Screening Questions Updated**:
+     - Updated Question 1 (*Provide links to faceless long-form videos you've made*) with the YouTube link and customized workflow statement (<55 words).
+     - Updated Question 2 (*How you use Claude*) and Question 3 (*How fast you can deliver*) strictly aligned with client requirements.
+  3. **State & Notion Synchronization (StateManager & 
+otion_publisher.py)**:
+     - Persisted updated draft into local jobs.json and synchronized state to GitHub state store via CAS.
+     - Published the staging card to Notion Proposal Staging Desk at https://app.notion.com/p/40697b4f861081da9255da773a081602 and bound 
+otion_page_id and 
+otion_url to the job record.
