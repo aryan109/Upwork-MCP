@@ -1086,3 +1086,19 @@ otion_publisher.py)**:
      - Published the staging card to Notion Proposal Staging Desk at https://app.notion.com/p/40697b4f861081da9255da773a081602 and bound 
 otion_page_id and 
 otion_url to the job record.
+
+
+## [2026-10-27 17:19 IST] — Claude Setup Phrasing Refinement (NEXMEN Proposal)
+
+- **User Request**:
+  - Remove CLI references from the proposal and screening answers.
+  - Mention Claude Code or Claude Desktop.
+  - State that Claude Code will be provided by the client and customarily configured for them so they have complete control over prompts, assets, and project files.
+- **Implemented Changes & State Synchronization**:
+  1. **Proposal Draft & Self-Check Validation**:
+     - Updated cover letter to state: *'I will deploy a custom workflow using Claude Code or Claude Desktop to orchestrate topic scoring... Claude Code will be provided by you and customarily set up for your channel so you retain complete control over prompts and outputs.'* (177 words, 12-point self-check: PASSED with 0 issues).
+  2. **Screening Question 2 Updated**:
+     - *How you use Claude*: *'I use Claude Code or Claude Desktop to orchestrate topic research, draft compliant transformation scripts with real commentary, and generate optimized metadata. Claude Code will be provided by you and customarily configured so you have complete control over every workflow step.'* (41 words).
+  3. **State & Notion Synchronization**:
+     - Persisted to local jobs.json and synchronized state to GitHub store via CAS.
+     - Updated Notion page 40697b4f-8610-81da-9255-da773a081602 markdown on the Proposal Staging Desk.
