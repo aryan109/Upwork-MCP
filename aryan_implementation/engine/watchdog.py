@@ -28,14 +28,30 @@ class WatchdogEvaluator:
         results: Dict[str, Dict[str, Any]] = {}
 
         state, _ = self.backend.read_json("state.json")
+        backend_auth_failed = getattr(self.backend, "auth_failed", False)
         if not state:
             state = {}
+
+        # W6: store_unreachable / store_auth_failed
+        w6_triggered = bool(backend_auth_failed)
+        w6_msg = getattr(self.backend, "last_error", "") or "Shared state backend authentication failed (HTTP 401/403)."
+        results["W6"] = {
+            "triggered": w6_triggered,
+            "message": w6_msg if w6_triggered else "Shared state backend reachable.",
+            "severity": "CRITICAL" if w6_triggered else "WARNING",
+            "fix": "Update STATE_REPO_TOKEN with a valid GitHub Personal Access Token in .env and Vercel environment variables.",
+            "resolved_note": "Shared store accessible and authenticated.",
+        }
 
         # W1: hunter_silent (no healthy pass in 35 min)
         last_success = state.get("last_success_at")
         w1_triggered = False
         w1_msg = ""
-        if last_success:
+        if w6_triggered and not last_success:
+            # Suppress cascading W1 false alarm if state could not be loaded due to store auth failure
+            w1_triggered = False
+            w1_msg = "State store unreachable; hunter silence evaluation deferred to W6."
+        elif last_success:
             try:
                 dt = datetime.fromisoformat(last_success.replace("Z", "+00:00"))
                 elapsed_mins = (now_utc - dt).total_seconds() / 60.0
@@ -109,14 +125,7 @@ class WatchdogEvaluator:
             "resolved_note": "Candidates discovered again in recent pass.",
         }
 
-        # W6: store_unreachable
-        # If we reached this point, backend read succeeded, so False unless flagged
-        results["W6"] = {
-            "triggered": False,
-            "message": "Shared state backend reachable.",
-            "severity": "WARNING",
-            "resolved_note": "Shared store accessible.",
-        }
+        # W6 evaluated above before W1 to guard cascading silence alerts
 
         # W7: version_skew (tiers on different commits > 1h)
         commits_seen = {}

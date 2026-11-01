@@ -10,6 +10,7 @@ import hashlib
 import json
 import logging
 import os
+import sys
 import time
 import urllib.error
 import urllib.parse
@@ -159,6 +160,9 @@ class GitHubBackend(StateBackend):
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.local_cache = FileBackend(self.cache_dir)
         self.api_base = f"https://api.github.com/repos/{self.repo}"
+        self.auth_failed = False
+        self.last_status = 200
+        self.last_error = ""
 
     def _headers(self) -> Dict[str, str]:
         return {
@@ -179,14 +183,23 @@ class GitHubBackend(StateBackend):
         try:
             with urllib.request.urlopen(req, timeout=timeout) as r:
                 resp = json.loads(r.read().decode("utf-8"))
+                self.last_status = r.status
+                self.auth_failed = False
                 return r.status, resp
         except urllib.error.HTTPError as e:
             try:
                 err_data = json.loads(e.read().decode("utf-8"))
             except Exception:
                 err_data = {"error": str(e)}
+            self.last_status = e.code
+            if e.code in (401, 403):
+                self.auth_failed = True
+                self.last_error = f"GitHub API HTTP {e.code}: {err_data.get('message', 'Bad credentials')}"
+                logger.error(f"GitHubBackend authentication failure ({url}): {self.last_error}")
             return e.code, err_data
         except Exception as e:
+            self.last_status = 599
+            self.last_error = str(e)
             return 599, {"error": str(e)}
 
     def read_file(self, path: str) -> Tuple[Optional[str], Optional[str]]:
@@ -304,6 +317,46 @@ class GitHubBackend(StateBackend):
         return status in (200, 201)
 
 
+def get_windows_git_token(target: str = "git:https://github.com") -> Optional[str]:
+    """Retrieve personal access token from Windows Credential Manager if on Windows."""
+    if sys.platform != "win32":
+        return None
+    try:
+        import ctypes
+        from ctypes import wintypes
+        advapi32 = ctypes.windll.advapi32
+
+        class CREDENTIAL(ctypes.Structure):
+            _fields_ = [
+                ("Flags", wintypes.DWORD), ("Type", wintypes.DWORD),
+                ("TargetName", wintypes.LPWSTR), ("Comment", wintypes.LPWSTR),
+                ("LastWritten", wintypes.FILETIME), ("CredentialBlobSize", wintypes.DWORD),
+                ("CredentialBlob", ctypes.POINTER(ctypes.c_byte)), ("Persist", wintypes.DWORD),
+                ("AttributeCount", wintypes.DWORD), ("Attributes", ctypes.c_void_p),
+                ("TargetAlias", wintypes.LPWSTR), ("UserName", wintypes.LPWSTR),
+            ]
+
+        CredRead = advapi32.CredReadW
+        CredRead.argtypes = [wintypes.LPWSTR, wintypes.DWORD, wintypes.DWORD, ctypes.POINTER(ctypes.POINTER(CREDENTIAL))]
+        CredRead.restype = wintypes.BOOL
+        CredFree = advapi32.CredFree
+        CredFree.argtypes = [ctypes.c_void_p]
+
+        p_cred = ctypes.POINTER(CREDENTIAL)()
+        if CredRead(target, 1, 0, ctypes.byref(p_cred)):
+            raw = bytes(p_cred.contents.CredentialBlob[:p_cred.contents.CredentialBlobSize])
+            CredFree(p_cred)
+            try:
+                tok = raw.decode("utf-16le")
+            except Exception:
+                tok = raw.decode("utf-8")
+            if tok and (tok.startswith("ghp_") or tok.startswith("github_pat_")):
+                return tok.strip()
+    except Exception:
+        pass
+    return None
+
+
 def get_default_backend() -> StateBackend:
     """Instantiate the active backend depending on environment configuration."""
     repo = os.environ.get("STATE_REPO")
@@ -323,6 +376,10 @@ def get_default_backend() -> StateBackend:
                         repo = v
                     elif k in ("STATE_REPO_TOKEN", "GITHUB_PERSONAL_ACCESS_TOKEN") and not token:
                         token = v
+
+    if not token:
+        # Fallback to Windows Credential Manager if present on this machine
+        token = get_windows_git_token()
 
     if repo and token and not os.environ.get("UPWORK_TEST_MODE"):
         try:

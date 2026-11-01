@@ -353,7 +353,13 @@ class UpworkOAuthManager:
             elif res.get("error") == "refresh_blocked":
                 logger.info("Engine token refresh deferred (lease not held); using current access token")
             elif token_data.get("owner") == "engine":
-                logger.error("Engine token refresh failed: %s", res.get("error"))
+                err_str = str(res.get("error") or "")
+                logger.error("Engine token refresh failed: %s", err_str)
+                if "Refresh token reuse detected" in err_str or "invalid_request" in err_str:
+                    logger.info("Attempting auto-recovery of Upwork OAuth credentials from IDE token file...")
+                    reseeded = self.reseed_from_ide_file()
+                    if reseeded and reseeded.get("access_token"):
+                        token_data = reseeded
 
         token = token_data.get("access_token") or ""
         if not token:
